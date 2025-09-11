@@ -1,4 +1,5 @@
 import React from "react";
+import {  Stack} from "expo-router";
 import {
   View,
   Text,
@@ -24,6 +25,7 @@ export default function HomePage() {
         style={styles.gradientContainer}
       >
         <View style={styles.container}>
+            <Stack.Screen options={{ headerShown: false }} />
           {/* Header Section */}
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
