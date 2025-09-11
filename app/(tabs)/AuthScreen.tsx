@@ -1,11 +1,13 @@
 import { View, Text, Button, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function AuthScreen() {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Choose Your Role</Text>
 
-      <Button title="Doctor Login / Register" onPress={() => {}} />
+      <Button title="Doctor Login / Register" onPress={() => router.push("/auth/doctor")} />
       <Button title="Patient Login / Register" onPress={() => {}} />
       <Button title="Pharmacy Login / Register" onPress={() => {}} />
     </View>

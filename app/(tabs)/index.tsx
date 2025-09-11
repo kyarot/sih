@@ -16,12 +16,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
         <Stack.Navigator initialRouteName="Home">
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Auth" component={AuthScreen} />
         </Stack.Navigator>
-      </NavigationContainer>
       <StatusBar style="auto" />
     </SafeAreaProvider>
   );
