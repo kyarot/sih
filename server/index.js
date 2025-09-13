@@ -3,8 +3,10 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
+import pharmacyRoutes from "./routes/pharmacies.js";
 import patientRoutes from "./routes/patients.js";
-
+import doctorRoutes from "./routes/doctors.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js";
 dotenv.config();
 const app = express();
 
@@ -20,6 +22,13 @@ mongoose
 
 // Routes
 app.use("/api/patients", patientRoutes);
+app.use("/api/pharmacies", pharmacyRoutes);
+app.use("/api/doctors", doctorRoutes);
+app.use("/api/appointments", appointmentRoutes);
+// Health check route (optional, for debugging)
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -13,6 +13,8 @@ import {
   Platform,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 // ✅ Firebase compat (needed for Recaptcha)
 import firebase from "firebase/compat/app";
@@ -55,26 +57,29 @@ export default function PatientAuth() {
 
   // ---------------- MongoDB API Call ----------------
   const saveToMongoDB = async ({
-    uid,
-    code,
-    email,
-    phone,
-  }: {
-    uid: string;
-    code: string;
-    email?: string;
-    phone?: string;
-  }) => {
-    try {
-      await fetch("http://localhost:5000/api/patients/register-patient", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, code, email, phone }),
-      });
-    } catch (err) {
-      console.error("MongoDB save error:", err);
-    }
-  };
+  uid,
+  code,
+  accountId,
+  email,
+  phone,
+}: {
+  uid: string;
+  code: string;
+  accountId: string;
+  email?: string;
+  phone?: string;
+}) => {
+  try {
+    await fetch("http://localhost:5000/api/patients/register-patient", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid, code, accountId, email, phone }),
+    });
+  } catch (err) {
+    console.error("MongoDB save error:", err);
+  }
+};
+
 
   // ---------------- Signup (Phone or Email) ----------------
   const handleSignup = async () => {
@@ -104,11 +109,12 @@ export default function PatientAuth() {
           await Clipboard.setStringAsync(code);
 
           // Save in MongoDB
-          await saveToMongoDB({
-            uid: result.user?.uid!,
-            code,
-            phone,
-          });
+         await saveToMongoDB({
+  uid: result.user?.uid!, // profile uid
+  code,
+  accountId: result.user?.uid!, // 🔑 main account id
+  phone,
+});
 
           Alert.alert(
             "Signup Success 🎉",
@@ -132,10 +138,11 @@ export default function PatientAuth() {
         await Clipboard.setStringAsync(code);
 
         await saveToMongoDB({
-          uid: result.user?.uid!,
-          code,
-          email,
-        });
+  uid: result.user?.uid!,
+  code,
+  accountId: result.user?.uid!, // 🔑 main account id
+  email,
+});
 
         Alert.alert(
           "Signup Success 🎉",
@@ -151,17 +158,39 @@ export default function PatientAuth() {
   };
 
   // ---------------- Login with Patient Code ----------------
-  const handleLogin = async () => {
-    if (!patientCode) return Alert.alert("Error", "Enter your Patient Code");
+  // ---------------- Login with Patient Code ----------------
+const handleLogin = async () => {
+  if (!patientCode) return Alert.alert("Error", "Enter your Patient Code");
 
-    try {
-      // In a real app, you’d verify patientCode with your MongoDB
-      // For now we just redirect
-      router.push("/patient/home");
-    } catch (err: any) {
-      Alert.alert("Login Error", err.message);
-    }
-  };
+  try {
+    // Ideally verify patientCode with MongoDB and fetch patient record
+    const res = await fetch(`http://localhost:5000/api/patients/${patientCode}`);
+const data = await res.json();
+
+if (!data.success || !data.patient) {
+  return Alert.alert("Login Error", "Invalid Patient Code");
+}
+
+const patient = data.patient; // ✅ extract actual patient object
+
+// Save locally
+await AsyncStorage.setItem("currentPatient", JSON.stringify(patient));
+
+console.log("Patient from backend:", patient);
+console.log("Navigating to:", patient._id);
+
+router.push({
+  pathname: "/patient/home/[id]",
+  params: { id: patient._id },
+});
+
+
+
+  } catch (err: any) {
+    Alert.alert("Login Error", err.message);
+  }
+};
+
 
   // ---------------- UI ----------------
   return (
