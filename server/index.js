@@ -1,12 +1,13 @@
-import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import express from "express";
+import mongoose from "mongoose";
 
-import pharmacyRoutes from "./routes/pharmacies.js";
-import patientRoutes from "./routes/patients.js";
+
+import router from "./routes/appointmentRoutes.js";
 import doctorRoutes from "./routes/doctors.js";
-import appointmentRoutes from "./routes/appointmentRoutes.js";
+import patientRoutes from "./routes/patients.js";
+import pharmacyRoutes from "./routes/pharmacies.js";
 dotenv.config();
 const app = express();
 
@@ -21,10 +22,11 @@ mongoose
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
 // Routes
+
 app.use("/api/patients", patientRoutes);
 app.use("/api/pharmacies", pharmacyRoutes);
 app.use("/api/doctors", doctorRoutes);
-app.use("/api/appointments", appointmentRoutes);
+app.use("/api/appointments", router);
 // Health check route (optional, for debugging)
 app.get("/", (req, res) => {
   res.send("API is running...");

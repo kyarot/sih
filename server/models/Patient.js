@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const patientSchema = new mongoose.Schema(
   {
     uid: { type: String, required: true, unique: true }, // unique per profile
-    code: { type: String, required: true, unique: true }, // patient code
+    code: { type: String, required: true, unique : false }, // patient code
     accountId: { type: String, required: true }, // main Firebase UID
 
     // Basic info (filled later in profile)

@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
-  View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 export default function DoctorAuth() {
   const router = useRouter();
@@ -33,8 +34,13 @@ export default function DoctorAuth() {
 
       const data = await res.json();
       if (data.success) {
+        // Save doctor data locally
+        await AsyncStorage.setItem("doctorId", data.doctor._id);
+        await AsyncStorage.setItem("doctorName", data.doctor.name);
+        await AsyncStorage.setItem("specialization", data.doctor.specialization);
+
         Alert.alert("Success", "Login successful");
-        router.replace("/doctor"); // redirect to doctor page
+        router.replace("/doctor/");
       } else {
         Alert.alert("Error", data.message || "Invalid key");
       }

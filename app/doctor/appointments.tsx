@@ -1,80 +1,239 @@
-import React from "react";
+// appointments.tsx
+// Doctor appointments screen (expand/collapse + detailed info + accept/reject)
+
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
-const ActivityScreen = () => {
-  const activities = [
-    { id: 1, type: "appointment", message: "New appointment with Sarah", time: "10:30 AM" },
-    { id: 2, type: "report", message: "Blood report uploaded by John Doe", time: "9:15 AM" },
-    { id: 3, type: "payment", message: "Payment received from Alice", time: "Yesterday" },
-    { id: 4, type: "cancel", message: "David canceled his appointment", time: "Yesterday" },
-  ];
+type Appointment = {
+  _id?: string;
+  patientId?: any;
+  patientName?: string;
+  patientAge?: number | string;
+  patientGender?: string;
+  symptomsDescription?: string;
+  symptomDuration?: string;
+  symptomSeverity?: string;
+  requestedDate?: string;
+  requestedTime?: string;
+  decision?: "pending" | "accepted" | "later" | "declined" | "completed" | "missed" | string;
+  scheduledDateTime?: string | Date | null;
+  videoLink?: string;
+  reason?: string;
+};
 
-  const reminders = [
-    { id: 1, task: "Consultation with Sarah", time: "11:00 AM" },
-    { id: 2, task: "Follow-up with John", time: "2:00 PM" },
-    { id: 3, task: "Team meeting", time: "5:00 PM" },
-  ];
+const ActivityScreen: React.FC = () => {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const fetchAppointments = async () => {
+    const storedDoctorId = await AsyncStorage.getItem("doctorId");
+    if (!storedDoctorId) {
+      console.error("❌ Doctor ID missing. Cannot fetch appointments.");
+      setLoading(false);
+      return;
+    }
+    setDoctorId(storedDoctorId);
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/appointments/doctor/${storedDoctorId}`);
+      const data = await res.json();
+      console.log("✅ Appointments:", data);
+      setAppointments(data || []);
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const refresh = async () => {
+    if (!doctorId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/appointments/doctor/${doctorId}`);
+      const data = await res.json();
+      setAppointments(data || []);
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecision = async (id: string, decision: "accepted" | "declined" | "later") => {
+    try {
+      let scheduledDateTime: Date | null = null;
+
+      if (decision === "accepted") {
+        if (Platform.OS === "web") {
+          const input = window.prompt("Enter scheduled date & time (e.g. 2025-09-14 15:30). Leave blank for +30 min.");
+          if (input && input.trim()) {
+            const parsed = new Date(input);
+            if (!isNaN(parsed.getTime())) {
+              scheduledDateTime = parsed;
+            } else {
+              const alt = new Date(input.replace(" ", "T"));
+              scheduledDateTime = isNaN(alt.getTime()) ? null : alt;
+            }
+          }
+          if (!scheduledDateTime) {
+            scheduledDateTime = new Date(new Date().getTime() + 30 * 60000);
+          }
+        } else {
+          scheduledDateTime = new Date(new Date().getTime() + 30 * 60000);
+        }
+      }
+
+      await fetch(`http://localhost:5000/api/appointments/${id}/decision`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision, scheduledDateTime }),
+      });
+
+      await refresh();
+
+      if (decision === "accepted") {
+        Platform.OS === "web"
+          ? alert("Appointment accepted and scheduled.")
+          : Alert.alert("Accepted", "Appointment accepted and scheduled.");
+      }
+    } catch (err) {
+      console.error("❌ Decision error:", err);
+      Platform.OS === "web"
+        ? alert("Failed to update decision.")
+        : Alert.alert("Error", "Failed to update decision.");
+    }
+  };
+
+  const isJoinEnabled = (appt: Appointment) => {
+    if (!appt.scheduledDateTime) return false;
+    try {
+      const scheduled = new Date(appt.scheduledDateTime as any);
+      return new Date() >= scheduled;
+    } catch {
+      return false;
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
-      {/* Activity Feed */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⚡ Recent Activities</Text>
-        {activities.map((act) => (
-          <View key={act.id} style={styles.activityCard}>
-            <Ionicons
-              name={
-                act.type === "appointment"
-                  ? "calendar-outline"
-                  : act.type === "report"
-                  ? "document-text-outline"
-                  : act.type === "payment"
-                  ? "cash-outline"
-                  : "close-circle-outline"
-              }
-              size={24}
-              color="#2563eb"
-              style={{ marginRight: 10 }}
-            />
-            <View>
-              <Text style={styles.activityText}>{act.message}</Text>
-              <Text style={styles.activityTime}>{act.time}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
+        <Text style={styles.sectionTitle}>⚡ Doctor's Appointments</Text>
 
-      {/* Reminders */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⏰ Today's Reminders</Text>
-        {reminders.map((rem) => (
-          <View key={rem.id} style={styles.reminderCard}>
-            <MaterialIcons name="alarm" size={20} color="#f59e0b" />
-            <Text style={styles.reminderText}>
-              {rem.task} - {rem.time}
-            </Text>
-          </View>
-        ))}
-      </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#2563eb" />
+        ) : appointments.length === 0 ? (
+          <Text style={styles.emptyText}>No appointments found</Text>
+        ) : (
+          appointments.map((appt: Appointment) => {
+            const isOpen = expanded === appt._id;
+            return (
+              <View key={appt._id} style={styles.activityCard}>
+                {/* Collapsed Header */}
+                <TouchableOpacity
+                  style={styles.cardHeader}
+                  onPress={() => setExpanded(isOpen ? null : appt._id!)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.activityText}>
+                      {appt.patientName ?? appt.patientId?.name ?? "Unknown Patient"}
+                    </Text>
+                    <Text style={styles.activitySub}>
+                      Age: {appt.patientAge ?? "-"} | Symptom: {appt.symptomsDescription ?? "-"}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={isOpen ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#444"
+                  />
+                </TouchableOpacity>
 
-      {/* Quick Actions */}
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Ionicons name="notifications-outline" size={20} color="white" />
-          <Text style={styles.actionText}> View Notifications</Text>
-        </TouchableOpacity>
+                {/* Expanded Details */}
+                {isOpen && (
+                  <View style={styles.expandedContent}>
+                    <Text style={styles.detailText}>
+                      Gender: {appt.patientGender ?? "-"}
+                    </Text>
+                    <Text style={styles.detailText}>
+                      Symptom Severity: {appt.symptomSeverity ?? "-"}
+                    </Text>
+                    <Text style={styles.detailText}>
+                      Duration: {appt.symptomDuration ?? "-"}
+                    </Text>
+                    <Text style={styles.detailText}>
+                      Requested: {appt.requestedDate ?? "-"} at {appt.requestedTime ?? "-"}
+                    </Text>
 
-        <TouchableOpacity style={styles.actionBtn}>
-          <Ionicons name="add-circle-outline" size={20} color="white" />
-          <Text style={styles.actionText}> Add Task</Text>
-        </TouchableOpacity>
+                    {appt.decision === "accepted" && appt.scheduledDateTime && (
+                      <Text style={styles.detailText}>
+                        Scheduled: {new Date(appt.scheduledDateTime as any).toLocaleString()}
+                      </Text>
+                    )}
+
+                    {appt.decision === "pending" ? (
+                      <View style={styles.actionsRow}>
+                        <TouchableOpacity
+                          style={[styles.decisionBtn, { backgroundColor: "#22c55e" }]}
+                          onPress={() => handleDecision(appt._id!, "accepted")}
+                        >
+                          <Text style={styles.btnText}>Accept</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.decisionBtn, { backgroundColor: "#ef4444" }]}
+                          onPress={() => handleDecision(appt._id!, "declined")}
+                        >
+                          <Text style={styles.btnText}>Reject</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : appt.decision === "accepted" ? (
+                      <View style={{ alignItems: "center", marginTop: 10 }}>
+                        <TouchableOpacity
+                          style={[
+                            styles.joinBtn,
+                            { backgroundColor: isJoinEnabled(appt) ? "#2563eb" : "gray" },
+                          ]}
+                          disabled={!isJoinEnabled(appt)}
+                          onPress={() => {
+                            if (appt.videoLink) {
+                              Linking.openURL(appt.videoLink);
+                            } else {
+                              Alert.alert("No link", "No video link is available for this appointment.");
+                            }
+                          }}
+                        >
+                          <Text style={styles.btnText}>Join Now</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <Text style={{ color: "gray", marginTop: 6 }}>
+                        Decision: {appt.decision}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })
+        )}
       </View>
     </ScrollView>
   );
@@ -84,49 +243,17 @@ export default ActivityScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9f9f9", padding: 15 },
-
-  section: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
+  section: { backgroundColor: "white", padding: 15, borderRadius: 12, marginBottom: 15, elevation: 2 },
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
-
-  activityCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f1f5ff",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  activityText: { fontSize: 14, fontWeight: "500" },
-  activityTime: { fontSize: 12, color: "gray" },
-
-  reminderCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff7ed",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  reminderText: { marginLeft: 8, fontSize: 14, fontWeight: "500" },
-
-  actions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2563eb",
-    padding: 12,
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  actionText: { color: "white", fontWeight: "bold" },
+  activityCard: { backgroundColor: "#f1f5ff", borderRadius: 10, marginBottom: 12 },
+  cardHeader: { flexDirection: "row", alignItems: "center", padding: 12 },
+  activityText: { fontSize: 15, fontWeight: "600", marginBottom: 2 },
+  activitySub: { fontSize: 13, color: "gray" },
+  expandedContent: { paddingHorizontal: 12, paddingBottom: 12 },
+  detailText: { fontSize: 13, marginTop: 4, color: "#333" },
+  emptyText: { textAlign: "center", color: "gray", marginTop: 10 },
+  actionsRow: { flexDirection: "row", marginTop: 10 },
+  decisionBtn: { flex: 1, padding: 10, borderRadius: 8, marginHorizontal: 4, alignItems: "center" },
+  joinBtn: { marginTop: 8, padding: 10, borderRadius: 8, alignItems: "center", width: "100%" },
+  btnText: { color: "white", fontWeight: "bold" },
 });

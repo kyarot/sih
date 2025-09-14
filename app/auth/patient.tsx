@@ -1,25 +1,24 @@
-import { useState, useRef } from "react";
-import { useRouter, Stack } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
+import { Stack, useRouter } from "expo-router";
+import { useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
   Alert,
-  TouchableOpacity,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 
 // ✅ Firebase compat (needed for Recaptcha)
+import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 
 // ---------------- Firebase Config ----------------
 const firebaseConfig = {
@@ -38,7 +37,7 @@ export default function PatientAuth() {
   const router = useRouter();
 
   const [isLogin, setIsLogin] = useState(true);
-  const [usePhone, setUsePhone] = useState(true); // default → phone signup for rural patients
+  const [usePhone, setUsePhone] = useState(true);
 
   // States
   const [name, setName] = useState("");
@@ -52,36 +51,36 @@ export default function PatientAuth() {
 
   const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
 
-  // Generate Patient Code
-  const generatePatientCode = () => "PAT-" + uuidv4().slice(0, 8).toUpperCase();
+  // Generate Family Patient Code
+  const generatePatientCode = () =>
+    "PAT-" + uuidv4().slice(0, 8).toUpperCase();
 
   // ---------------- MongoDB API Call ----------------
   const saveToMongoDB = async ({
-  uid,
-  code,
-  accountId,
-  email,
-  phone,
-}: {
-  uid: string;
-  code: string;
-  accountId: string;
-  email?: string;
-  phone?: string;
-}) => {
-  try {
-    await fetch("http://localhost:5000/api/patients/register-patient", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid, code, accountId, email, phone }),
-    });
-  } catch (err) {
-    console.error("MongoDB save error:", err);
-  }
-};
+    uid,
+    code,
+    accountId,
+    email,
+    phone,
+  }: {
+    uid: string;
+    code: string;
+    accountId: string;
+    email?: string;
+    phone?: string;
+  }) => {
+    try {
+      await fetch("http://localhost:5000/api/patients/register-patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, code, accountId, email, phone }),
+      });
+    } catch (err) {
+      console.error("MongoDB save error:", err);
+    }
+  };
 
-
-  // ---------------- Signup (Phone or Email) ----------------
+  // ---------------- Signup ----------------
   const handleSignup = async () => {
     setLoading(true);
     try {
@@ -108,13 +107,13 @@ export default function PatientAuth() {
           setPatientCode(code);
           await Clipboard.setStringAsync(code);
 
-          // Save in MongoDB
-         await saveToMongoDB({
-  uid: result.user?.uid!, // profile uid
-  code,
-  accountId: result.user?.uid!, // 🔑 main account id
-  phone,
-});
+          // Save in MongoDB (family-level record)
+          await saveToMongoDB({
+            uid: code, // 🔑 family UID is PAT-XXXX
+            code,
+            accountId: result.user?.uid!,
+            phone,
+          });
 
           Alert.alert(
             "Signup Success 🎉",
@@ -138,11 +137,11 @@ export default function PatientAuth() {
         await Clipboard.setStringAsync(code);
 
         await saveToMongoDB({
-  uid: result.user?.uid!,
-  code,
-  accountId: result.user?.uid!, // 🔑 main account id
-  email,
-});
+          uid: code, // 🔑 family UID is PAT-XXXX
+          code,
+          accountId: result.user?.uid!,
+          email,
+        });
 
         Alert.alert(
           "Signup Success 🎉",
@@ -158,39 +157,36 @@ export default function PatientAuth() {
   };
 
   // ---------------- Login with Patient Code ----------------
-  // ---------------- Login with Patient Code ----------------
-const handleLogin = async () => {
-  if (!patientCode) return Alert.alert("Error", "Enter your Patient Code");
+  const handleLogin = async () => {
+    if (!patientCode) return Alert.alert("Error", "Enter your Patient Code");
 
-  try {
-    // Ideally verify patientCode with MongoDB and fetch patient record
-    const res = await fetch(`http://localhost:5000/api/patients/${patientCode}`);
-const data = await res.json();
+    try {
+      // Verify with backend
+      const res = await fetch(
+        `http://localhost:5000/api/patients/${patientCode}`
+      );
+      const data = await res.json();
 
-if (!data.success || !data.patient) {
-  return Alert.alert("Login Error", "Invalid Patient Code");
-}
+      if (!data.success || !data.patient) {
+        return Alert.alert("Login Error", "Invalid Patient Code");
+      }
 
-const patient = data.patient; // ✅ extract actual patient object
+      const family = data.patient; // ✅ family object
 
-// Save locally
-await AsyncStorage.setItem("currentPatient", JSON.stringify(patient));
+      // Save locally
+      await AsyncStorage.setItem("currentPatientFamily", JSON.stringify(family));
 
-console.log("Patient from backend:", patient);
-console.log("Navigating to:", patient._id);
+      console.log("Family from backend:", family);
 
-router.push({
-  pathname: "/patient/home/[id]",
-  params: { id: patient._id },
-});
-
-
-
-  } catch (err: any) {
-    Alert.alert("Login Error", err.message);
-  }
-};
-
+      // Navigate using UID (PAT-XXXX), not _id
+      router.push({
+        pathname: "/patient/home/[id]",
+        params: { id: family.uid }, // ✅ use uid (PAT-XXXX)
+      });
+    } catch (err: any) {
+      Alert.alert("Login Error", err.message);
+    }
+  };
 
   // ---------------- UI ----------------
   return (
@@ -230,14 +226,11 @@ router.push({
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Enter Patient Code"
+              placeholder="Enter Patient Code (PAT-XXXX)"
               value={patientCode}
               onChangeText={setPatientCode}
             />
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleLogin}
-            >
+            <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
               <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
           </View>
@@ -279,7 +272,6 @@ router.push({
                   </Text>
                 </TouchableOpacity>
 
-                {/* Link to Email Signup */}
                 <TouchableOpacity onPress={() => setUsePhone(false)}>
                   <Text style={styles.linkText}>
                     Prefer Email? Sign up with Email
@@ -310,7 +302,6 @@ router.push({
                   <Text style={styles.buttonText}>Sign Up with Email</Text>
                 </TouchableOpacity>
 
-                {/* Link to Phone Signup */}
                 <TouchableOpacity onPress={() => setUsePhone(true)}>
                   <Text style={styles.linkText}>
                     Prefer Phone? Sign up with Phone
@@ -362,13 +353,4 @@ const styles = StyleSheet.create({
     color: "#2563EB",
     textAlign: "center",
   },
-  generatedIdContainer: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: "#E0F2FE",
-    alignItems: "center",
-  },
-  generatedIdTitle: { fontSize: 16, fontWeight: "600", marginBottom: 8 },
-  generatedIdText: { fontSize: 18, fontWeight: "700", color: "#1E40AF" },
 });
