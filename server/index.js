@@ -1,12 +1,17 @@
+// server.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 
 import pharmacyRoutes from "./routes/pharmacies.js";
 import patientRoutes from "./routes/patients.js";
 import doctorRoutes from "./routes/doctors.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
+import prescriptionsRoute from "./routes/prescriptions.js";
+import prescriptionsFileRoute from "./routes/prescriptions-file.js";
+
 dotenv.config();
 const app = express();
 
@@ -25,10 +30,15 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/pharmacies", pharmacyRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/appointments", appointmentRoutes);
-// Health check route (optional, for debugging)
+app.use("/api/prescriptions", prescriptionsRoute); // new
+app.use("/api/prescriptions", prescriptionsFileRoute); // /upload-file
+
+
+// Health check
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -1,11 +1,14 @@
 import React, { useState } from "react";
+import { Modal } from "react-native"; 
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome } from "@expo/vector-icons";
+import PrescriptionForm from "./PrescriptionForm";
 
 const VideoCallScreen = () => {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [notes, setNotes] = useState("");
+  const [showPrescription, setShowPrescription] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -66,18 +69,23 @@ const VideoCallScreen = () => {
 
         {/* Notes + Prescription */}
         <View style={styles.notesSection}>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Write notes here..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-          />
-          <TouchableOpacity style={styles.prescriptionBtn}>
-            <FontAwesome name="file-text" size={20} color="white" />
-            <Text style={styles.prescriptionText}> Write Prescription</Text>
-          </TouchableOpacity>
-        </View>
+  
+  <TouchableOpacity
+    style={styles.prescriptionBtn}
+    onPress={() => setShowPrescription(true)}
+  >
+    <FontAwesome name="file-text" size={20} color="white" />
+    <Text style={styles.prescriptionText}> Write Prescription</Text>
+  </TouchableOpacity>
+
+  {/* Inline scrollable Prescription Form */}
+  {showPrescription && (
+    <ScrollView style={{ maxHeight: 300, marginTop: 10 }}>
+      <PrescriptionForm onClose={() => setShowPrescription(false)} doctorId={"64f1c2b9e5c2a3d123456789"} patientId={"64f1c2b9e5c2a3d987654321"} />
+    </ScrollView>
+  )}
+</View>
+
       </View>
     </View>
   );
@@ -164,4 +172,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   prescriptionText: { color: "white", fontWeight: "bold" },
+  prescriptionContainer: {
+  borderWidth: 1,
+  borderColor: "#ccc",
+  borderRadius: 8,
+  padding: 10,
+  marginTop: 10,
+  backgroundColor: "white",
+  flexGrow: 0, // prevents expanding full screen
+},
+
 });

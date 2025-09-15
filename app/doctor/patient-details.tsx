@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import PrescriptionForm from "./PrescriptionForm";
 
 const PatientDetailsScreen = () => {
   const pastAppointments = [
@@ -14,6 +15,8 @@ const PatientDetailsScreen = () => {
     { id: 2, date: "2025-07-05", type: "Follow-up", notes: "Blood test review" },
     { id: 3, date: "2025-05-22", type: "Consultation", notes: "Diet counseling" },
   ];
+    const [showPrescription, setShowPrescription] = useState(false);
+  
 
   return (
     <ScrollView style={styles.container}>
@@ -67,10 +70,20 @@ const PatientDetailsScreen = () => {
           <Text style={styles.actionText}> Schedule Follow-up</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn}>
-          <Ionicons name="medkit" size={20} color="white" />
-          <Text style={styles.actionText}> Write Prescription</Text>
-        </TouchableOpacity>
+       <TouchableOpacity
+    style={styles.actionBtn}
+    onPress={() => setShowPrescription(true)}
+  >
+    <FontAwesome name="file-text" size={20} color="white" />
+    <Text style={styles.actionText}> Write Prescription</Text>
+  </TouchableOpacity>
+
+  {/* Inline scrollable Prescription Form */}
+  {showPrescription && (
+    <ScrollView style={{ maxHeight: 300, marginTop: 10 }}>
+      <PrescriptionForm onClose={() => setShowPrescription(false)} doctorId={"64f1c2b9e5c2a3d123456789"} patientId={"64f1c2b9e5c2a3d987654321"} />
+    </ScrollView>
+  )}
       </View>
     </ScrollView>
   );

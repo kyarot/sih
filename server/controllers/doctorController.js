@@ -1,5 +1,4 @@
 import Doctor from "../models/Doctor.js";
-
 // Doctor login with uniqueKey
 export const doctorLogin = async (req, res) => {
   try {
@@ -32,3 +31,4 @@ export const getAllDoctors = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
