@@ -94,6 +94,54 @@ router.post("/", async (req, res) => {
     console.error("prescription route error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
+
+  
+});
+
+/**
+ * GET /api/prescriptions/patient/:patientId
+ * Returns all prescriptions for a patient (most recent first). Populates doctor name & specialization.
+ */
+router.get("/patient/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    if (!mongoose.isValidObjectId(patientId))
+      return res.status(400).json({ message: "Invalid patientId" });
+
+    const prescriptions = await Prescription.find({ patientId })
+      .sort({ createdAt: -1 })
+      .populate("doctorId", "name specialization")
+      .lean();
+
+    return res.json(prescriptions);
+  } catch (err) {
+    console.error("GET /api/prescriptions/patient/:patientId error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+/**
+ * GET /api/prescriptions/:id/pdf
+ * Redirects to cloudinary pdf URL (so clients can hit a stable server endpoint).
+ */
+router.get("/:id/pdf", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id))
+      return res.status(400).json({ message: "Invalid prescription id" });
+
+    const pres = await Prescription.findById(id).lean();
+    if (!pres) return res.status(404).json({ message: "Prescription not found" });
+
+    if (pres.pdfUrl) {
+      return res.redirect(pres.pdfUrl);
+    } else {
+      return res.status(404).json({ message: "PDF not found for this prescription" });
+    }
+  } catch (err) {
+    console.error("GET /api/prescriptions/:id/pdf error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
 });
 
 export default router;

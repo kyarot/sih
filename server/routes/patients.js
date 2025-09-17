@@ -53,6 +53,32 @@ router.post("/register-patient", async (req, res) => {
   }
 });
 
+
+router.post("/update-location", async (req, res) => {
+  try {
+    const { uid, coordinates } = req.body; // [lng, lat]
+
+    if (!uid || !coordinates || coordinates.length !== 2) {
+      return res.status(400).json({ success: false, message: "uid and valid coordinates required" });
+    }
+
+    const patient = await Patient.findOneAndUpdate(
+      { uid },
+      { location: { type: "Point", coordinates } },
+      { new: true }
+    );
+
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found" });
+    }
+
+    res.json({ success: true, patient });
+  } catch (err) {
+    console.error("updatePatientLocation error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // @route   GET /api/patients/family/:accountId
 // @desc    Get all family profiles linked to an account
 // @access  Public

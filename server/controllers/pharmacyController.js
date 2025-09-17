@@ -66,6 +66,48 @@ export const getPharmacyById = async (req, res) => {
   }
 };
 
+// ---------------- Update Pharmacy Location ----------------
+export const updatePharmacyLocation = async (req, res) => {
+  try {
+    const { pharmacyId, coordinates } = req.body; // [lng, lat]
+
+    if (!pharmacyId || !coordinates || coordinates.length !== 2) {
+      return res.status(400).json({ success: false, message: "pharmacyId and valid coordinates required" });
+    }
+
+    const pharmacy = await Pharmacy.findByIdAndUpdate(
+      pharmacyId,
+      { location: { type: "Point", coordinates } },
+      { new: true }
+    );
+
+    if (!pharmacy) {
+      return res.status(404).json({ success: false, message: "Pharmacy not found" });
+    }
+
+    res.json({ success: true, pharmacy });
+  } catch (err) {
+    console.error("updatePharmacyLocation error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// ---------------- Update Pharmacy Status ----------------
+export const updatePharmacyStatus = async (req, res) => {
+  try {
+    const { isOnline } = req.body;
+    const pharmacy = await Pharmacy.findByIdAndUpdate(
+      req.params.id,
+      { isOnline },
+      { new: true }
+    );
+    if (!pharmacy) return res.status(404).json({ message: "Pharmacy not found" });
+    res.json({ pharmacy });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // ---------------- Get by UID ----------------
 export const getPharmacyByUid = async (req, res) => {
   try {

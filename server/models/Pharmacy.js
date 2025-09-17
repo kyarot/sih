@@ -16,6 +16,12 @@ const pharmacySchema = new mongoose.Schema(
     licenseImageURL: { type: String, default: null },
     openingHours: { type: String, default: null },
     services: { type: [String], default: [] },
+    isOnline: { type: Boolean, default: false },
+    // 📍 new location field
+    location: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
+    },
   },
   { timestamps: true }
 );

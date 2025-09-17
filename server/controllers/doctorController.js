@@ -1,34 +1,58 @@
 import Doctor from "../models/Doctor.js";
+
 // Doctor login with uniqueKey
 export const doctorLogin = async (req, res) => {
   try {
     const { uniqueKey } = req.body;
-
-    if (!uniqueKey) {
-      return res.status(400).json({ success: false, message: "Unique key required" });
-    }
-
     const doctor = await Doctor.findOne({ uniqueKey });
-    if (!doctor) {
-      return res.status(401).json({ success: false, message: "Invalid key" });
-    }
 
-    res.json({
-      success: true,
-      message: "Login successful",
-      doctor,
-    });
+    if (!doctor) 
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+
+    // Send success explicitly
+    res.json({ success: true, doctor });
   } catch (err) {
-    console.error("doctorLogin error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+/** Get all doctors */
 export const getAllDoctors = async (req, res) => {
   try {
     const doctors = await Doctor.find();
     res.json(doctors);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/** Get doctor by ID (dashboard) */
+export const getDoctorById = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+    res.json(doctor);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/** Update doctor profile */
+export const updateDoctorProfile = async (req, res) => {
+  try {
+    const doctorId = req.params.doctorId;
+    const updatedData = req.body;
+
+    const doctor = await Doctor.findByIdAndUpdate(doctorId, updatedData, { new: true });
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    res.json(doctor);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error updating profile" });
   }
 };
 

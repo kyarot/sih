@@ -93,6 +93,7 @@ const PrescriptionForm = ({
       if (response.data) {
         Alert.alert("Success", "Prescription saved successfully!");
       }
+      
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to save prescription. Please try again.");

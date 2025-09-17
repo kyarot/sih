@@ -11,7 +11,7 @@ import {
 import * as Clipboard from "expo-clipboard"; 
 import { useRouter, Stack } from "expo-router";
 import { auth } from "@/firebase/firebaseConfig";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 export default function PharmacyPage() {
@@ -105,13 +105,18 @@ export default function PharmacyPage() {
 
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Pharmacy not found");
+       const pharmacyId = data.pharmacy._id;
+      await AsyncStorage.setItem("pharmacyId", pharmacyId);
 
       Alert.alert("Login Success ✅", `Welcome ${data.pharmacy.name}`);
-      router.push("/pharmacy/home" as any);
+      router.push({
+      pathname: "/pharmacy/home",
+      params: { pharmacyId },
+    } as any);
     } catch (err: any) {
       Alert.alert("Login Error", err.message);
-    }
-  };
+    }
+  };
 
   // ---------------- UI ----------------
   if (mode === "register") {

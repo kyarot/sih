@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  Switch,
-  ScrollView, // 👈 import this
+    Alert,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { MaterialIcons, FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
 
 const { width } = Dimensions.get("window");
@@ -17,22 +19,48 @@ const { width } = Dimensions.get("window");
 export default function DoctorLanding() {
   const router = useRouter();
   const [isAvailable, setIsAvailable] = useState(true);
+  const [doctorName, setDoctorName] = useState("");
+  const [specialization, setSpecialization] = useState("");
+
+  useEffect(() => {
+    const loadDoctor = async () => {
+      const name = await AsyncStorage.getItem("doctorName");
+      const spec = await AsyncStorage.getItem("specialization");
+      setDoctorName(name || "Doctor");
+      setSpecialization(spec || "");
+    };
+    loadDoctor();
+  }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    Alert.alert("Logged Out", "You have been logged out successfully");
+    router.replace("/doctor-auth");
+  };
 
   return (
-    <ScrollView // 👈 wrap everything here
+    <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 30 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>👨‍⚕️Welcome Back Doc!!</Text>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => router.push("/doctor/profile")}
-        >
-          <Ionicons name="person-circle" size={40} color="#1976D2" />
-        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>👨‍⚕️ Welcome, {doctorName}</Text>
+          <Text style={styles.headerSub}>{specialization}</Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push("/doctor/profile")}
+          >
+            <Ionicons name="person-circle" size={40} color="#1976D2" />
+          </TouchableOpacity>
+          <TouchableOpacity style={{ marginLeft: 10 }} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={34} color="#D32F2F" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Availability Toggle */}
@@ -126,6 +154,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: "#212529",
+  },
+  headerSub: {
+    fontSize: 14,
+    color: "#555",
+    marginTop: 2,
   },
   profileButton: { padding: 2 },
   toggleContainer: {

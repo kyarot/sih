@@ -1,14 +1,26 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal } from "react-native"; 
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from "react-native";
 import { MaterialIcons, Ionicons, FontAwesome } from "@expo/vector-icons";
 import PrescriptionForm from "./PrescriptionForm";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const VideoCallScreen = () => {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [notes, setNotes] = useState("");
   const [showPrescription, setShowPrescription] = useState(false);
+  const [doctorId, setdoctorId] = useState<string | null>(null);
+  const [patientId, setpatientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchdetails=async () =>{
+      const dId = await AsyncStorage.getItem("doctorId");
+      const pId = await AsyncStorage.getItem("patientId");
+      setdoctorId(dId);
+      setpatientId(pId);
+    }
+    fetchdetails();
+  })
 
   return (
     <View style={styles.container}>
@@ -81,7 +93,11 @@ const VideoCallScreen = () => {
   {/* Inline scrollable Prescription Form */}
   {showPrescription && (
     <ScrollView style={{ maxHeight: 300, marginTop: 10 }}>
-      <PrescriptionForm onClose={() => setShowPrescription(false)} doctorId={"64f1c2b9e5c2a3d123456789"} patientId={"64f1c2b9e5c2a3d987654321"} />
+      <PrescriptionForm 
+        onClose={() => setShowPrescription(false)} 
+        doctorId={doctorId ?? ""} 
+        patientId={patientId ?? ""} 
+      />
     </ScrollView>
   )}
 </View>
