@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { JSX, useEffect, useMemo, useState } from "react";
 import PrescriptionsList from "../components/PrescriptionsList";
 import {
@@ -620,10 +620,18 @@ if (data.length > 0 && !selectedFamily) {
                         {/* Show Join button only when accepted AND scheduledDateTime exists and it's time */}
                         {appt.decision === "accepted" && appt.scheduledDateTime ? (
                           isJoinEnabled(appt) ? (
-                            <TouchableOpacity style={styles.videoCallButton} onPress={() => appt.videoLink && (Platform.OS === "web" ? window.open(appt.videoLink, "_blank") : null)}>
-                              <Ionicons name="videocam" size={20} color="#fff" />
-                              <Text style={styles.videoCallText}>Join Video Consultation</Text>
-                            </TouchableOpacity>
+                            <TouchableOpacity
+  style={styles.videoCallButton}
+  onPress={() => {
+    if (appt.videoLink) {
+router.push({ pathname: "/(screens)/videoCallScreen", params: { videoLink: appt.videoLink } });
+      Alert.alert("No link", "Doctor has not shared a video link yet.");
+    }
+  }}
+>
+  <Ionicons name="videocam" size={20} color="#fff" />
+  <Text style={styles.videoCallText}>Join Video Consultation</Text>
+</TouchableOpacity>
                           ) : (
                             <Text style={{ marginTop: 8, color: "#666" }}>
                               Consultation confirmed for {new Date(appt.scheduledDateTime as any).toLocaleString()}. Join will be enabled at scheduled time.
