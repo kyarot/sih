@@ -16,6 +16,7 @@ import prescriptionsRoute from "./routes/prescriptions.js";
 import prescriptionsFileRoute from "./routes/prescriptions-file.js";
 import patientRoutes from "./routes/patients.js";
 import pharmacyRoutes from "./routes/pharmacies.js";
+import { diagnose } from "./diagnose.js";
 //50b84d7c1002cb667b26ecb88edc69d27a7f1bd9
 dotenv.config();
 const app = express();
