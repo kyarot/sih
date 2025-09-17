@@ -3,11 +3,11 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -84,7 +84,9 @@ const ActivityScreen: React.FC = () => {
 
       if (decision === "accepted") {
         if (Platform.OS === "web") {
-          const input = window.prompt("Enter scheduled date & time (e.g. 2025-09-14 15:30). Leave blank for +30 min.");
+          const input = window.prompt(
+            "Enter scheduled date & time (e.g. 2025-09-14 15:30). Leave blank for +30 min."
+          );
           if (input && input.trim()) {
             const parsed = new Date(input);
             if (!isNaN(parsed.getTime())) {
@@ -183,12 +185,6 @@ const ActivityScreen: React.FC = () => {
                       Requested: {appt.requestedDate ?? "-"} at {appt.requestedTime ?? "-"}
                     </Text>
 
-                    {appt.decision === "accepted" && appt.scheduledDateTime && (
-                      <Text style={styles.detailText}>
-                        Scheduled: {new Date(appt.scheduledDateTime as any).toLocaleString()}
-                      </Text>
-                    )}
-
                     {appt.decision === "pending" ? (
                       <View style={styles.actionsRow}>
                         <TouchableOpacity
@@ -206,22 +202,53 @@ const ActivityScreen: React.FC = () => {
                       </View>
                     ) : appt.decision === "accepted" ? (
                       <View style={{ alignItems: "center", marginTop: 10 }}>
-                        <TouchableOpacity
-                          style={[
-                            styles.joinBtn,
-                            { backgroundColor: isJoinEnabled(appt) ? "#2563eb" : "gray" },
-                          ]}
-                          disabled={!isJoinEnabled(appt)}
-                          onPress={() => {
-                            if (appt.videoLink) {
-                              Linking.openURL(appt.videoLink);
-                            } else {
-                              Alert.alert("No link", "No video link is available for this appointment.");
+                        {/* Start or Join Meeting */}
+                        {!appt.videoLink ? (
+                          <TouchableOpacity
+                            style={[styles.joinBtn, { backgroundColor: "#22c55e" }]}
+                            onPress={async () => {
+                              try {
+                                const res = await fetch(
+                                  `http://localhost:5000/api/video/${appt._id}/start`,
+                                  {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                  }
+                                );
+                                const data = await res.json();
+
+                                if (data.videoLink) {
+                                  Alert.alert("Meeting Started", "Patient has been notified.");
+                                  router.push({
+                                    pathname: "/screens/videoCallScreen",
+                                    params: { videoLink: data.videoLink },
+                                  });
+                                }
+                              } catch (err) {
+                                console.error("❌ Start meeting error:", err);
+                                Alert.alert("Error", "Could not start meeting.");
+                              }
+                            }}
+                          >
+                            <Text style={styles.btnText}>Start Meeting</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={[
+                              styles.joinBtn,
+                              { backgroundColor: isJoinEnabled(appt) ? "#2563eb" : "gray" },
+                            ]}
+                            disabled={!isJoinEnabled(appt)}
+                            onPress={() =>
+                              router.push({
+                                pathname: "/screens/videoCallScreen",
+                                params: { videoLink: appt.videoLink! },
+                              })
                             }
-                          }}
-                        >
-                          <Text style={styles.btnText}>Join Now</Text>
-                        </TouchableOpacity>
+                          >
+                            <Text style={styles.btnText}>Join Meeting</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     ) : (
                       <Text style={{ color: "gray", marginTop: 6 }}>
@@ -243,7 +270,13 @@ export default ActivityScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9f9f9", padding: 15 },
-  section: { backgroundColor: "white", padding: 15, borderRadius: 12, marginBottom: 15, elevation: 2 },
+  section: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    elevation: 2,
+  },
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
   activityCard: { backgroundColor: "#f1f5ff", borderRadius: 10, marginBottom: 12 },
   cardHeader: { flexDirection: "row", alignItems: "center", padding: 12 },
@@ -253,7 +286,19 @@ const styles = StyleSheet.create({
   detailText: { fontSize: 13, marginTop: 4, color: "#333" },
   emptyText: { textAlign: "center", color: "gray", marginTop: 10 },
   actionsRow: { flexDirection: "row", marginTop: 10 },
-  decisionBtn: { flex: 1, padding: 10, borderRadius: 8, marginHorizontal: 4, alignItems: "center" },
-  joinBtn: { marginTop: 8, padding: 10, borderRadius: 8, alignItems: "center", width: "100%" },
+  decisionBtn: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    alignItems: "center",
+  },
+  joinBtn: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "100%",
+  },
   btnText: { color: "white", fontWeight: "bold" },
 });

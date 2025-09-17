@@ -40,7 +40,7 @@ export default function DoctorAuth() {
         await AsyncStorage.setItem("specialization", data.doctor.specialization);
 
         Alert.alert("Success", "Login successful");
-        router.replace("/doctor/");
+        router.replace("/doctor");
       } else {
         Alert.alert("Error", data.message || "Invalid key");
       }

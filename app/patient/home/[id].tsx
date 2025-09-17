@@ -1,13 +1,17 @@
 // id.tsx
-// Patient dashboard (updated logic for appointment status & join button)
+// Patient dashboard (with translations & Bhashini ASR integration)
 // Keep your existing dependencies in package.json (axios, expo, etc.)
 
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { JSX, useEffect, useMemo, useState } from "react";
+
+import Voice, { SpeechResultsEvent } from "@react-native-voice/voice";
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 
 import {
   Alert,
@@ -24,8 +28,60 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 
+// NOTE: update API_BASE if your backend runs on different host/ip
 const API_BASE = "http://localhost:5000"; // change if needed
 const { width } = Dimensions.get("window");
+
+/* ============================
+   Translations (load JSON)
+   ============================ */
+
+// You can also import a JSON; to avoid TS issues, we'll require it.
+// Make sure translations/hi.json exists (I included it below)
+const hiTranslations = require("../../translation/hi.json") as Record<string, string>;
+
+/* Minimal in-file english labels used as fallback */
+const EN_LABELS: Record<string, string> = {
+  welcomeBack: "Welcome back",
+  familyMembers: "Family Members",
+  add: "Add",
+  healthProfile: "Health Profile",
+  fullName: "Full Name",
+  age: "Age",
+  gender: "Gender",
+  email: "Email",
+  phone: "Phone",
+  bloodGroup: "Blood Group",
+  address: "Address",
+  save: "Save",
+  cancel: "Cancel",
+  appointments: "Appointments",
+  yourCurrentAppointment: "Your Current Appointment",
+  doctor: "Doctor",
+  specialization: "Specialization",
+  requestedDate: "Requested Date",
+  requestedTime: "Requested Time",
+  symptomsLabel: "Symptoms",
+  joinVideo: "Join Video Consultation",
+  bookingPending: "Booking pending - doctor will accept and schedule date/time.",
+  appointmentDeclined: "Appointment was declined by the doctor.",
+  myAppointments: "My Appointments",
+  noAppointments: "No appointments yet",
+  bookNewAppointment: "Book New Appointment",
+  bookConsultation: "Book Consultation",
+  patientDetails: "Patient Details",
+  describeSymptoms: "Describe your symptoms",
+  forHowManyDays: "For how many days? (e.g., 2 days)",
+  severity: "Severity",
+  mild: "Mild",
+  moderate: "Moderate",
+  severe: "Severe",
+  confirmBooking: "Confirm Booking",
+  cancelButtonText: "Cancel",
+  dailyHealthTips: "Daily Health Tips",
+  emergencySOS: "Emergency SOS",
+  tapForHelp: "Tap for immediate help",
+};
 
 /* ============================
    Types & Interfaces
@@ -55,6 +111,7 @@ type Doctor = {
 };
 
 type Appointment = {
+  symptomsDescriptionTranslated: string;
   _id?: string;
   patientId?: string | { _id?: string; name?: string };
   doctorId?: Doctor | string | { name?: string; specialization?: string };
@@ -71,7 +128,7 @@ type Appointment = {
   status?: "booked" | "completed" | "cancelled" | string;
   createdAt?: string;
   updatedAt?: string;
-   patientName?: string;
+  patientName?: string;
   patientAge?: number | string;
   patientGender?: string;
 };
@@ -124,6 +181,8 @@ export default function PatientHome(): JSX.Element {
   const [appointmentTime, setAppointmentTime] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
+  const [isRecording, setIsRecording] = useState(false);
+
   const [symptomsDescription, setSymptomsDescription] = useState<string>("");
   const [symptomDuration, setSymptomDuration] = useState<string>("");
   const [symptomSeverity, setSymptomSeverity] = useState<"Mild" | "Moderate" | "Severe">("Mild");
@@ -151,6 +210,26 @@ export default function PatientHome(): JSX.Element {
   const [loadingAppointments, setLoadingAppointments] = useState<boolean>(false);
 
   /* ============================
+     Language / Translations
+     ============================ */
+
+  // supported languages: 'en' & 'hi' for now. You can add more (.json files) and extend
+  const [selectedLang, setSelectedLang] = useState<"en" | "hi">("en");
+
+  // store translated dynamic fields keyed by profile uid (or temp)
+  const [translatedFields, setTranslatedFields] = useState<Record<string, Record<string, string>>>({});
+
+  // translated preview for symptoms field in booking
+  const [translatedSymptomsPreview, setTranslatedSymptomsPreview] = useState<string>("");
+
+  // helper to get a static label
+  const getLabel = (key: string) => {
+    if (selectedLang === "en") return EN_LABELS[key] ?? key;
+    // hi translations loaded from JSON
+    return (hiTranslations[key] as string) || EN_LABELS[key] || key;
+  };
+
+  /* ============================
      Effects: fetch initial data
      ============================ */
 
@@ -170,8 +249,22 @@ export default function PatientHome(): JSX.Element {
     }
   }, [selectedFamily?.uid]);
 
+  /* Voice handlers (existing) */
+  useEffect(() => {
+    Voice.onSpeechResults = (event: SpeechResultsEvent) => {
+      if (event.value && event.value.length > 0 && currentField) {
+        // We use the recognized text as intermediate input and then call translation
+        handleVoiceResult(currentField, event.value[0]);
+      }
+    };
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
   /* ============================
-     API helpers
+     API helpers (fetch data)
      ============================ */
 
   async function fetchFamilyProfiles() {
@@ -180,11 +273,10 @@ export default function PatientHome(): JSX.Element {
       const res = await axios.get(`${API_BASE}/api/patients/family/${accountId}`);
       const data = res.data || [];
       setFamilyProfiles(data);
-if (data.length > 0 && !selectedFamily) {
-  setSelectedFamily(data[0]);
-  setPatientDetails(data[0]); // keep base family details
-}
-
+      if (data.length > 0 && !selectedFamily) {
+        setSelectedFamily(data[0]);
+        setPatientDetails(data[0]); // keep base family details
+      }
     } catch (err) {
       console.error("fetchFamilyProfiles:", err);
       Toast.show({ type: "error", text1: "Failed to load family profiles" });
@@ -197,6 +289,15 @@ if (data.length > 0 && !selectedFamily) {
     try {
       const res = await axios.get(`${API_BASE}/api/patients/profile/${uid}`);
       setPatientDetails(res.data || null);
+
+      // prefetch translations for fields when language != en
+      if (selectedLang !== "en" && res.data) {
+        const fieldsToTranslate = ["name", "age", "gender", "email", "phone", "bloodGroup", "address"];
+        fieldsToTranslate.forEach((f) => {
+          const val = (res.data as any)[f];
+          if (val) translateAndStore(uid, String(val), f);
+        });
+      }
     } catch (err) {
       console.error("fetchPatientDetails:", err);
     }
@@ -230,7 +331,189 @@ if (data.length > 0 && !selectedFamily) {
   }
 
   /* ============================
-     Profile update helpers
+     Voice / Mic handling
+     ============================ */
+
+  const [currentField, setCurrentField] = useState<string | null>(null);
+
+  // Original local STT using react-native-voice (kept as fallback)
+  const startRecording = async (field: string) => {
+  if (Platform.OS === "web") {
+    console.warn("Voice not supported on web, use Bhashini ASR instead");
+    // Instead of react-native-voice, use your Bhashini recording flow here
+    startBhashiniRecording(field);
+    return;
+  }
+
+  try {
+    setCurrentField(field);
+    setIsRecording(true);
+    const locale = selectedLang === "hi" ? "hi-IN" : "en-IN";
+    await Voice.start(locale);
+  } catch (e) {
+    console.error(e);
+  }
+};
+  const stopRecording = async () => {
+    try {
+      await Voice.stop();
+    } catch (e) {
+      console.error(e);
+    }
+    setIsRecording(false);
+  };
+
+  const MicButton = ({ field }: { field: string }) => (
+    <TouchableOpacity
+      onPress={() =>
+        isRecording && currentField === field
+          ? stopRecording()
+          : startRecording(field)
+      }
+      style={{ marginLeft: 8 }}
+    >
+      <Ionicons
+        name={isRecording && currentField === field ? "mic" : "mic-outline"}
+        size={22}
+        color="#1565C0"
+      />
+    </TouchableOpacity>
+  );
+
+  // When react-native-voice returns recognized text
+  const handleVoiceResult = async (field: string, text: string) => {
+    // update selectedFamily draft / field immediately
+    if (field === "name" || field === "age" || field === "email" || field === "phone" || field === "bloodGroup" || field === "address") {
+      setSelectedFamily((prev) =>
+        prev ? { ...prev, [field]: field === "age" ? Number(text) || text : text } : prev
+      );
+      // then translate/store for UI if language != en
+      if (selectedLang !== "en" && selectedFamily?.uid) {
+        translateAndStore(selectedFamily.uid, text, field);
+      }
+    } else if (field === "symptoms") {
+      setSymptomsDescription(text);
+      if (selectedLang !== "en") {
+        const t = await translateTextAPI(text, "en", selectedLang);
+        setTranslatedSymptomsPreview(t || "");
+      }
+    }
+  };
+
+  /* ============================
+     Bhashini ASR (record + send audio base64 -> backend)
+     ============================ */
+
+  // We'll use expo-av Audio.Recording to capture audio and send base64 to backend
+  const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
+
+  async function startBhashiniRecording(field: string) {
+    try {
+      setCurrentField(field);
+      // request permissions are handled externally by expo
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      await recording.startAsync();
+      setRecordingObj(recording);
+      setIsRecording(true);
+    } catch (err) {
+      console.error("startBhashiniRecording:", err);
+    }
+  }
+
+  async function stopBhashiniRecording() {
+    try {
+      if (!recordingObj) return;
+      await recordingObj.stopAndUnloadAsync();
+      const uri = recordingObj.getURI();
+      setIsRecording(false);
+      setRecordingObj(null);
+      if (!uri) return;
+
+      // read file and convert to base64
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      // send to backend
+      const resp = await axios.post(`${API_BASE}/api/bhashini/speech-to-text`, {
+        audioBase64: base64,
+        sourceLang: selectedLang === "en" ? "en" : selectedLang, // hint
+      });
+      const recognized = resp.data?.text;
+      if (recognized && currentField) {
+        // apply to field similarly to handleVoiceResult
+        handleVoiceResult(currentField, recognized);
+      }
+    } catch (err) {
+      console.error("stopBhashiniRecording:", err);
+    } finally {
+      setIsRecording(false);
+      setRecordingObj(null);
+    }
+  }
+
+  /* ============================
+     Translation helpers: dynamic translation via backend
+     ============================ */
+
+  // translate text via backend -> Bhashini pipeline
+  async function translateTextAPI(text: string, sourceLang = "en", targetLang: string = "hi") {
+    try {
+      if (!text || text.trim() === "") return "";
+      const resp = await axios.post(`${API_BASE}/api/bhashini/translate`, {
+        text,
+        sourceLang,
+        targetLang,
+      });
+      const translated = resp.data?.translatedText || resp.data?.translatedText || resp.data?.translatedText;
+      // controller earlier sends { translatedText } - handle gracefully
+      return resp.data?.translatedText || resp.data?.translated || resp.data?.translatedText || (resp.data?.translatedText === "" ? "" : resp.data?.translatedText) || "";
+    } catch (err) {
+      console.error("translateTextAPI:", err);
+      return "";
+    }
+  }
+
+  // wrapper to translate & store into translatedFields for a profile uid & field name
+  async function translateAndStore(uid: string, text: string, fieldName: string) {
+    if (!uid || !text) return;
+    const targetLang = selectedLang;
+    try {
+      const translated = await translateTextAPI(text, "en", targetLang);
+      setTranslatedFields((prev) => ({
+        ...prev,
+        [uid]: {
+          ...(prev[uid] || {}),
+          [fieldName]: translated || text,
+        },
+      }));
+      return translated;
+    } catch (err) {
+      console.error("translateAndStore:", err);
+      return text;
+    }
+  }
+
+  // whenever language switches, pre-translate current profile fields
+  useEffect(() => {
+    if (selectedLang === "en") return;
+    if (!selectedFamily?.uid || !patientDetails) return;
+
+    const fieldsToTranslate = ["name", "age", "gender", "email", "phone", "bloodGroup", "address"];
+    fieldsToTranslate.forEach((f) => {
+      const val = (patientDetails as any)[f];
+      if (val) translateAndStore(selectedFamily.uid, String(val), f);
+    });
+
+    // translate symptoms preview if present
+    if (symptomsDescription) {
+      translateTextAPI(symptomsDescription, "en", selectedLang).then((t) => setTranslatedSymptomsPreview(t || ""));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLang, selectedFamily?.uid]);
+
+  /* ============================
+     Profile update helpers (unchanged)
      ============================ */
 
   async function handleSaveProfile(editedProfile: FamilyProfile) {
@@ -259,12 +542,12 @@ if (data.length > 0 && !selectedFamily) {
       Toast.show({ type: "error", text1: "Name required" });
       return;
     }
-  const body = {
-  ...payload,
-  uid: payload.uid || `UID${Date.now()}`,   // unique per profile
-  code: selectedFamily?.code || patientDetails?.code || accountId, // ✅ always reuse family PAT code
-  accountId, // stays same for family
-};
+    const body = {
+      ...payload,
+      uid: payload.uid || `UID${Date.now()}`, // unique per profile
+      code: selectedFamily?.code || patientDetails?.code || accountId, // ✅ always reuse family PAT code
+      accountId, // stays same for family
+    };
 
     try {
       const res = await axios.post(`${API_BASE}/api/patients/register-patient`, body);
@@ -281,7 +564,7 @@ if (data.length > 0 && !selectedFamily) {
   }
 
   /* ============================
-     Booking flow
+     Booking flow (unchanged except translation usage)
      ============================ */
 
   function openBookingForDoctor(doctor: Doctor) {
@@ -305,20 +588,21 @@ if (data.length > 0 && !selectedFamily) {
 
     const handleBooking = async () => {
       try {
-      
-  const payload = {
-  uid: selectedFamily.uid,
-  doctorId: selectedDoctor._id,
-  symptomDuration,
-  symptomsDescription,
-  symptomSeverity,
-  patientName: patientDetails?.name || selectedFamily?.name,
-  patientAge: patientDetails?.age || selectedFamily?.age,
-  patientGender: patientDetails?.gender || selectedFamily?.gender,
-};
+        // If user selected a non-en language, we will also send translatedSymptoms to backend
+        // but keep original english text in payload too (so server has canonical text).
+        const translatedSymptoms = selectedLang === "en" ? symptomsDescription : (await translateTextAPI(symptomsDescription, "en", selectedLang)) || symptomsDescription;
 
-
-      
+        const payload = {
+          uid: selectedFamily.uid,
+          doctorId: selectedDoctor._id,
+          symptomDuration,
+          symptomsDescription,
+          symptomsDescriptionTranslated: translatedSymptoms,
+          symptomSeverity,
+          patientName: patientDetails?.name || selectedFamily?.name,
+          patientAge: patientDetails?.age || selectedFamily?.age,
+          patientGender: patientDetails?.gender || selectedFamily?.gender,
+        };
 
         await axios.post(`${API_BASE}/api/appointments`, payload);
 
@@ -341,16 +625,17 @@ if (data.length > 0 && !selectedFamily) {
         Toast.show({ type: "error", text1: "Failed to create appointment" });
       }
     };
+    
 
     if (Platform.OS === "web") {
       Toast.show({ type: "info", text1: `Booking appointment with ${selectedDoctor.name}` });
       await handleBooking();
     } else {
       Alert.alert(
-        "Confirm Booking",
-        `Do you want to confirm appointment with ${selectedDoctor.name}?`,
+        getLabel("confirmBooking"),
+        `${getLabel("confirmBooking")} - ${selectedDoctor.name}?`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: getLabel("cancelButtonText"), style: "cancel" },
           { text: "Yes", style: "default", onPress: handleBooking },
         ]
       );
@@ -358,7 +643,7 @@ if (data.length > 0 && !selectedFamily) {
   }
 
   /* ============================
-     Helpers for UI logic
+     Helpers for UI logic & render
      ============================ */
 
   const selectedFamilyId = useMemo(() => selectedFamily?._id || selectedFamily?.uid || null, [selectedFamily]);
@@ -391,11 +676,26 @@ if (data.length > 0 && !selectedFamily) {
       <LinearGradient colors={["#1565C0", "#1976D2"]} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <Text style={styles.welcomeText}>Welcome back</Text>
-            <Text style={styles.nameText}>{selectedFamily?.name ?? "Loading..."} 👋</Text>
+            <Text style={styles.welcomeText}>{getLabel("welcomeBack")}</Text>
+            <Text style={styles.nameText}>
+              {selectedFamily?.name ?? "Loading..."} 👋
+            </Text>
           </View>
 
           <View style={styles.headerRight}>
+            {/* language picker dropdown in top-right */}
+            <View style={{ marginRight: 12, backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 8, overflow: "hidden" }}>
+              <Picker
+                selectedValue={selectedLang}
+                style={{ height: 38, width: 120, color: "#fff" }}
+                onValueChange={(val) => setSelectedLang(val as any)}
+                mode="dropdown"
+              >
+                <Picker.Item label="English" value="en" />
+                <Picker.Item label="हिन्दी" value="hi" />
+              </Picker>
+            </View>
+
             <TouchableOpacity style={styles.headerIcon}>
               <Ionicons name="notifications-outline" size={24} color="#fff" />
               <View style={styles.notificationBadge}>
@@ -413,7 +713,7 @@ if (data.length > 0 && !selectedFamily) {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Family section */}
         <View style={styles.familySection}>
-          <Text style={styles.sectionLabel}>Family Members</Text>
+          <Text style={styles.sectionLabel}>{getLabel("familyMembers")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
             {familyProfiles.map((profile) => (
               <TouchableOpacity
@@ -422,7 +722,9 @@ if (data.length > 0 && !selectedFamily) {
                 onPress={() => setSelectedFamily(profile)}
               >
                 <Ionicons name="person" size={24} color={selectedFamilyId === (profile._id ?? profile.uid) ? "#fff" : "#1565C0"} />
-                <Text style={[styles.familyText, selectedFamilyId === (profile._id ?? profile.uid) && styles.familyTextActive]}>{profile.name}</Text>
+                <Text style={[styles.familyText, selectedFamilyId === (profile._id ?? profile.uid) && styles.familyTextActive]}>
+                  {selectedLang === "en" ? profile.name : (translatedFields[profile.uid]?.name ?? profile.name)}
+                </Text>
               </TouchableOpacity>
             ))}
 
@@ -441,7 +743,7 @@ if (data.length > 0 && !selectedFamily) {
                 });
               }}>
                 <Ionicons name="add" size={28} color="#1565C0" />
-                <Text style={styles.familyText}>Add</Text>
+                <Text style={styles.familyText}>{getLabel("add")}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -453,16 +755,24 @@ if (data.length > 0 && !selectedFamily) {
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <Ionicons name="person-circle" size={24} color="#1565C0" />
-                <Text style={styles.cardTitle}>Health Profile</Text>
+                <Text style={styles.cardTitle}>{getLabel("healthProfile")}</Text>
               </View>
 
               <View style={styles.cardHeaderRight}>
                 {!addingNewProfile && selectedFamily && (
                   <TouchableOpacity onPress={() => setEditingProfile((s) => !s)}>
-                    <Ionicons name={editingProfile ? "close-outline" : "create-outline"} size={22} color="#1565C0" />
+                    <Ionicons
+                      name={editingProfile ? "close-outline" : "create-outline"}
+                      size={22}
+                      color="#1565C0"
+                    />
                   </TouchableOpacity>
                 )}
-                <Ionicons name={expanded.profile ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+                <Ionicons
+                  name={expanded.profile ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#666"
+                />
               </View>
             </View>
           </TouchableWithoutFeedback>
@@ -471,72 +781,217 @@ if (data.length > 0 && !selectedFamily) {
             <View style={styles.expandedContent}>
               {addingNewProfile ? (
                 <>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Full name"
-                    value={String(newProfileDraft.name ?? "")}
-                    onChangeText={(text) => setNewProfileDraft((p) => ({ ...p, name: text }))}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Age"
-                    keyboardType="numeric"
-                    value={String(newProfileDraft.age ?? "")}
-                    onChangeText={(text) => setNewProfileDraft((p) => ({ ...p, age: text === "" ? "" : Number(text) }))}
-                  />
+                  {/* Full name */}
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>{getLabel("fullName")}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={getLabel("fullName")}
+                        value={String(newProfileDraft.name ?? "")}
+                        onChangeText={(text) =>
+                          setNewProfileDraft((p) => ({ ...p, name: text }))
+                        }
+                      />
+                      <MicButton field="name" />
+                      {/* Alternative: Bhashini ASR buttons */}
+                      <TouchableOpacity onPress={() => startBhashiniRecording("name")} style={{ marginLeft: 8 }}>
+                        <Ionicons name="mic-circle" size={22} color="#1565C0" />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => stopBhashiniRecording()} style={{ marginLeft: 8 }}>
+                        <Ionicons name="stop-circle" size={22} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Age */}
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>{getLabel("age")}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={getLabel("age")}
+                        keyboardType="numeric"
+                        value={String(newProfileDraft.age ?? "")}
+                        onChangeText={(text) =>
+                          setNewProfileDraft((p) => ({
+                            ...p,
+                            age: text === "" ? "" : Number(text),
+                          }))
+                        }
+                      />
+                      <MicButton field="age" />
+                    </View>
+                  </View>
+
+                  {/* Gender */}
                   <View style={{ flexDirection: "row", marginBottom: 12 }}>
                     {(["Male", "Female", "Other"] as const).map((g) => (
-                      <GenderButton key={g} label={g} selected={(newProfileDraft.gender ?? "Male") === g} onPress={() => setNewProfileDraft((p) => ({ ...p, gender: g }))} />
+                      <GenderButton
+                        key={g}
+                        label={g}
+                        selected={(newProfileDraft.gender ?? "Male") === g}
+                        onPress={() =>
+                          setNewProfileDraft((p) => ({ ...p, gender: g }))
+                        }
+                      />
                     ))}
                   </View>
-                  <TextInput style={styles.input} placeholder="Email" value={String(newProfileDraft.email ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, email: t }))} />
-                  <TextInput style={styles.input} placeholder="Phone" keyboardType="phone-pad" value={String(newProfileDraft.phone ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, phone: t }))} />
-                  <TextInput style={styles.input} placeholder="Blood group" value={String(newProfileDraft.bloodGroup ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, bloodGroup: t }))} />
-                  <TextInput style={styles.input} placeholder="Address" value={String(newProfileDraft.address ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, address: t }))} />
 
+                  {/* Email */}
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>{getLabel("email")}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={getLabel("email")}
+                        value={String(newProfileDraft.email ?? "")}
+                        onChangeText={(t) =>
+                          setNewProfileDraft((p) => ({ ...p, email: t }))
+                        }
+                      />
+                      <MicButton field="email" />
+                    </View>
+                  </View>
+
+                  {/* Phone */}
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>{getLabel("phone")}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={getLabel("phone")}
+                        keyboardType="phone-pad"
+                        value={String(newProfileDraft.phone ?? "")}
+                        onChangeText={(t) =>
+                          setNewProfileDraft((p) => ({ ...p, phone: t }))
+                        }
+                      />
+                      <MicButton field="phone" />
+                    </View>
+                  </View>
+
+                  {/* Blood Group */}
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>{getLabel("bloodGroup")}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={getLabel("bloodGroup")}
+                        value={String(newProfileDraft.bloodGroup ?? "")}
+                        onChangeText={(t) =>
+                          setNewProfileDraft((p) => ({ ...p, bloodGroup: t }))
+                        }
+                      />
+                      <MicButton field="bloodGroup" />
+                    </View>
+                  </View>
+
+                  {/* Address */}
+                  <View style={styles.inputRow}>
+                    <Text style={styles.inputLabel}>{getLabel("address")}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={getLabel("address")}
+                        value={String(newProfileDraft.address ?? "")}
+                        onChangeText={(t) =>
+                          setNewProfileDraft((p) => ({ ...p, address: t }))
+                        }
+                      />
+                      <MicButton field="address" />
+                    </View>
+                  </View>
+
+                  {/* Save/Cancel */}
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <TouchableOpacity style={[styles.saveButton, { flex: 1, marginRight: 8 }]} onPress={() => handleCreateProfile(newProfileDraft)}>
-                      <Text style={styles.saveButtonText}>Save</Text>
+                    <TouchableOpacity
+                      style={[styles.saveButton, { flex: 1, marginRight: 8 }]}
+                      onPress={() => handleCreateProfile(newProfileDraft)}
+                    >
+                      <Text style={styles.saveButtonText}>{getLabel("save")}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.cancelButton, { flex: 1 }]} onPress={() => { setAddingNewProfile(false); setNewProfileDraft({}); }}>
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <TouchableOpacity
+                      style={[styles.cancelButton, { flex: 1 }]}
+                      onPress={() => {
+                        setAddingNewProfile(false);
+                        setNewProfileDraft({});
+                      }}
+                    >
+                      <Text style={styles.cancelButtonText}>{getLabel("cancel")}</Text>
                     </TouchableOpacity>
                   </View>
                 </>
               ) : selectedFamily ? (
                 <>
                   {[
-                    { key: "name", label: "Name" },
-                    { key: "age", label: "Age" },
-                    { key: "gender", label: "Gender" },
-                    { key: "email", label: "Email" },
-                    { key: "phone", label: "Phone" },
-                    { key: "bloodGroup", label: "Blood Group" },
-                    { key: "address", label: "Address" },
+                    { key: "name", label: getLabel("fullName") },
+                    { key: "age", label: getLabel("age") },
+                    { key: "gender", label: getLabel("gender") },
+                    { key: "email", label: getLabel("email") },
+                    { key: "phone", label: getLabel("phone") },
+                    { key: "bloodGroup", label: getLabel("bloodGroup") },
+                    { key: "address", label: getLabel("address") },
                   ].map((f) => (
                     <View key={f.key} style={styles.inputRow}>
                       <Text style={styles.inputLabel}>{f.label}</Text>
 
                       {editingProfile ? (
                         f.key !== "gender" ? (
-                          <TextInput
-                            style={styles.input}
-                            value={String((selectedFamily as any)[f.key] ?? "")}
-                            keyboardType={f.key === "age" ? "numeric" : "default"}
-                            onChangeText={(text) =>
-                              setSelectedFamily((prev) => prev ? ({ ...(prev as FamilyProfile), [f.key]: f.key === "age" ? (text === "" ? "" : Number(text)) : text }) : prev)
-                            }
-                          />
+                          <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <TextInput
+                              style={[styles.input, { flex: 1 }]}
+                              value={String((selectedFamily as any)[f.key] ?? "")}
+                              keyboardType={f.key === "age" ? "numeric" : "default"}
+                              onChangeText={(text) =>
+                                setSelectedFamily((prev) =>
+                                  prev
+                                    ? {
+                                        ...(prev as FamilyProfile),
+                                        [f.key]:
+                                          f.key === "age"
+                                            ? text === ""
+                                              ? ""
+                                              : Number(text)
+                                            : text,
+                                      }
+                                    : prev
+                                )
+                              }
+                            />
+                            <MicButton field={f.key} />
+                          </View>
                         ) : (
                           <View style={{ flexDirection: "row" }}>
                             {(["Male", "Female", "Other"] as const).map((g) => (
-                              <GenderButton key={g} label={g} selected={selectedFamily?.gender === g} onPress={() => setSelectedFamily((p) => p ? ({ ...(p as FamilyProfile), gender: g }) : p)} />
+                              <GenderButton
+                                key={g}
+                                label={g}
+                                selected={selectedFamily?.gender === g}
+                                onPress={() =>
+                                  setSelectedFamily((p) =>
+                                    p ? { ...(p as FamilyProfile), gender: g } : p
+                                  )
+                                }
+                              />
                             ))}
                           </View>
                         )
                       ) : (
                         <Text style={styles.inputValue}>
-                          {String((selectedFamily as any)[f.key] !== undefined && (selectedFamily as any)[f.key] !== null ? (selectedFamily as any)[f.key] : "-")}
+                          {selectedLang === "en"
+                            ? String(
+                                (selectedFamily as any)[f.key] !== undefined &&
+                                  (selectedFamily as any)[f.key] !== null
+                                  ? (selectedFamily as any)[f.key]
+                                  : "-"
+                              )
+                            : // show translated value if available
+                              String(
+                                translatedFields[selectedFamily.uid]?.[f.key] ??
+                                  (selectedFamily as any)[f.key] ??
+                                  "-"
+                              )}
                         </Text>
                       )}
                     </View>
@@ -544,17 +999,23 @@ if (data.length > 0 && !selectedFamily) {
 
                   {editingProfile && (
                     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <TouchableOpacity style={[styles.saveButton, { flex: 1, marginRight: 8 }]} onPress={() => {
-                        if (selectedFamily) handleSaveProfile(selectedFamily as FamilyProfile);
-                      }}>
-                        <Text style={styles.saveButtonText}>Save</Text>
+                      <TouchableOpacity
+                        style={[styles.saveButton, { flex: 1, marginRight: 8 }]}
+                        onPress={() => {
+                          if (selectedFamily) handleSaveProfile(selectedFamily as FamilyProfile);
+                        }}
+                      >
+                        <Text style={styles.saveButtonText}>{getLabel("save")}</Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity style={[styles.cancelButton, { flex: 1 }]} onPress={() => {
-                        setEditingProfile(false);
-                        if (selectedFamily?.uid) fetchPatientDetails(selectedFamily.uid);
-                      }}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      <TouchableOpacity
+                        style={[styles.cancelButton, { flex: 1 }]}
+                        onPress={() => {
+                          setEditingProfile(false);
+                          if (selectedFamily?.uid) fetchPatientDetails(selectedFamily.uid);
+                        }}
+                      >
+                        <Text style={styles.cancelButtonText}>{getLabel("cancel")}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -572,7 +1033,7 @@ if (data.length > 0 && !selectedFamily) {
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderLeft}>
                 <Ionicons name="calendar" size={24} color="#1565C0" />
-                <Text style={styles.cardTitle}>Appointments</Text>
+                <Text style={styles.cardTitle}>{getLabel("appointments")}</Text>
               </View>
               <View style={styles.cardHeaderRight}>
                 <Ionicons name={expanded.appointments ? "chevron-up" : "chevron-down"} size={20} color="#666" />
@@ -582,66 +1043,94 @@ if (data.length > 0 && !selectedFamily) {
 
           {expanded.appointments && (
             <View style={styles.expandedContent}>
-              {/* Current appointment block (booked) - show different UI depending on decision */}
-              {appointments.find((a) => a.status === "booked") && (
-                <View style={[styles.card, { marginBottom: 16 }]}>
-                  <View style={styles.cardHeader}>
-                    {/* Determine icon based on decision */}
-                    {(() => {
-                      const first = appointments.find((a) => a.status === "booked");
-                      if (!first) return <Ionicons name="time-outline" size={24} color="#FF9800" />;
-                      if (first.decision === "accepted") {
-                        return <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />;
-                      } else if (first.decision === "declined") {
-                        return <Ionicons name="close-circle" size={24} color="#ef4444" />;
-                      } else {
-                        return <Ionicons name="time-outline" size={24} color="#FF9800" />;
-                      }
-                    })()}
-                    <Text style={styles.cardTitle}>Your Current Appointment</Text>
-                  </View>
+            {/* Current appointment block (booked) - show different UI depending on decision */}
+{appointments.find((a) => a.status === "booked") && (
+  <View style={[styles.card, { marginBottom: 16 }]}>
+    <View style={styles.cardHeader}>
+      {/* Determine icon based on decision */}
+      {(() => {
+        const first = appointments.find((a) => a.status === "booked");
+        if (!first) return <Ionicons name="time-outline" size={24} color="#FF9800" />;
+        if (first.decision === "accepted") {
+          return <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />;
+        } else if (first.decision === "declined") {
+          return <Ionicons name="close-circle" size={24} color="#ef4444" />;
+        } else {
+          return <Ionicons name="time-outline" size={24} color="#FF9800" />;
+        }
+      })()}
+      <Text style={styles.cardTitle}>{getLabel("yourCurrentAppointment")}</Text>
+    </View>
 
-                  <View style={styles.expandedContent}>
-                    {appointments.filter((a) => a.status === "booked").map((appt, idx) => (
-                      <View key={idx} style={{ marginBottom: 10 }}>
-                        <Text style={styles.appointmentInfo}>Doctor: {(appt.doctorId as any)?.name ?? (appt as any).doctorName}</Text>
-                        <Text style={styles.appointmentInfo}>Specialization: {(appt.doctorId as any)?.specialization ?? "-"}</Text>
-                        <Text style={styles.appointmentInfo}>Requested Date: {appt.requestedDate ?? "-"}</Text>
-                        <Text style={styles.appointmentInfo}>Requested Time: {appt.requestedTime ?? "-"}</Text>
+    <View style={styles.expandedContent}>
+      {appointments.filter((a) => a.status === "booked").map((appt, idx) => (
+        <View key={idx} style={{ marginBottom: 10 }}>
+          <Text style={styles.appointmentInfo}>
+            {getLabel("doctor")}: {(appt.doctorId as any)?.name ?? (appt as any).doctorName}
+          </Text>
+          <Text style={styles.appointmentInfo}>
+            {getLabel("specialization")}: {(appt.doctorId as any)?.specialization ?? "-"}
+          </Text>
+          <Text style={styles.appointmentInfo}>
+            {getLabel("requestedDate")}: {appt.requestedDate ?? "-"}
+          </Text>
+          <Text style={styles.appointmentInfo}>
+            {getLabel("requestedTime")}: {appt.requestedTime ?? "-"}
+          </Text>
 
-                        {appt.symptomsDescription ? (
-                          <Text style={{ color: "#666", marginTop: 6 }}>
-                            Symptoms: {appt.symptomsDescription} ({appt.symptomDuration}, {appt.symptomSeverity})
-                          </Text>
-                        ) : null}
+          {appt.symptomsDescription ? (
+            <Text style={{ color: "#666", marginTop: 6 }}>
+              {getLabel("symptomsLabel")}:{" "}
+              {selectedLang === "en"
+                ? appt.symptomsDescription
+                : (appt.symptomsDescriptionTranslated ??
+                  translatedFields[selectedFamily?.uid ?? ""]?.symptomsDescription ??
+                  appt.symptomsDescription)}{" "}
+              ({appt.symptomDuration}, {appt.symptomSeverity})
+            </Text>
+          ) : null}
 
-                        {/* Show Join button only when accepted AND scheduledDateTime exists and it's time */}
-                        {appt.decision === "accepted" && appt.scheduledDateTime ? (
-                          isJoinEnabled(appt) ? (
-                            <TouchableOpacity style={styles.videoCallButton} onPress={() => appt.videoLink && (Platform.OS === "web" ? window.open(appt.videoLink, "_blank") : null)}>
-                              <Ionicons name="videocam" size={20} color="#fff" />
-                              <Text style={styles.videoCallText}>Join Video Consultation</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={{ marginTop: 8, color: "#666" }}>
-                              Consultation confirmed for {new Date(appt.scheduledDateTime as any).toLocaleString()}. Join will be enabled at scheduled time.
-                            </Text>
-                          )
-                        ) : appt.decision === "pending" ? (
-                          <Text style={{ marginTop: 8, color: "#FF8F00" }}>Booking pending - doctor will accept and schedule date/time.</Text>
-                        ) : appt.decision === "declined" ? (
-                          <Text style={{ marginTop: 8, color: "#ef4444" }}>Appointment was declined by the doctor.</Text>
-                        ) : null}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
+          {/* Show Join button only when accepted AND scheduledDateTime exists and it's time */}
+          {appt.decision === "accepted" && appt.scheduledDateTime ? (
+            isJoinEnabled(appt) ? (
+              <TouchableOpacity
+                style={styles.videoCallButton}
+                onPress={() => {
+                  if (appt.videoLink) {
+                    router.push({
+                      pathname: "/screens/videoCallScreen", // ✅ expo-router path
+                      params: { videoLink: appt.videoLink },
+                    });
+                  } else {
+                    Alert.alert("No link", "Doctor has not shared a video link yet.");
+                  }
+                }}
+              >
+                <Ionicons name="videocam" size={20} color="#fff" />
+                <Text style={styles.videoCallText}>Join Video Consultation</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={{ marginTop: 8, color: "#666" }}>
+                {getLabel("bookingPending")}{" "}
+                {new Date(appt.scheduledDateTime as any).toLocaleString()}.
+              </Text>
+            )
+          ) : appt.decision === "pending" ? (
+            <Text style={{ marginTop: 8, color: "#FF8F00" }}>{getLabel("bookingPending")}</Text>
+          ) : appt.decision === "declined" ? (
+            <Text style={{ marginTop: 8, color: "#ef4444" }}>{getLabel("appointmentDeclined")}</Text>
+          ) : null}
+        </View>
+      ))}
+    </View>
+  </View>
+)}
+
 
               {/* My Appointments list */}
-              <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 10 }}>My Appointments</Text>
+              <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 10 }}>{getLabel("myAppointments")}</Text>
               {appointments.length === 0 ? (
-                <Text style={{ color: "#666" }}>No appointments yet</Text>
+                <Text style={{ color: "#666" }}>{getLabel("noAppointments")}</Text>
               ) : (
                 appointments.map((appt, index) => (
                   <View key={appt._id ?? index} style={styles.appointmentItem}>
@@ -654,7 +1143,7 @@ if (data.length > 0 && !selectedFamily) {
 
                         {appt.symptomsDescription ? (
                           <Text style={{ color: "#666", marginTop: 6 }}>
-                            Symptoms: {appt.symptomsDescription} ({appt.symptomDuration}, {appt.symptomSeverity})
+                            {getLabel("symptomsLabel")}: {selectedLang === "en" ? appt.symptomsDescription : (appt.symptomsDescriptionTranslated ?? translatedFields[selectedFamily?.uid ?? ""]?.symptomsDescription ?? appt.symptomsDescription)}
                           </Text>
                         ) : null}
 
@@ -702,7 +1191,7 @@ if (data.length > 0 && !selectedFamily) {
 
               {/* Book new appointment */}
               <View style={{ marginTop: 20 }}>
-                <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 10 }}>Book New Appointment</Text>
+                <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 10 }}>{getLabel("bookNewAppointment")}</Text>
                 {doctors.map((doctor) => (
                   <View key={doctor._id} style={styles.doctorCard}>
                     <View style={styles.doctorHeader}>
@@ -714,7 +1203,7 @@ if (data.length > 0 && !selectedFamily) {
                     </View>
 
                     <TouchableOpacity style={styles.bookButton} onPress={() => openBookingForDoctor(doctor)}>
-                      <Text style={styles.bookButtonText}>Book Consultation</Text>
+                      <Text style={styles.bookButtonText}>{getLabel("bookConsultation")}</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -723,34 +1212,54 @@ if (data.length > 0 && !selectedFamily) {
                 {showBookingForm && selectedDoctor && (
                   <>
                     <View style={styles.formSection}>
-                      <Text style={styles.sectionTitle}>Patient Details</Text>
-                      <TextInput style={styles.input} value={patientDetails?.name ?? ""} editable={false} placeholder="Name" />
-                      <TextInput style={styles.input} value={patientDetails?.age ? String(patientDetails.age) : ""} editable={false} placeholder="Age" />
-                      <TextInput style={styles.input} value={patientDetails?.gender ?? ""} editable={false} placeholder="Gender" />
+                      <Text style={styles.sectionTitle}>{getLabel("patientDetails")}</Text>
+                      <TextInput style={styles.input} value={selectedLang === "en" ? (patientDetails?.name ?? "") : (translatedFields[selectedFamily?.uid ?? ""]?.name ?? patientDetails?.name ?? "")} editable={false} placeholder={getLabel("fullName")} />
+                      <TextInput style={styles.input} value={selectedLang === "en" ? (patientDetails?.age ? String(patientDetails.age) : "") : (translatedFields[selectedFamily?.uid ?? ""]?.age ?? (patientDetails?.age ? String(patientDetails.age) : ""))} editable={false} placeholder={getLabel("age")} />
+                      <TextInput style={styles.input} value={selectedLang === "en" ? (patientDetails?.gender ?? "") : (translatedFields[selectedFamily?.uid ?? ""]?.gender ?? patientDetails?.gender ?? "")} editable={false} placeholder={getLabel("gender")} />
                     </View>
 
                     <View style={{ marginTop: 20 }}>
-                      <Text style={{ fontWeight: "600", marginBottom: 8 }}>Booking with {selectedDoctor.name}</Text>
+                      <Text style={{ fontWeight: "600", marginBottom: 8 }}>{getLabel("bookConsultation")} {selectedDoctor.name}</Text>
 
-                      <TextInput style={[styles.input, { minHeight: 80 }]} placeholder="Describe your symptoms" value={symptomsDescription} onChangeText={setSymptomsDescription} multiline />
+                      <TextInput
+                        style={[styles.input, { minHeight: 80 }]}
+                        placeholder={getLabel("describeSymptoms")}
+                        value={symptomsDescription}
+                        onChangeText={async (txt) => {
+                          setSymptomsDescription(txt);
+                          if (selectedLang !== "en") {
+                            const t = await translateTextAPI(txt, "en", selectedLang);
+                            setTranslatedSymptomsPreview(t || "");
+                          }
+                        }}
+                        multiline
+                      />
 
-                      <TextInput style={styles.input} placeholder="For how many days? (e.g., 2 days)" value={symptomDuration} onChangeText={setSymptomDuration} />
+                      {/* small row to show translated preview when language != en */}
+                      {selectedLang !== "en" && (
+                        <View style={{ marginBottom: 8 }}>
+                          <Text style={{ color: "#666", marginBottom: 4, fontSize: 12 }}>Preview ({selectedLang}):</Text>
+                          <Text style={{ backgroundColor: "#F1F1F1", padding: 8, borderRadius: 6 }}>{translatedSymptomsPreview || getLabel("noAppointments")}</Text>
+                        </View>
+                      )}
+
+                      <TextInput style={styles.input} placeholder={getLabel("forHowManyDays")} value={symptomDuration} onChangeText={setSymptomDuration} />
 
                       <View style={{ marginVertical: 8 }}>
-                        <Text style={{ marginBottom: 6, color: "#666" }}>Severity</Text>
+                        <Text style={{ marginBottom: 6, color: "#666" }}>{getLabel("severity")}</Text>
                         <Picker selectedValue={symptomSeverity} onValueChange={(itemValue) => setSymptomSeverity(itemValue as any)}>
-                          <Picker.Item label="Mild" value="Mild" />
-                          <Picker.Item label="Moderate" value="Moderate" />
-                          <Picker.Item label="Severe" value="Severe" />
+                          <Picker.Item label={getLabel("mild")} value="Mild" />
+                          <Picker.Item label={getLabel("moderate")} value="Moderate" />
+                          <Picker.Item label={getLabel("severe")} value="Severe" />
                         </Picker>
                       </View>
 
                       <TouchableOpacity style={styles.saveButton} onPress={confirmBooking}>
-                        <Text style={styles.saveButtonText}>Confirm Booking</Text>
+                        <Text style={styles.saveButtonText}>{getLabel("confirmBooking")}</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity style={[styles.cancelButton, { marginTop: 8 }]} onPress={() => { setShowBookingForm(false); setSelectedDoctor(null); }}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                        <Text style={styles.cancelButtonText}>{getLabel("cancel")}</Text>
                       </TouchableOpacity>
                     </View>
                   </>
@@ -765,7 +1274,7 @@ if (data.length > 0 && !selectedFamily) {
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <Ionicons name="bulb" size={24} color="#1565C0" />
-              <Text style={styles.cardTitle}>Daily Health Tips</Text>
+              <Text style={styles.cardTitle}>{getLabel("dailyHealthTips")}</Text>
             </View>
           </View>
           <View style={styles.tipsContainer}>
@@ -781,8 +1290,8 @@ if (data.length > 0 && !selectedFamily) {
         }}>
           <LinearGradient colors={['#F44336', '#D32F2F']} style={styles.sosGradient}>
             <Ionicons name="warning" size={32} color="white" />
-            <Text style={styles.sosText}>Emergency SOS</Text>
-            <Text style={styles.sosSubtext}>Tap for immediate help</Text>
+            <Text style={styles.sosText}>{getLabel("emergencySOS")}</Text>
+            <Text style={styles.sosSubtext}>{getLabel("tapForHelp")}</Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -795,7 +1304,7 @@ if (data.length > 0 && !selectedFamily) {
 }
 
 /* ============================
-   Styles
+   Styles (unchanged)
    ============================ */
 
 const styles = StyleSheet.create({

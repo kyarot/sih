@@ -5,13 +5,18 @@ export const doctorLogin = async (req, res) => {
   try {
     const { uniqueKey } = req.body;
     const doctor = await Doctor.findOne({ uniqueKey });
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-    res.json(doctor);
+
+    if (!doctor) 
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+
+    // Send success explicitly
+    res.json({ success: true, doctor });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 /** Get all doctors */
 export const getAllDoctors = async (req, res) => {
