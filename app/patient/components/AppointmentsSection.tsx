@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import React from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
-
+import { useTranslation } from "../../../components/TranslateProvider"; 
 export type Doctor = {
   _id: string;
   name: string;
@@ -52,7 +52,28 @@ type Props = {
   onNavigateToVideo: (videoLink: string) => void;
 };
 
-export default function AppointmentsSection({ expanded, onToggle, appointments, isJoinEnabled, doctors, showBookingForm, selectedDoctor, onOpenBooking, patientDetails, symptomsDescription, setSymptomsDescription, symptomDuration, setSymptomDuration, symptomSeverity, setSymptomSeverity, onConfirmBooking, onCancelBooking, onNavigateToVideo }: Props) {
+export default function AppointmentsSection({
+  expanded,
+  onToggle,
+  appointments,
+  isJoinEnabled,
+  doctors,
+  showBookingForm,
+  selectedDoctor,
+  onOpenBooking,
+  patientDetails,
+  symptomsDescription,
+  setSymptomsDescription,
+  symptomDuration,
+  setSymptomDuration,
+  symptomSeverity,
+  setSymptomSeverity,
+  onConfirmBooking,
+  onCancelBooking,
+  onNavigateToVideo,
+}: Props) {
+  const { t } = useTranslation(); // ✅ translation hook
+
   return (
     <View style={styles.card}>
       <TouchableWithoutFeedback onPress={onToggle}>
@@ -61,14 +82,10 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
             <View style={styles.iconContainer}>
               <Ionicons name="calendar" size={24} color="white" />
             </View>
-            <Text style={styles.title}>Appointments</Text>
+            <Text style={styles.title}>{t("appointments")}</Text>
           </View>
           <View style={styles.chevronContainer}>
-            <Ionicons 
-              name={expanded ? "chevron-up" : "chevron-down"} 
-              size={24} 
-              color="white" 
-            />
+            <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={24} color="white" />
           </View>
         </View>
       </TouchableWithoutFeedback>
@@ -92,83 +109,87 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
                     }
                   })()}
                 </View>
-                <Text style={styles.currentTitle}>Current Appointment</Text>
+                <Text style={styles.currentTitle}>{t("current_appointment")}</Text>
               </View>
 
               <View style={styles.currentContent}>
-                {appointments.filter((a) => a.status === "booked").map((appt, idx) => (
-                  <View key={idx}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Doctor</Text>
-                      <Text style={styles.infoValue}>{(appt.doctorId as any)?.name ?? (appt as any).doctorName}</Text>
-                    </View>
-                    
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Specialization</Text>
-                      <Text style={styles.infoValue}>{(appt.doctorId as any)?.specialization ?? "-"}</Text>
-                    </View>
-                    
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Date & Time</Text>
-                      <Text style={styles.infoValue}>{appt.requestedDate ?? "-"} {appt.requestedTime ? `at ${appt.requestedTime}` : ""}</Text>
-                    </View>
+                {appointments
+                  .filter((a) => a.status === "booked")
+                  .map((appt, idx) => (
+                    <View key={idx}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>{t("doctor")}</Text>
+                        <Text style={styles.infoValue}>{(appt.doctorId as any)?.name ?? (appt as any).doctorName}</Text>
+                      </View>
 
-                    {appt.symptomsDescription && (
-                      <View style={styles.symptomsContainer}>
-                        <Text style={styles.symptomsLabel}>Symptoms</Text>
-                        <Text style={styles.symptomsText}>
-                          {appt.symptomsDescription} • {appt.symptomDuration} • {appt.symptomSeverity}
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>{t("specialization")}</Text>
+                        <Text style={styles.infoValue}>{(appt.doctorId as any)?.specialization ?? "-"}</Text>
+                      </View>
+
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>{t("date_time")}</Text>
+                        <Text style={styles.infoValue}>
+                          {appt.requestedDate ?? "-"} {appt.requestedTime ? `${t("at")} ${appt.requestedTime}` : ""}
                         </Text>
                       </View>
-                    )}
 
-                    {appt.decision === "accepted" && appt.scheduledDateTime ? (
-                      isJoinEnabled(appt) ? (
-                        <TouchableOpacity
-                          style={styles.videoButton}
-                          onPress={() => {
-                            if (appt.videoLink) {
-                              onNavigateToVideo(appt.videoLink);
-                            } else {
-                              Alert.alert("No link", "Doctor has not shared a video link yet.");
-                            }
-                          }}
-                        >
-                          <Ionicons name="videocam" size={20} color="white" />
-                          <Text style={styles.videoButtonText}>Join Video Consultation</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={styles.infoMessage}>
-                          <Ionicons name="information-circle" size={16} color="#1E40AF" />
-                          <Text style={styles.infoMessageText}>
-                            Consultation confirmed for {new Date(appt.scheduledDateTime as any).toLocaleString()}. Join will be enabled at scheduled time.
+                      {appt.symptomsDescription && (
+                        <View style={styles.symptomsContainer}>
+                          <Text style={styles.symptomsLabel}>{t("symptoms")}</Text>
+                          <Text style={styles.symptomsText}>
+                            {appt.symptomsDescription} • {appt.symptomDuration} • {appt.symptomSeverity}
                           </Text>
                         </View>
-                      )
-                    ) : appt.decision === "pending" ? (
-                      <View style={styles.pendingMessage}>
-                        <Ionicons name="hourglass" size={16} color="#1E40AF" />
-                        <Text style={styles.pendingMessageText}>Booking pending - doctor will accept and schedule date/time.</Text>
-                      </View>
-                    ) : appt.decision === "declined" ? (
-                      <View style={styles.declinedMessage}>
-                        <Ionicons name="close-circle" size={16} color="#B91C1C" />
-                        <Text style={styles.declinedMessageText}>Appointment was declined by the doctor.</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
+                      )}
+
+                      {appt.decision === "accepted" && appt.scheduledDateTime ? (
+                        isJoinEnabled(appt) ? (
+                          <TouchableOpacity
+                            style={styles.videoButton}
+                            onPress={() => {
+                              if (appt.videoLink) {
+                                onNavigateToVideo(appt.videoLink);
+                              } else {
+                                Alert.alert(t("no_link"), t("no_link_msg"));
+                              }
+                            }}
+                          >
+                            <Ionicons name="videocam" size={20} color="white" />
+                            <Text style={styles.videoButtonText}>{t("join_video")}</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <View style={styles.infoMessage}>
+                            <Ionicons name="information-circle" size={16} color="#1E40AF" />
+                            <Text style={styles.infoMessageText}>
+                              {t("consultation_confirmed")} {new Date(appt.scheduledDateTime as any).toLocaleString()}.
+                            </Text>
+                          </View>
+                        )
+                      ) : appt.decision === "pending" ? (
+                        <View style={styles.pendingMessage}>
+                          <Ionicons name="hourglass" size={16} color="#1E40AF" />
+                          <Text style={styles.pendingMessageText}>{t("booking_pending")}</Text>
+                        </View>
+                      ) : appt.decision === "declined" ? (
+                        <View style={styles.declinedMessage}>
+                          <Ionicons name="close-circle" size={16} color="#B91C1C" />
+                          <Text style={styles.declinedMessageText}>{t("appointment_declined")}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
               </View>
             </View>
           )}
 
           {/* All Appointments */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>My Appointments</Text>
+            <Text style={styles.sectionTitle}>{t("my_appointments")}</Text>
             {appointments.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="calendar-outline" size={48} color="#E5E7EB" />
-                <Text style={styles.emptyText}>No appointments yet</Text>
+                <Text style={styles.emptyText}>{t("no_appointments")}</Text>
               </View>
             ) : (
               <View style={styles.appointmentsList}>
@@ -179,10 +200,10 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
                         <Ionicons name="medical" size={20} color="white" />
                       </View>
                       <View style={styles.appointmentDetails}>
-                        <Text style={styles.doctorName}>{(appt.doctorId as any)?.name ?? "Doctor"}</Text>
+                        <Text style={styles.doctorName}>{(appt.doctorId as any)?.name ?? t("doctor")}</Text>
                         <Text style={styles.specialization}>{(appt.doctorId as any)?.specialization ?? "-"}</Text>
                         <Text style={styles.dateTime}>
-                          {appt.requestedDate ?? "Not scheduled"} 
+                          {appt.requestedDate ?? t("not_scheduled")}
                           {appt.requestedTime ? ` • ${appt.requestedTime}` : ""}
                         </Text>
                         {appt.symptomsDescription && (
@@ -193,22 +214,43 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
                       </View>
                     </View>
 
-                    <View style={[styles.statusBadge, {
-                      backgroundColor: appt.decision === "accepted" || appt.status === "completed" ? "#1E40AF" :
-                                     appt.decision === "pending" ? "#E5E7EB" :
-                                     "#FEE2E2"
-                    }]}>
-                      <Text style={[styles.statusText, {
-                        color: appt.decision === "accepted" || appt.status === "completed" ? "white" :
-                               appt.decision === "pending" ? "#1E40AF" :
-                               "#B91C1C"
-                      }]}>
-                        {appt.decision === "accepted" ? "confirmed" :
-                         appt.decision === "pending" ? "pending" :
-                         appt.decision === "declined" ? "declined" :
-                         appt.status === "completed" ? "completed" :
-                         appt.status === "cancelled" ? "cancelled" :
-                         "pending"}
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        {
+                          backgroundColor:
+                            appt.decision === "accepted" || appt.status === "completed"
+                              ? "#1E40AF"
+                              : appt.decision === "pending"
+                              ? "#E5E7EB"
+                              : "#FEE2E2",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusText,
+                          {
+                            color:
+                              appt.decision === "accepted" || appt.status === "completed"
+                                ? "white"
+                                : appt.decision === "pending"
+                                ? "#1E40AF"
+                                : "#B91C1C",
+                          },
+                        ]}
+                      >
+                        {appt.decision === "accepted"
+                          ? t("confirmed")
+                          : appt.decision === "pending"
+                          ? t("pending")
+                          : appt.decision === "declined"
+                          ? t("declined")
+                          : appt.status === "completed"
+                          ? t("completed")
+                          : appt.status === "cancelled"
+                          ? t("cancelled")
+                          : t("pending")}
                       </Text>
                     </View>
                   </View>
@@ -219,7 +261,7 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
 
           {/* Book New Appointment */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Book New Appointment</Text>
+            <Text style={styles.sectionTitle}>{t("book_new_appointment")}</Text>
             <View style={styles.doctorsList}>
               {doctors.map((doctor) => (
                 <View key={doctor._id} style={styles.doctorCard}>
@@ -232,7 +274,7 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
                       <Text style={styles.doctorSpec}>{doctor.specialization}</Text>
                     </View>
                     <TouchableOpacity style={styles.bookButton} onPress={() => onOpenBooking(doctor)}>
-                      <Text style={styles.bookButtonText}>Book</Text>
+                      <Text style={styles.bookButtonText}>{t("book")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -243,21 +285,27 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
             {showBookingForm && selectedDoctor && (
               <View style={styles.bookingForm}>
                 <View style={styles.formHeader}>
-                  <Text style={styles.formTitle}>Booking with Dr. {selectedDoctor.name}</Text>
+                  <Text style={styles.formTitle}>
+                    {t("booking_with")} Dr. {selectedDoctor.name}
+                  </Text>
                 </View>
 
                 <View style={styles.patientInfo}>
-                  <Text style={styles.patientLabel}>Patient Details</Text>
-                  <Text style={styles.patientDetail}>{patientDetails?.name ?? "Not provided"}</Text>
-                  <Text style={styles.patientDetail}>Age: {patientDetails?.age ? String(patientDetails.age) : "Not provided"}</Text>
-                  <Text style={styles.patientDetail}>Gender: {patientDetails?.gender ?? "Not provided"}</Text>
+                  <Text style={styles.patientLabel}>{t("patient_details")}</Text>
+                  <Text style={styles.patientDetail}>{patientDetails?.name ?? t("not_provided")}</Text>
+                  <Text style={styles.patientDetail}>
+                    {t("age")}: {patientDetails?.age ? String(patientDetails.age) : t("not_provided")}
+                  </Text>
+                  <Text style={styles.patientDetail}>
+                    {t("gender")}: {patientDetails?.gender ?? t("not_provided")}
+                  </Text>
                 </View>
 
                 <View style={styles.formField}>
-                  <Text style={styles.fieldLabel}>Describe your symptoms</Text>
+                  <Text style={styles.fieldLabel}>{t("describe_symptoms")}</Text>
                   <TextInput
                     style={styles.textArea}
-                    placeholder="Please describe your symptoms in detail..."
+                    placeholder={t("symptoms_placeholder")}
                     value={symptomsDescription}
                     onChangeText={setSymptomsDescription}
                     multiline
@@ -267,10 +315,10 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
                 </View>
 
                 <View style={styles.formField}>
-                  <Text style={styles.fieldLabel}>Duration</Text>
+                  <Text style={styles.fieldLabel}>{t("duration")}</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="e.g., 2 days, 1 week"
+                    placeholder={t("duration_placeholder")}
                     value={symptomDuration}
                     onChangeText={setSymptomDuration}
                     placeholderTextColor="#9CA3AF"
@@ -278,26 +326,22 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
                 </View>
 
                 <View style={styles.formField}>
-                  <Text style={styles.fieldLabel}>Severity</Text>
+                  <Text style={styles.fieldLabel}>{t("severity")}</Text>
                   <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={symptomSeverity}
-                      onValueChange={(itemValue) => setSymptomSeverity(itemValue as any)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Mild" value="Mild" />
-                      <Picker.Item label="Moderate" value="Moderate" />
-                      <Picker.Item label="Severe" value="Severe" />
+                    <Picker selectedValue={symptomSeverity} onValueChange={(itemValue) => setSymptomSeverity(itemValue as any)} style={styles.picker}>
+                      <Picker.Item label={t("mild")} value="Mild" />
+                      <Picker.Item label={t("moderate")} value="Moderate" />
+                      <Picker.Item label={t("severe")} value="Severe" />
                     </Picker>
                   </View>
                 </View>
 
                 <View style={styles.formActions}>
                   <TouchableOpacity style={styles.confirmButton} onPress={onConfirmBooking}>
-                    <Text style={styles.confirmButtonText}>Confirm Booking</Text>
+                    <Text style={styles.confirmButtonText}>{t("confirm_booking")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.cancelButton} onPress={onCancelBooking}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -308,6 +352,7 @@ export default function AppointmentsSection({ expanded, onToggle, appointments, 
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   card: {

@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "../../../components/TranslateProvider"; 
 
 export type FamilyProfile = {
   _id?: string;
@@ -24,6 +25,8 @@ type Props = {
 };
 
 export default function FamilyMembers({ familyProfiles, selectedFamilyId, onSelect, onAddPress }: Props) {
+  const { t } = useTranslation(); // ✅
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -31,16 +34,16 @@ export default function FamilyMembers({ familyProfiles, selectedFamilyId, onSele
           <View style={styles.iconContainer}>
             <Ionicons name="people" size={20} color="white" />
           </View>
-          <Text style={styles.title}>Family Members</Text>
+          <Text style={styles.title}>{t("family_members")}</Text>
         </View>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>{familyProfiles.length}</Text>
         </View>
       </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
       >
@@ -54,24 +57,17 @@ export default function FamilyMembers({ familyProfiles, selectedFamilyId, onSele
               activeOpacity={0.8}
             >
               <View style={[styles.avatarContainer, isSelected && styles.avatarContainerActive]}>
-                <Ionicons 
-                  name="person" 
-                  size={24} 
-                  color={isSelected ? "white" : "#1E40AF"} 
-                />
+                <Ionicons name="person" size={24} color={isSelected ? "white" : "#1E40AF"} />
               </View>
-              
+
               <View style={styles.memberInfo}>
-                <Text 
-                  style={[styles.memberName, isSelected && styles.memberNameActive]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.memberName, isSelected && styles.memberNameActive]} numberOfLines={1}>
                   {profile.name}
                 </Text>
-                
+
                 {profile.age && (
                   <Text style={[styles.memberAge, isSelected && styles.memberAgeActive]}>
-                    {profile.age} years
+                    {profile.age} {t("years")}
                   </Text>
                 )}
               </View>
@@ -86,17 +82,13 @@ export default function FamilyMembers({ familyProfiles, selectedFamilyId, onSele
         })}
 
         {familyProfiles.length < 5 && (
-          <TouchableOpacity 
-            style={styles.addCard} 
-            onPress={onAddPress}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.addCard} onPress={onAddPress} activeOpacity={0.7}>
             <View style={styles.addIconContainer}>
               <Ionicons name="add" size={28} color="#1E40AF" />
             </View>
             <View style={styles.addInfo}>
-              <Text style={styles.addText}>Add Member</Text>
-              <Text style={styles.addSubtext}>Up to 5 members</Text>
+              <Text style={styles.addText}>{t("add_member")}</Text>
+              <Text style={styles.addSubtext}>{t("up_to_5_members")}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -104,6 +96,7 @@ export default function FamilyMembers({ familyProfiles, selectedFamilyId, onSele
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

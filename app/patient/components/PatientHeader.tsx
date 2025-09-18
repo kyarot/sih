@@ -2,18 +2,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "../../../components/TranslateProvider"; 
 
 type PatientHeaderProps = {
   name: string | undefined | null;
 };
 
 export default function PatientHeader({ name }: PatientHeaderProps) {
+  const { t } = useTranslation(); // ✅
+
   return (
     <LinearGradient colors={["#1E40AF", "#1E40AF"]} style={styles.header}>
       <View style={styles.headerContent}>
         <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>Welcome back</Text>
-          <Text style={styles.nameText}>{name ?? "Loading..."} 👋</Text>
+          <Text style={styles.welcomeText}>{t("welcome_back")}</Text>
+          <Text style={styles.nameText}>{name ?? t("loading")} 👋</Text>
         </View>
 
         <View style={styles.headerRight}>
@@ -25,21 +28,27 @@ export default function PatientHeader({ name }: PatientHeaderProps) {
               </View>
             </View>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.headerIcon}>
             <View style={styles.iconContainer}>
               <Ionicons name="settings-outline" size={22} color="#1E40AF" />
             </View>
           </TouchableOpacity>
-          
+
           <View style={styles.profileContainer}>
-            <Image source={{ uri: "https://via.placeholder.com/40x40/1565C0/ffffff?text=P" }} style={styles.profilePic} />
+            <Image
+              source={{
+                uri: "https://via.placeholder.com/40x40/1565C0/ffffff?text=P",
+              }}
+              style={styles.profilePic}
+            />
           </View>
         </View>
       </View>
     </LinearGradient>
   );
 }
+
 
 const styles = StyleSheet.create({
   header: {

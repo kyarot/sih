@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import { Ionicons } from '@expo/vector-icons';
-
+import { useTranslation } from "../../../components/TranslateProvider"; 
 interface Message {
   id: string;
   sender: "user" | "ai";
@@ -23,6 +23,7 @@ interface Message {
 }
 
 export default function AIChat() {
+  const { t, translateDynamic, lang } = useTranslation(); // ✅ hook
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -76,7 +77,6 @@ export default function AIChat() {
         name: "speech.m4a",
       } as any);
 
-      // Step 1: Start transcription
       const res = await fetch("https://api.whisper-api.com/transcribe", {
         method: "POST",
         headers: {
@@ -93,7 +93,6 @@ export default function AIChat() {
         throw new Error("No task_id returned from Whisper API");
       }
 
-      // Step 2: Poll status until transcription is ready
       let transcription = "";
       while (!transcription) {
         const statusRes = await fetch(`https://api.whisper-api.com/status/${task_id}`, {
@@ -112,7 +111,6 @@ export default function AIChat() {
         }
       }
 
-      // Step 3: Pass text to chatbot
       if (transcription) {
         handleSubmit(transcription);
       }
@@ -128,11 +126,12 @@ export default function AIChat() {
     const finalInput = text || input;
     if (!finalInput.trim()) return;
 
-    // Add user message
+    const translatedInput = await translateDynamic(finalInput); // ✅ translate user input
+
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: "user",
-      text: finalInput,
+      text: translatedInput,
     };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -146,23 +145,24 @@ export default function AIChat() {
       });
       const data = await res.json();
 
+      const aiReply = data.answer || t("server_error");
+      const translatedAI = await translateDynamic(aiReply); // ✅ translate AI output
+
       const aiMessage: Message = {
         id: Date.now().toString() + "_ai",
         sender: "ai",
-        text: data.answer || "Sorry, I couldn't process that.",
+        text: translatedAI,
       };
-
       setMessages((prev) => [...prev, aiMessage]);
 
-      // 🔊 Speak response only if speaker is enabled
       if (speakerEnabled) {
-        Speech.speak(aiMessage.text, { language: "en" });
+        Speech.speak(translatedAI, { language: lang });
       }
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
         ...prev,
-        { id: Date.now().toString() + "_err", sender: "ai", text: "⚠️ Server error, try again." },
+        { id: Date.now().toString() + "_err", sender: "ai", text: t("server_error") },
       ]);
     } finally {
       setLoading(false);
@@ -189,7 +189,7 @@ export default function AIChat() {
             <View style={styles.aiAvatar}>
               <Ionicons name="medical" size={16} color="white" />
             </View>
-            <Text style={styles.aiLabel}>AI Medical Assistant</Text>
+            <Text style={styles.aiLabel}>{t("ai_assistant")}</Text>
             <View style={styles.aiStatusDot} />
           </View>
         )}
@@ -199,16 +199,6 @@ export default function AIChat() {
         ]}>
           {item.text}
         </Text>
-        {item.sender === "user" && (
-          <View style={styles.messageFooter}>
-            <Text style={styles.messageTime}>
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-            <View style={styles.userAvatar}>
-              <Ionicons name="person" size={16} color="white" />
-            </View>
-          </View>
-        )}
       </View>
     </View>
   );
@@ -224,9 +214,9 @@ export default function AIChat() {
             <Ionicons name="chatbubbles" size={28} color="white" />
           </View>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>AI Medical Chat</Text>
+            <Text style={styles.headerTitle}>{t("ai_medical_chat")}</Text>
             <Text style={styles.headerSubtitle}>
-              {messages.length > 0 ? `${messages.length} messages` : "Start a conversation"}
+              {messages.length > 0 ? `${messages.length} ${t("messages")}` : t("start_conversation")}
             </Text>
           </View>
         </View>
@@ -251,22 +241,22 @@ export default function AIChat() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="chatbubbles-outline" size={64} color="#1E40AF" />
             </View>
-            <Text style={styles.emptyTitle}>Welcome to AI Medical Assistant</Text>
+            <Text style={styles.emptyTitle}>{t("welcome_ai")}</Text>
             <Text style={styles.emptyText}>
-              Describe your symptoms and I'll help provide medical guidance. You can type or use voice recording.
+              {t("describe_prompt")}
             </Text>
             <View style={styles.featuresContainer}>
               <View style={styles.feature}>
                 <Ionicons name="mic-outline" size={20} color="#1E40AF" />
-                <Text style={styles.featureText}>Voice input</Text>
+                <Text style={styles.featureText}>{t("voice_input")}</Text>
               </View>
               <View style={styles.feature}>
                 <Ionicons name="volume-high-outline" size={20} color="#1E40AF" />
-                <Text style={styles.featureText}>Audio responses</Text>
+                <Text style={styles.featureText}>{t("audio_responses")}</Text>
               </View>
               <View style={styles.feature}>
                 <Ionicons name="shield-checkmark-outline" size={20} color="#1E40AF" />
-                <Text style={styles.featureText}>Medical AI</Text>
+                <Text style={styles.featureText}>{t("medical_ai")}</Text>
               </View>
             </View>
           </View>
@@ -279,34 +269,15 @@ export default function AIChat() {
             showsVerticalScrollIndicator={false}
           />
         )}
-
-        {/* Loading Indicator */}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <View style={styles.loadingCard}>
-              <View style={styles.aiAvatar}>
-                <Ionicons name="medical" size={16} color="white" />
-              </View>
-              <View style={styles.loadingContent}>
-                <Text style={styles.loadingLabel}>AI is analyzing...</Text>
-                <View style={styles.loadingDots}>
-                  <View style={[styles.dot, styles.dot1]} />
-                  <View style={[styles.dot, styles.dot2]} />
-                  <View style={[styles.dot, styles.dot3]} />
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
       </View>
 
-      {/* Input Container */}
+      {/* Input */}
       <View style={styles.inputContainer}>
         <View style={styles.inputCard}>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Describe your symptoms..."
+              placeholder={t("describe_symptoms")}
               placeholderTextColor="#9CA3AF"
               value={input}
               onChangeText={setInput}
@@ -322,23 +293,17 @@ export default function AIChat() {
               <Ionicons name="send" size={18} color="white" />
             </TouchableOpacity>
           </View>
-
           <View style={styles.bottomRow}>
             <Text style={styles.charCount}>
               {input.length}/500
             </Text>
             <TouchableOpacity
-              style={[
-                styles.micButton,
-                recording ? styles.micActive : styles.micInactive
-              ]}
+              style={[styles.micButton, recording ? styles.micActive : styles.micInactive]}
               onPress={recording ? stopRecording : startRecording}
               disabled={loading}
             >
               {recording ? (
-                <View style={styles.recordingIndicator}>
-                  <Ionicons name="stop-circle" size={24} color="white" />
-                </View>
+                <Ionicons name="stop-circle" size={24} color="white" />
               ) : (
                 <Ionicons name="mic" size={24} color="white" />
               )}
@@ -349,6 +314,10 @@ export default function AIChat() {
     </SafeAreaView>
   );
 }
+
+
+
+
 
 const styles = StyleSheet.create({
   container: {

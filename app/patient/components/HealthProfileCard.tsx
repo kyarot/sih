@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { useTranslation } from "../../../components/TranslateProvider"; 
 
 export type FamilyProfile = {
   _id?: string;
@@ -18,10 +19,18 @@ export type FamilyProfile = {
 
 type Gender = "Male" | "Female" | "Other" | string;
 
-function GenderButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function GenderButton({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
-    <TouchableOpacity 
-      onPress={onPress} 
+    <TouchableOpacity
+      onPress={onPress}
       style={[styles.genderBtn, selected && styles.genderBtnSelected]}
       activeOpacity={0.8}
     >
@@ -47,15 +56,30 @@ type Props = {
   onRefreshSelected: () => void;
 };
 
-export default function HealthProfileCard({ expanded, onToggle, selectedFamily, editingProfile, setEditingProfile, addingNewProfile, setAddingNewProfile, newProfileDraft, setNewProfileDraft, onSaveExisting, onCreateNew, onRefreshSelected }: Props) {
+export default function HealthProfileCard({
+  expanded,
+  onToggle,
+  selectedFamily,
+  editingProfile,
+  setEditingProfile,
+  addingNewProfile,
+  setAddingNewProfile,
+  newProfileDraft,
+  setNewProfileDraft,
+  onSaveExisting,
+  onCreateNew,
+  onRefreshSelected,
+}: Props) {
+  const { t } = useTranslation(); // ✅
+
   const profileFields = [
-    { key: "name", label: "Full Name", icon: "person" },
-    { key: "age", label: "Age", icon: "calendar" },
-    { key: "gender", label: "Gender", icon: "male-female" },
-    { key: "email", label: "Email Address", icon: "mail" },
-    { key: "phone", label: "Phone Number", icon: "call" },
-    { key: "bloodGroup", label: "Blood Group", icon: "water" },
-    { key: "address", label: "Address", icon: "location" },
+    { key: "name", label: t("full_name"), icon: "person" },
+    { key: "age", label: t("age"), icon: "calendar" },
+    { key: "gender", label: t("gender"), icon: "male-female" },
+    { key: "email", label: t("email_address"), icon: "mail" },
+    { key: "phone", label: t("phone_number"), icon: "call" },
+    { key: "bloodGroup", label: t("blood_group"), icon: "water" },
+    { key: "address", label: t("address"), icon: "location" },
   ];
 
   return (
@@ -66,27 +90,27 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
             <View style={styles.iconContainer}>
               <Ionicons name="person-circle" size={24} color="white" />
             </View>
-            <Text style={styles.title}>Health Profile</Text>
+            <Text style={styles.title}>{t("health_profile")}</Text>
           </View>
           <View style={styles.headerActions}>
             {!addingNewProfile && selectedFamily && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => setEditingProfile(!editingProfile)}
                 activeOpacity={0.8}
               >
-                <Ionicons 
-                  name={editingProfile ? "close" : "create"} 
-                  size={20} 
-                  color="white" 
+                <Ionicons
+                  name={editingProfile ? "close" : "create"}
+                  size={20}
+                  color="white"
                 />
               </TouchableOpacity>
             )}
             <View style={styles.chevronContainer}>
-              <Ionicons 
-                name={expanded ? "chevron-up" : "chevron-down"} 
-                size={24} 
-                color="white" 
+              <Ionicons
+                name={expanded ? "chevron-up" : "chevron-down"}
+                size={24}
+                color="white"
               />
             </View>
           </View>
@@ -101,7 +125,7 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                 <View style={styles.formIconContainer}>
                   <Ionicons name="person-add" size={20} color="white" />
                 </View>
-                <Text style={styles.formTitle}>Add New Profile</Text>
+                <Text style={styles.formTitle}>{t("add_new_profile")}</Text>
               </View>
 
               <View style={styles.formContent}>
@@ -111,27 +135,40 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                       <Ionicons name={field.icon as any} size={16} color="#1E40AF" />
                       <Text style={styles.inputLabel}>{field.label}</Text>
                     </View>
-                    
+
                     {field.key === "gender" ? (
                       <View style={styles.genderContainer}>
                         {(["Male", "Female", "Other"] as const).map((g) => (
-                          <GenderButton 
-                            key={g} 
-                            label={g} 
-                            selected={(newProfileDraft.gender ?? "Male") === g} 
-                            onPress={() => setNewProfileDraft({ ...newProfileDraft, gender: g as Gender })} 
+                          <GenderButton
+                            key={g}
+                            label={t(g.toLowerCase())}
+                            selected={(newProfileDraft.gender ?? "Male") === g}
+                            onPress={() =>
+                              setNewProfileDraft({ ...newProfileDraft, gender: g as Gender })
+                            }
                           />
                         ))}
                       </View>
                     ) : (
-                      <TextInput 
+                      <TextInput
                         style={styles.input}
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        placeholder={`${t("enter")} ${field.label.toLowerCase()}`}
                         placeholderTextColor="#94A3B8"
                         value={String((newProfileDraft as any)[field.key] ?? "")}
-                        keyboardType={field.key === "age" ? "numeric" : field.key === "phone" ? "phone-pad" : "default"}
+                        keyboardType={
+                          field.key === "age"
+                            ? "numeric"
+                            : field.key === "phone"
+                            ? "phone-pad"
+                            : "default"
+                        }
                         onChangeText={(text) => {
-                          const value = field.key === "age" ? (text === "" ? "" : Number(text)) : text;
+                          const value =
+                            field.key === "age"
+                              ? text === ""
+                                ? ""
+                                : Number(text)
+                              : text;
                           setNewProfileDraft({ ...newProfileDraft, [field.key]: value });
                         }}
                       />
@@ -140,20 +177,20 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                 ))}
 
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity 
-                    style={styles.saveButton} 
+                  <TouchableOpacity
+                    style={styles.saveButton}
                     onPress={() => onCreateNew(newProfileDraft)}
                     activeOpacity={0.9}
                   >
                     <Ionicons name="checkmark" size={20} color="white" />
-                    <Text style={styles.saveButtonText}>Save Profile</Text>
+                    <Text style={styles.saveButtonText}>{t("save_profile")}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.cancelButton} 
+                  <TouchableOpacity
+                    style={styles.cancelButton}
                     onPress={() => setAddingNewProfile(false)}
                     activeOpacity={0.9}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -167,11 +204,11 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{selectedFamily.name}</Text>
                   <Text style={styles.profileSubtext}>
-                    {selectedFamily.age && selectedFamily.gender ? 
-                      `${selectedFamily.age} years • ${selectedFamily.gender}` :
-                      selectedFamily.age ? `${selectedFamily.age} years` :
-                      selectedFamily.gender || "Profile"
-                    }
+                    {selectedFamily.age && selectedFamily.gender
+                      ? `${selectedFamily.age} ${t("years")} • ${selectedFamily.gender}`
+                      : selectedFamily.age
+                      ? `${selectedFamily.age} ${t("years")}`
+                      : selectedFamily.gender || t("profile")}
                   </Text>
                 </View>
               </View>
@@ -190,11 +227,13 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                       field.key === "gender" ? (
                         <View style={styles.genderContainer}>
                           {(["Male", "Female", "Other"] as const).map((g) => (
-                            <GenderButton 
-                              key={g} 
-                              label={g} 
-                              selected={selectedFamily?.gender === g} 
-                              onPress={() => { (selectedFamily as any).gender = g; }} 
+                            <GenderButton
+                              key={g}
+                              label={t(g.toLowerCase())}
+                              selected={selectedFamily?.gender === g}
+                              onPress={() => {
+                                (selectedFamily as any).gender = g;
+                              }}
                             />
                           ))}
                         </View>
@@ -202,10 +241,21 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                         <TextInput
                           style={styles.input}
                           value={String((selectedFamily as any)[field.key] ?? "")}
-                          keyboardType={field.key === "age" ? "numeric" : field.key === "phone" ? "phone-pad" : "default"}
+                          keyboardType={
+                            field.key === "age"
+                              ? "numeric"
+                              : field.key === "phone"
+                              ? "phone-pad"
+                              : "default"
+                          }
                           placeholderTextColor="#94A3B8"
                           onChangeText={(text) => {
-                            const value = field.key === "age" ? (text === "" ? "" : Number(text)) : text;
+                            const value =
+                              field.key === "age"
+                                ? text === ""
+                                  ? ""
+                                  : Number(text)
+                                : text;
                             (selectedFamily as any)[field.key] = value;
                           }}
                         />
@@ -213,7 +263,12 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
                     ) : (
                       <View style={styles.fieldValueContainer}>
                         <Text style={styles.fieldValue}>
-                          {String((selectedFamily as any)[field.key] !== undefined && (selectedFamily as any)[field.key] !== null ? (selectedFamily as any)[field.key] : "Not provided")}
+                          {String(
+                            (selectedFamily as any)[field.key] !== undefined &&
+                              (selectedFamily as any)[field.key] !== null
+                              ? (selectedFamily as any)[field.key]
+                              : t("not_provided")
+                          )}
                         </Text>
                       </View>
                     )}
@@ -222,20 +277,22 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
 
                 {editingProfile && (
                   <View style={styles.actionButtons}>
-                    <TouchableOpacity 
-                      style={styles.saveButton} 
-                      onPress={() => { if (selectedFamily) onSaveExisting(selectedFamily as FamilyProfile); }}
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={() => {
+                        if (selectedFamily) onSaveExisting(selectedFamily as FamilyProfile);
+                      }}
                       activeOpacity={0.9}
                     >
                       <Ionicons name="checkmark" size={20} color="white" />
-                      <Text style={styles.saveButtonText}>Save Changes</Text>
+                      <Text style={styles.saveButtonText}>{t("save_changes")}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.cancelButton} 
+                    <TouchableOpacity
+                      style={styles.cancelButton}
                       onPress={onRefreshSelected}
                       activeOpacity={0.9}
                     >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                      <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -244,8 +301,8 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="person-outline" size={48} color="#E5E7EB" />
-              <Text style={styles.emptyText}>No profile selected</Text>
-              <Text style={styles.emptySubtext}>Please select a family member to view their profile</Text>
+              <Text style={styles.emptyText}>{t("no_profile_selected")}</Text>
+              <Text style={styles.emptySubtext}>{t("select_family_member")}</Text>
             </View>
           )}
         </View>
@@ -253,6 +310,7 @@ export default function HealthProfileCard({ expanded, onToggle, selectedFamily, 
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   card: {

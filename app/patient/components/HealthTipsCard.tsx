@@ -1,49 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "../../../components/TranslateProvider"; 
 
 export default function HealthTipsCard() {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="bulb" size={20} color="#FFFFFF" />
-        </View>
-        <Text style={styles.cardTitle}>Daily Health Tips</Text>
+        <Ionicons name="bulb" size={20} color="#FFFFFF" />
+        <Text style={styles.cardTitle}>{t("daily_health_tips")}</Text>
       </View>
-      
+
       <View style={styles.tipsContainer}>
-        <View style={styles.tipItem}>
-          <View style={styles.tipIconContainer}>
-            <Text style={styles.tipEmoji}>💧</Text>
-          </View>
-          <Text style={styles.tipText}>Drink 8 glasses of water daily</Text>
-        </View>
-        
-        <View style={styles.tipItem}>
-          <View style={styles.tipIconContainer}>
-            <Text style={styles.tipEmoji}>🏃‍♂️</Text>
-          </View>
-          <Text style={styles.tipText}>Exercise for 30 minutes daily</Text>
-        </View>
-        
-        <View style={styles.tipItem}>
-          <View style={styles.tipIconContainer}>
-            <Text style={styles.tipEmoji}>🍎</Text>
-          </View>
-          <Text style={styles.tipText}>Eat more fruits and vegetables</Text>
-        </View>
-        
-        <View style={styles.tipItem}>
-          <View style={styles.tipIconContainer}>
-            <Text style={styles.tipEmoji}>😴</Text>
-          </View>
-          <Text style={styles.tipText}>Get 7-8 hours of sleep</Text>
-        </View>
+        <Text style={styles.tipText}>💧 {t("drink_water")}</Text>
+        <Text style={styles.tipText}>🏃‍♂️ {t("exercise_daily")}</Text>
+        <Text style={styles.tipText}>🍎 {t("eat_fruits")}</Text>
+        <Text style={styles.tipText}>😴 {t("sleep_hours")}</Text>
       </View>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   card: {

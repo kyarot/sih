@@ -9,16 +9,15 @@ import {
   StyleSheet,
   Dimensions,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const { width } = Dimensions.get('window');
+import { useTranslation } from "../../../components/TranslateProvider"; 
+const { width } = Dimensions.get("window");
 
 export default function SearchPharma() {
+  const { t } = useTranslation(); // ✅
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersMap, setOrdersMap] = useState<{ [key: string]: any }>({});
-  const [patientUid, setPatientUid] = useState<string | null>(null);
-  
+
   const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api";
   const patientId = "68ca84ec9d5dbf4593515b75";
   const prescriptionId = "68c84b6413c049c87529b85c";
@@ -26,20 +25,11 @@ export default function SearchPharma() {
   /** Extract pharmacyId string from any order shape */
   const extractPharmacyId = (order: any): string => {
     if (!order) return "";
-
-    // Case 1: populated pharmacyId object
     if (order.pharmacyId && typeof order.pharmacyId === "object" && order.pharmacyId._id) {
       return String(order.pharmacyId._id);
     }
-
-    // Case 2: pharmacyId as string
     if (typeof order.pharmacyId === "string") return order.pharmacyId;
-
-    // Case 3: aggregation pipeline added `pharmacy`
-    if (order.pharmacy && order.pharmacy._id) {
-      return String(order.pharmacy._id);
-    }
-
+    if (order.pharmacy && order.pharmacy._id) return String(order.pharmacy._id);
     return "";
   };
 
@@ -48,14 +38,14 @@ export default function SearchPharma() {
     try {
       const res = await fetch(`${API_BASE}/pharmacies/nearby/${patientId}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to fetch pharmacies");
+      if (!res.ok) throw new Error(data.message || t("failed_fetch_pharmacies"));
       setPharmacies(data.pharmacies || []);
     } catch (err: any) {
       console.warn("fetchNearbyPharmacies:", err.message);
     }
   };
 
-  /** Fetch orders (latest per pharmacy if available) */
+  /** Fetch orders */
   const fetchOrders = async () => {
     try {
       let res = await fetch(
@@ -69,18 +59,12 @@ export default function SearchPharma() {
       }
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to fetch orders");
-
-      console.log("fetchOrders - raw:", data.orders);
+      if (!res.ok) throw new Error(data.message || t("failed_fetch_orders"));
 
       const map: { [key: string]: any } = {};
       (data.orders || []).forEach((o: any) => {
         const key = extractPharmacyId(o);
-        if (!key) {
-          console.warn("Could not extract pharmacyId from order:", o);
-          return;
-        }
-        if (!map[key]) map[key] = o;
+        if (key) map[key] = o;
       });
 
       setOrdersMap(map);
@@ -106,23 +90,18 @@ export default function SearchPharma() {
         if (res.status === 409 && data.order) {
           const key = extractPharmacyId(data.order) || pharmacyId;
           setOrdersMap((prev) => ({ ...prev, [key]: data.order }));
-          Alert.alert("Info", data.message || "Order already exists");
+          Alert.alert(t("info"), data.message || t("order_exists"));
           return;
         }
-        setOrdersMap((prev) => {
-          const next = { ...prev };
-          delete next[pharmacyId];
-          return next;
-        });
-        throw new Error(data.message || "Failed to place order");
+        throw new Error(data.message || t("failed_place_order"));
       }
 
       const createdOrder = data.order;
       const key = extractPharmacyId(createdOrder) || pharmacyId;
       setOrdersMap((prev) => ({ ...prev, [key]: createdOrder }));
-      Alert.alert("Success", "Order sent to pharmacy");
+      Alert.alert(t("success"), t("order_sent"));
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert(t("error"), err.message);
     }
   };
 
@@ -134,7 +113,6 @@ export default function SearchPharma() {
     };
 
     loadAll();
-
     const interval = setInterval(() => {
       fetchNearbyPharmacies();
       fetchOrders();
@@ -147,75 +125,46 @@ export default function SearchPharma() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1E40AF" />
-        <Text style={styles.loadingText}>Finding nearby pharmacies...</Text>
+        <Text style={styles.loadingText}>{t("finding_nearby_pharmacies")}</Text>
       </View>
     );
   }
 
-  /** Render status with icon and styling */
+  /** Render status badge */
   const renderStatusBadge = (pharmacyId: string) => {
     const order = ordersMap[pharmacyId];
     if (!order) return null;
 
     const status = order.status;
     let statusConfig = {
-      text: "Unknown",
+      text: t("unknown"),
       backgroundColor: "#E5E7EB",
       textColor: "#6B7280",
-      icon: "●"
+      icon: "●",
     };
 
     switch (status) {
       case "pending":
-        statusConfig = {
-          text: "Order Sent",
-          backgroundColor: "#FEF3C7",
-          textColor: "#D97706",
-          icon: "⏱"
-        };
+        statusConfig = { text: t("order_sent"), backgroundColor: "#FEF3C7", textColor: "#D97706", icon: "⏱" };
         break;
       case "confirmed":
-        statusConfig = {
-          text: "Confirmed",
-          backgroundColor: "#D1FAE5",
-          textColor: "#059669",
-          icon: "✓"
-        };
+        statusConfig = { text: t("confirmed"), backgroundColor: "#D1FAE5", textColor: "#059669", icon: "✓" };
         break;
       case "rejected":
-        statusConfig = {
-          text: "Rejected",
-          backgroundColor: "#FEE2E2",
-          textColor: "#DC2626",
-          icon: "✗"
-        };
+        statusConfig = { text: t("rejected"), backgroundColor: "#FEE2E2", textColor: "#DC2626", icon: "✗" };
         break;
       case "ready":
-        statusConfig = {
-          text: "Ready for Pickup",
-          backgroundColor: "#DBEAFE",
-          textColor: "#1E40AF",
-          icon: "✓"
-        };
+        statusConfig = { text: t("ready_for_pickup"), backgroundColor: "#DBEAFE", textColor: "#1E40AF", icon: "✓" };
         break;
       case "completed":
-        statusConfig = {
-          text: "Completed",
-          backgroundColor: "#D1FAE5",
-          textColor: "#059669",
-          icon: "✓"
-        };
+        statusConfig = { text: t("completed"), backgroundColor: "#D1FAE5", textColor: "#059669", icon: "✓" };
         break;
     }
 
     return (
       <View style={[styles.statusBadge, { backgroundColor: statusConfig.backgroundColor }]}>
-        <Text style={[styles.statusIcon, { color: statusConfig.textColor }]}>
-          {statusConfig.icon}
-        </Text>
-        <Text style={[styles.statusText, { color: statusConfig.textColor }]}>
-          {statusConfig.text}
-        </Text>
+        <Text style={[styles.statusIcon, { color: statusConfig.textColor }]}>{statusConfig.icon}</Text>
+        <Text style={[styles.statusText, { color: statusConfig.textColor }]}>{statusConfig.text}</Text>
       </View>
     );
   };
@@ -224,7 +173,6 @@ export default function SearchPharma() {
     _id: string;
     name: string;
     address?: string;
-    // Add other properties as needed
   }
 
   const renderPharmacyItem = ({ item }: { item: Pharmacy }) => {
@@ -238,11 +186,11 @@ export default function SearchPharma() {
         <View style={styles.cardHeader}>
           <View style={styles.pharmacyInfo}>
             <Text style={styles.pharmacyName}>{item.name}</Text>
-            <Text style={styles.pharmacyAddress}>{item.address || "Address not available"}</Text>
+            <Text style={styles.pharmacyAddress}>{item.address || t("address_not_available")}</Text>
           </View>
           <View style={styles.onlineIndicator}>
             <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>Online</Text>
+            <Text style={styles.onlineText}>{t("online")}</Text>
           </View>
         </View>
 
@@ -251,16 +199,10 @@ export default function SearchPharma() {
         <TouchableOpacity
           onPress={() => placeOrder(item._id)}
           disabled={!!isActive}
-          style={[
-            styles.orderButton,
-            isActive && styles.orderButtonDisabled
-          ]}
+          style={[styles.orderButton, isActive && styles.orderButtonDisabled]}
         >
-          <Text style={[
-            styles.orderButtonText,
-            isActive && styles.orderButtonTextDisabled
-          ]}>
-            {existingOrder ? "Order Sent" : "Send Order"}
+          <Text style={[styles.orderButtonText, isActive && styles.orderButtonTextDisabled]}>
+            {existingOrder ? t("order_sent") : t("send_order")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -270,19 +212,18 @@ export default function SearchPharma() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Nearby Pharmacies</Text>
+        <Text style={styles.title}>{t("nearby_pharmacies")}</Text>
         <Text style={styles.subtitle}>
-          {pharmacies.length} {pharmacies.length === 1 ? 'pharmacy' : 'pharmacies'} available
+          {pharmacies.length}{" "}
+          {pharmacies.length === 1 ? t("pharmacy") : t("pharmacies")} {t("available")}
         </Text>
       </View>
 
       {pharmacies.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyStateIcon}>🏥</Text>
-          <Text style={styles.emptyStateTitle}>No Pharmacies Found</Text>
-          <Text style={styles.emptyStateText}>
-            We couldn't find any pharmacies in your area at the moment.
-          </Text>
+          <Text style={styles.emptyStateTitle}>{t("no_pharmacies_found")}</Text>
+          <Text style={styles.emptyStateText}>{t("no_pharmacies_message")}</Text>
         </View>
       ) : (
         <FlatList
@@ -296,6 +237,8 @@ export default function SearchPharma() {
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {

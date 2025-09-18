@@ -1,4 +1,3 @@
-// components/PrescriptionsList.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -9,7 +8,6 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
-  Linking,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +16,7 @@ import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import SearchPharma from "./searchPharma";
+import { useTranslation } from "../../../components/TranslateProvider"; 
 
 const API_BASE = "https://5aa83c1450d9.ngrok-free.app";
 
@@ -42,6 +41,7 @@ type Prescription = {
 };
 
 export default function PrescriptionsList({ patientUid }: { patientUid?: string | null }) {
+  const { t } = useTranslation(); // ✅
   const [loading, setLoading] = useState(false);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -60,7 +60,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
       setPrescriptions(res.data || []);
     } catch (err) {
       console.error("fetchPrescriptions:", err);
-      Alert.alert("Error", "Failed to load prescriptions");
+      Alert.alert(t("error"), t("failed_load_prescriptions"));
     } finally {
       setLoading(false);
     }
@@ -68,16 +68,16 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
 
   function formatWhen(m: Medicine) {
     const parts: string[] = [];
-    if (m.morning) parts.push("Morning");
-    if (m.afternoon) parts.push("Afternoon");
-    if (m.night) parts.push("Night");
+    if (m.morning) parts.push(t("morning"));
+    if (m.afternoon) parts.push(t("afternoon"));
+    if (m.night) parts.push(t("night"));
     return parts.length ? parts.join(", ") : "-";
   }
 
   async function downloadPdfForPrescription(pres: Prescription) {
     try {
       if (!pres.pdfUrl) {
-        Alert.alert("No PDF", "No PDF available for this prescription.");
+        Alert.alert(t("no_pdf"), t("no_pdf_available"));
         return;
       }
 
@@ -94,18 +94,16 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
       if (available) {
         await Sharing.shareAsync(downloadRes.uri);
       } else {
-        Alert.alert("Downloaded", `Saved to ${downloadRes.uri}`);
+        Alert.alert(t("downloaded"), `${t("saved_to")}: ${downloadRes.uri}`);
       }
     } catch (err: any) {
       console.error("downloadPdfForPrescription:", err);
-      Alert.alert("Download failed", err?.message || String(err));
+      Alert.alert(t("download_failed"), err?.message || String(err));
     }
   }
 
   async function generateAndDownloadPdf(pres: Prescription) {
     try {
-      console.log("Medicines for PDF:", pres.medicines);
-
       const medicineRows = (pres.medicines ?? [])
         .map(
           (m, i) => `
@@ -114,9 +112,9 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
             <td>${m.name || "-"}</td>
             <td>${m.quantity || "-"}</td>
             <td>
-              ${m.morning ? "Morning " : ""}
-              ${m.afternoon ? "Afternoon " : ""}
-              ${m.night ? "Night " : ""}
+              ${m.morning ? t("morning") : ""}
+              ${m.afternoon ? t("afternoon") : ""}
+              ${m.night ? t("night") : ""}
             </td>
           </tr>`
         )
@@ -135,18 +133,18 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
             </style>
           </head>
           <body>
-            <h1>Prescription</h1>
-            <p><b>Doctor ID:</b> ${pres.doctorId}</p>
-            <p><b>Patient ID:</b> ${pres.patientId}</p>
-            <p><b>Date:</b> ${new Date(pres.createdAt ?? Date.now()).toLocaleString()}</p>
+            <h1>${t("prescription")}</h1>
+            <p><b>${t("doctor_id")}:</b> ${pres.doctorId}</p>
+            <p><b>${t("patient_id")}:</b> ${pres.patientId}</p>
+            <p><b>${t("date")}:</b> ${new Date(pres.createdAt ?? Date.now()).toLocaleString()}</p>
 
             <table>
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Medicine</th>
-                  <th>Quantity</th>
-                  <th>When to Take</th>
+                  <th>${t("medicine")}</th>
+                  <th>${t("quantity")}</th>
+                  <th>${t("when_to_take")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,16 +156,15 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
       `;
 
       const { uri } = await Print.printToFileAsync({ html, base64: false });
-      console.log("PDF file created at:", uri);
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
       } else {
-        Alert.alert("PDF Generated", `Saved to: ${uri}`);
+        Alert.alert(t("pdf_generated"), `${t("saved_to")}: ${uri}`);
       }
     } catch (err: any) {
       console.error("generateAndDownloadPdf:", err);
-      Alert.alert("Error", err?.message || "Failed to generate PDF");
+      Alert.alert(t("error"), err?.message || t("failed_generate_pdf"));
     }
   }
 
@@ -183,9 +180,10 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
             <Ionicons name="document-text" size={24} color="white" />
           </View>
           <View style={styles.headerText}>
-            <Text style={styles.title}>My Prescriptions</Text>
+            <Text style={styles.title}>{t("my_prescriptions")}</Text>
             <Text style={styles.subtitle}>
-              {prescriptions.length} {prescriptions.length === 1 ? 'prescription' : 'prescriptions'}
+              {prescriptions.length}{" "}
+              {prescriptions.length === 1 ? t("prescription") : t("prescriptions")}
             </Text>
           </View>
         </View>
@@ -199,13 +197,13 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#1E40AF" />
-              <Text style={styles.loadingText}>Loading prescriptions...</Text>
+              <Text style={styles.loadingText}>{t("loading_prescriptions")}</Text>
             </View>
           ) : prescriptions.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyTitle}>No Prescriptions Found</Text>
-              <Text style={styles.emptyText}>Your prescriptions will appear here once available.</Text>
+              <Text style={styles.emptyTitle}>{t("no_prescriptions_found")}</Text>
+              <Text style={styles.emptyText}>{t("prescriptions_will_appear")}</Text>
             </View>
           ) : (
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -213,7 +211,9 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                 <View key={pres._id} style={[styles.presCard, index === 0 && styles.firstCard]}>
                   <TouchableOpacity
                     style={styles.presHeader}
-                    onPress={() => setExpandedPrescription((cur) => (cur === pres._id ? null : pres._id))}
+                    onPress={() =>
+                      setExpandedPrescription((cur) => (cur === pres._id ? null : pres._id))
+                    }
                   >
                     <View style={styles.presHeaderLeft}>
                       <View style={styles.doctorAvatar}>
@@ -221,10 +221,10 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                       </View>
                       <View style={styles.doctorInfo}>
                         <Text style={styles.doctorName}>
-                          {(pres.doctorId as any)?.name ?? "Doctor"}
+                          {(pres.doctorId as any)?.name ?? t("doctor")}
                         </Text>
                         <Text style={styles.doctorSpecialization}>
-                          {(pres.doctorId as any)?.specialization ?? "General Medicine"}
+                          {(pres.doctorId as any)?.specialization ?? t("general_medicine")}
                         </Text>
                         <Text style={styles.prescriptionDate}>
                           {new Date(pres.createdAt || Date.now()).toLocaleDateString()}
@@ -232,10 +232,10 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                       </View>
                     </View>
                     <View style={styles.expandButton}>
-                      <Ionicons 
-                        name={expandedPrescription === pres._id ? "chevron-up" : "chevron-down"} 
-                        size={20} 
-                        color="#6B7280" 
+                      <Ionicons
+                        name={expandedPrescription === pres._id ? "chevron-up" : "chevron-down"}
+                        size={20}
+                        color="#6B7280"
                       />
                     </View>
                   </TouchableOpacity>
@@ -243,7 +243,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                   {expandedPrescription === pres._id && (
                     <View style={styles.presBody}>
                       <View style={styles.medicinesHeader}>
-                        <Text style={styles.medicinesTitle}>Prescribed Medications</Text>
+                        <Text style={styles.medicinesTitle}>{t("prescribed_medications")}</Text>
                         <View style={styles.medicineCount}>
                           <Text style={styles.medicineCountText}>
                             {pres.medicines?.length || 0}
@@ -251,12 +251,14 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                         </View>
                       </View>
 
-                      {(pres.medicines && pres.medicines.length > 0) ? (
+                      {pres.medicines && pres.medicines.length > 0 ? (
                         <View style={styles.medicinesList}>
                           {pres.medicines.map((m, i) => (
                             <View key={i} style={styles.medicineCard}>
                               <View style={styles.medicineHeader}>
-                                <Text style={styles.medicineName}>{m.name ?? "Unknown Medicine"}</Text>
+                                <Text style={styles.medicineName}>
+                                  {m.name ?? t("unknown_medicine")}
+                                </Text>
                                 <View style={styles.quantityBadge}>
                                   <Text style={styles.quantityText}>{m.quantity ?? "-"}</Text>
                                 </View>
@@ -270,19 +272,22 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                         </View>
                       ) : (
                         <View style={styles.noMedicines}>
-                          <Text style={styles.noMedicinesText}>No medicines listed</Text>
+                          <Text style={styles.noMedicinesText}>{t("no_medicines_listed")}</Text>
                         </View>
                       )}
 
                       <View style={styles.actions}>
-                        <TouchableOpacity style={styles.downloadBtn} onPress={() => generateAndDownloadPdf(pres)}>
+                        <TouchableOpacity
+                          style={styles.downloadBtn}
+                          onPress={() => generateAndDownloadPdf(pres)}
+                        >
                           <Ionicons name="download-outline" size={20} color="white" />
-                          <Text style={styles.downloadBtnText}>Download PDF</Text>
+                          <Text style={styles.downloadBtnText}>{t("download_pdf")}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.pharmacyBtn} onPress={goToPharmacyList}>
                           <Ionicons name="location-outline" size={20} color="#1E40AF" />
-                          <Text style={styles.pharmacyBtnText}>Find Pharmacies</Text>
+                          <Text style={styles.pharmacyBtnText}>{t("find_pharmacies")}</Text>
                         </TouchableOpacity>
                       </View>
 
@@ -300,6 +305,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

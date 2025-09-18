@@ -1,21 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Alert, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useTranslation } from "../../../components/TranslateProvider"; 
 
 export default function SOSButton() {
+  const { t } = useTranslation();
+
   return (
-    <TouchableOpacity style={styles.sosButton} onPress={() => {
-      Alert.alert("🚨 Emergency Alert", "Emergency services and family contacts have been notified with your GPS location!");
-    }}>
+    <TouchableOpacity
+      style={styles.sosButton}
+      onPress={() => {
+        Alert.alert("🚨 " + t("emergency_alert"), t("emergency_message"));
+      }}
+    >
       <LinearGradient colors={["#F44336", "#D32F2F"]} style={styles.sosGradient}>
         <Ionicons name="warning" size={32} color="white" />
-        <Text style={styles.sosText}>Emergency SOS</Text>
-        <Text style={styles.sosSubtext}>Tap for immediate help</Text>
+        <Text style={styles.sosText}>{t("emergency_sos")}</Text>
+        <Text style={styles.sosSubtext}>{t("tap_for_help")}</Text>
       </LinearGradient>
     </TouchableOpacity>
   );
 }
+
+
+
 
 const styles = StyleSheet.create({
   sosButton: { marginVertical: 20, borderRadius: 16, elevation: 4, shadowColor: "#F44336", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
