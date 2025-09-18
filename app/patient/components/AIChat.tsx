@@ -10,10 +10,12 @@ import {
   Platform,
   StatusBar,
   SafeAreaView,
+  Animated,
 } from "react-native";
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import { Ionicons } from '@expo/vector-icons';
+
 interface Message {
   id: string;
   sender: "user" | "ai";
@@ -170,7 +172,6 @@ export default function AIChat() {
   const toggleSpeaker = () => {
     setSpeakerEnabled(!speakerEnabled);
     if (!speakerEnabled) {
-      // Stop any current speech
       Speech.stop();
     }
   };
@@ -186,9 +187,10 @@ export default function AIChat() {
         {item.sender === "ai" && (
           <View style={styles.aiHeader}>
             <View style={styles.aiAvatar}>
-              <Ionicons name="medical" size={16} color="#FFFFFF" />
+              <Ionicons name="medical" size={16} color="white" />
             </View>
-            <Text style={styles.aiLabel}>AI Assistant</Text>
+            <Text style={styles.aiLabel}>AI Medical Assistant</Text>
+            <View style={styles.aiStatusDot} />
           </View>
         )}
         <Text style={[
@@ -198,8 +200,13 @@ export default function AIChat() {
           {item.text}
         </Text>
         {item.sender === "user" && (
-          <View style={styles.userAvatar}>
-            <Ionicons name="person" size={16} color="#FFFFFF" />
+          <View style={styles.messageFooter}>
+            <Text style={styles.messageTime}>
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            <View style={styles.userAvatar}>
+              <Ionicons name="person" size={16} color="white" />
+            </View>
           </View>
         )}
       </View>
@@ -208,87 +215,136 @@ export default function AIChat() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E3A8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#1E40AF" />
       
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="medical-outline" size={24} color="#FFFFFF" />
+          <View style={styles.headerIconContainer}>
+            <Ionicons name="chatbubbles" size={28} color="white" />
           </View>
-          <Text style={styles.headerTitle}>Medical AI Chat</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>AI Medical Chat</Text>
+            <Text style={styles.headerSubtitle}>
+              {messages.length > 0 ? `${messages.length} messages` : "Start a conversation"}
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity
-          style={[styles.speakerButton, !speakerEnabled && styles.speakerDisabled]}
-          onPress={toggleSpeaker}
-        >
-          <Ionicons 
-            name={speakerEnabled ? "volume-high" : "volume-mute"} 
-            size={20} 
-            color="#FFFFFF" 
-          />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[styles.speakerButton, !speakerEnabled && styles.speakerDisabled]}
+            onPress={toggleSpeaker}
+          >
+            <Ionicons 
+              name={speakerEnabled ? "volume-high" : "volume-mute"} 
+              size={20} 
+              color="white" 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Chat Messages */}
       <View style={styles.chatWrapper}>
-        <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.chatContainer}
-          showsVerticalScrollIndicator={false}
-        />
+        {messages.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="chatbubbles-outline" size={64} color="#1E40AF" />
+            </View>
+            <Text style={styles.emptyTitle}>Welcome to AI Medical Assistant</Text>
+            <Text style={styles.emptyText}>
+              Describe your symptoms and I'll help provide medical guidance. You can type or use voice recording.
+            </Text>
+            <View style={styles.featuresContainer}>
+              <View style={styles.feature}>
+                <Ionicons name="mic-outline" size={20} color="#1E40AF" />
+                <Text style={styles.featureText}>Voice input</Text>
+              </View>
+              <View style={styles.feature}>
+                <Ionicons name="volume-high-outline" size={20} color="#1E40AF" />
+                <Text style={styles.featureText}>Audio responses</Text>
+              </View>
+              <View style={styles.feature}>
+                <Ionicons name="shield-checkmark-outline" size={20} color="#1E40AF" />
+                <Text style={styles.featureText}>Medical AI</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <FlatList
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.chatContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
 
         {/* Loading Indicator */}
         {loading && (
           <View style={styles.loadingContainer}>
-            <View style={styles.loadingDots}>
-              <View style={[styles.dot, styles.dot1]} />
-              <View style={[styles.dot, styles.dot2]} />
-              <View style={[styles.dot, styles.dot3]} />
+            <View style={styles.loadingCard}>
+              <View style={styles.aiAvatar}>
+                <Ionicons name="medical" size={16} color="white" />
+              </View>
+              <View style={styles.loadingContent}>
+                <Text style={styles.loadingLabel}>AI is analyzing...</Text>
+                <View style={styles.loadingDots}>
+                  <View style={[styles.dot, styles.dot1]} />
+                  <View style={[styles.dot, styles.dot2]} />
+                  <View style={[styles.dot, styles.dot3]} />
+                </View>
+              </View>
             </View>
-            <Text style={styles.loadingText}>AI is thinking...</Text>
           </View>
         )}
       </View>
 
       {/* Input Container */}
       <View style={styles.inputContainer}>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Describe your symptoms..."
-            placeholderTextColor="#9CA3AF"
-            value={input}
-            onChangeText={setInput}
-            editable={!loading}
-            multiline
-            maxLength={500}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
-            onPress={() => handleSubmit()}
-            disabled={!input.trim() || loading}
-          >
-            <Ionicons name="send" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.inputCard}>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Describe your symptoms..."
+              placeholderTextColor="#9CA3AF"
+              value={input}
+              onChangeText={setInput}
+              editable={!loading}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
+              onPress={() => handleSubmit()}
+              disabled={!input.trim() || loading}
+            >
+              <Ionicons name="send" size={18} color="white" />
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          style={[
-            styles.micButton,
-            recording ? styles.micActive : styles.micInactive
-          ]}
-          onPress={recording ? stopRecording : startRecording}
-          disabled={loading}
-        >
-          <Ionicons 
-            name={recording ? "stop-circle" : "mic"} 
-            size={24} 
-            color="#FFFFFF" 
-          />
-        </TouchableOpacity>
+          <View style={styles.bottomRow}>
+            <Text style={styles.charCount}>
+              {input.length}/500
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.micButton,
+                recording ? styles.micActive : styles.micInactive
+              ]}
+              onPress={recording ? stopRecording : startRecording}
+              disabled={loading}
+            >
+              {recording ? (
+                <View style={styles.recordingIndicator}>
+                  <Ionicons name="stop-circle" size={24} color="white" />
+                </View>
+              ) : (
+                <Ionicons name="mic" size={24} color="white" />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -300,49 +356,106 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   header: {
-    backgroundColor: "#1E3A8A",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: "#1E40AF",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
-  headerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#3B82F6",
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 16,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "white",
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+  },
+  headerRight: {
+    flexDirection: "row",
   },
   speakerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#3B82F6",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
   speakerDisabled: {
-    backgroundColor: "#6B7280",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    opacity: 0.6,
   },
   chatWrapper: {
     flex: 1,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1E40AF",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  featuresContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+  },
+  feature: {
+    alignItems: "center",
+  },
+  featureText: {
+    fontSize: 12,
+    color: "#1E40AF",
+    marginTop: 8,
+    fontWeight: "600",
   },
   chatContainer: {
     padding: 16,
@@ -350,86 +463,122 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   messageContainer: {
-    marginVertical: 4,
+    marginVertical: 6,
   },
   message: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     maxWidth: "85%",
-    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   userMessage: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#1E40AF",
     alignSelf: "flex-end",
-    borderBottomRightRadius: 4,
-    flexDirection: "row",
-    alignItems: "flex-end",
+    borderBottomRightRadius: 6,
   },
   aiMessage: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "white",
     alignSelf: "flex-start",
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: 6,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
   aiHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   aiAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#3B82F6",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#1E40AF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
+    marginRight: 10,
   },
   aiLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: "#6B7280",
+    flex: 1,
   },
-  userAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#1E3A8A",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
+  aiStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
-    flex: 1,
   },
   userText: {
-    color: "#FFFFFF",
+    color: "white",
   },
   aiText: {
     color: "#1F2937",
   },
+  messageFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginTop: 8,
+  },
+  messageTime: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginRight: 8,
+  },
+  userAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   loadingContainer: {
     padding: 16,
+  },
+  loadingCard: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
+    maxWidth: "85%",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadingContent: {
+    marginLeft: 10,
+  },
+  loadingLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 8,
   },
   loadingDots: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#3B82F6",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#1E40AF",
     marginHorizontal: 2,
   },
   dot1: {
@@ -441,38 +590,40 @@ const styles = StyleSheet.create({
   dot3: {
     opacity: 1,
   },
-  loadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontStyle: "italic",
-  },
   inputContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "white",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === "ios" ? 34 : 12,
+    paddingVertical: 16,
+    paddingBottom: Platform.OS === "ios" ? 34 : 16,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
-    elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  inputCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#D1D5DB",
-    borderRadius: 24,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginRight: 8,
-    backgroundColor: "#F9FAFB",
+    marginRight: 12,
+    backgroundColor: "white",
     fontSize: 16,
     maxHeight: 100,
     minHeight: 44,
@@ -481,19 +632,28 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#1E40AF",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   sendButtonDisabled: {
     backgroundColor: "#9CA3AF",
-    elevation: 0,
     shadowOpacity: 0,
+    elevation: 0,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  charCount: {
+    fontSize: 12,
+    color: "#9CA3AF",
   },
   micButton: {
     width: 56,
@@ -501,17 +661,20 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    alignSelf: "center",
-    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   micActive: {
     backgroundColor: "#DC2626",
   },
   micInactive: {
     backgroundColor: "#10B981",
+  },
+  recordingIndicator: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

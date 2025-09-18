@@ -70,7 +70,7 @@ export default function PatientAuth() {
     phone?: string;
   }) => {
     try {
-      await fetch("http://localhost:5000/api/patients/register-patient", {
+      await fetch("https://5aa83c1450d9.ngrok-free.app/api/patients/register-patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, code, accountId, email, phone }),
@@ -163,7 +163,7 @@ export default function PatientAuth() {
     try {
       // Verify with backend
       const res = await fetch(
-        `http://localhost:5000/api/patients/${patientCode}`
+        `https://5aa83c1450d9.ngrok-free.app/api/patients/${patientCode}`
       );
       const data = await res.json();
 
@@ -202,6 +202,12 @@ export default function PatientAuth() {
           firebaseConfig={firebaseConfig}
         />
 
+        <View style={styles.headerContainer}>
+          <View style={styles.iconContainer}><Text style={styles.iconText}>💙</Text></View>
+          <Text style={styles.headerTitle}>PatientConnect</Text>
+          <Text style={styles.headerSubtitle}>Fast, secure access with your Patient Code or phone</Text>
+        </View>
+
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tab, isLogin && styles.activeTab]}
@@ -227,12 +233,14 @@ export default function PatientAuth() {
             <TextInput
               style={styles.input}
               placeholder="Enter Patient Code (PAT-XXXX)"
+              placeholderTextColor="#94A3B8"
               value={patientCode}
               onChangeText={setPatientCode}
             />
             <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
               <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
+            <Text style={styles.helperText}>Tip: You received your Patient Code during signup. It looks like PAT-1A2B3C4D.</Text>
           </View>
         ) : (
           // ---------------- Signup ----------------
@@ -242,6 +250,7 @@ export default function PatientAuth() {
                 <TextInput
                   style={styles.input}
                   placeholder="+91 9876543210"
+                  placeholderTextColor="#94A3B8"
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
@@ -250,6 +259,7 @@ export default function PatientAuth() {
                   <TextInput
                     style={styles.input}
                     placeholder="Enter OTP"
+                    placeholderTextColor="#94A3B8"
                     value={otp}
                     onChangeText={setOtp}
                     keyboardType="number-pad"
@@ -258,6 +268,7 @@ export default function PatientAuth() {
                   <TextInput
                     style={styles.input}
                     placeholder="Set Password (optional)"
+                    placeholderTextColor="#94A3B8"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
@@ -283,6 +294,7 @@ export default function PatientAuth() {
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
+                  placeholderTextColor="#94A3B8"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -291,6 +303,7 @@ export default function PatientAuth() {
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
+                  placeholderTextColor="#94A3B8"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -317,40 +330,50 @@ export default function PatientAuth() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFF" },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
   scrollContainer: { flexGrow: 1, justifyContent: "center", padding: 24 },
+  headerContainer: { alignItems: 'center', marginBottom: 24 },
+  iconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(30,64,175,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  iconText: { fontSize: 34 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#1E40AF', marginBottom: 6 },
+  headerSubtitle: { fontSize: 14, color: 'rgba(30,64,175,0.8)', textAlign: 'center' },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#EFF6FF",
     borderRadius: 12,
     padding: 4,
     marginBottom: 30,
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center", borderRadius: 8 },
-  activeTab: { backgroundColor: "#2563EB" },
-  tabText: { fontSize: 16, fontWeight: "600", color: "#64748B" },
+  activeTab: { backgroundColor: "#1E40AF" },
+  tabText: { fontSize: 16, fontWeight: "700", color: "#1E40AF" },
   activeTabText: { color: "#FFFFFF" },
   formContainer: { gap: 16 },
   input: {
-    borderWidth: 2,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 14,
     padding: 14,
     fontSize: 16,
-    backgroundColor: "#FAFBFC",
+    backgroundColor: "#FFFFFF",
+    color: "#0F172A",
+    shadowColor: '#1E40AF', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }
   },
   primaryButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#1E40AF",
     marginTop: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
+    elevation: 6,
+    shadowColor: '#1E40AF', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }
   },
   buttonText: { fontSize: 16, fontWeight: "700", color: "#FFF" },
   linkText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#2563EB",
+    color: "#1E40AF",
     textAlign: "center",
   },
+  helperText: { marginTop: 8, fontSize: 12, color: '#475569', textAlign: 'center' }
 });

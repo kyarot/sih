@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, Stack } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -26,7 +26,7 @@ export default function DoctorAuth() {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/doctors/login", {
+      const res = await fetch("https://5aa83c1450d9.ngrok-free.app/api/doctors/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uniqueKey }),
@@ -56,6 +56,7 @@ export default function DoctorAuth() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <Stack.Screen options={{ headerShown: false }} />
       <LinearGradient
         colors={["#1E40AF", "#3B82F6", "#60A5FA"]}
         style={styles.gradient}

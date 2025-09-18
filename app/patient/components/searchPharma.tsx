@@ -6,40 +6,22 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  StyleSheet,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const { width } = Dimensions.get('window');
+
 export default function SearchPharma() {
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersMap, setOrdersMap] = useState<{ [key: string]: any }>({});
   const [patientUid, setPatientUid] = useState<string | null>(null);
-  // const [patientId,setpatientId]=useState<string | null>(null);
-  // const [prescriptionId,setprescriptionId]=useState<string | null>(null);
   
-  
-// useEffect(() => {
-//     const fetchUid = async () => {
-//       const uid = await AsyncStorage.getItem("patientUid");
-//       const id = await AsyncStorage.getItem("patientId");
-//       if (!uid) {
-//         Alert.alert("Error", "No patient UID found, please log in again.");
-//         return;
-//       }
-//       if (!id) {
-//         Alert.alert("Error", "patient id was not found, please log in again.");
-//         return;
-//       }
-//       setPatientUid(uid);
-//       setpatientId(id);
-//     };
-//     fetchUid();
-//   }, []);
-
-  
-  const API_BASE = "http://localhost:5000/api";
-
-  const patientId = "68ca84ec9d5dbf4593515b75"; // replace with logged-in patient ObjectId
-  const prescriptionId = "68c84b6413c049c87529b85c"; // replace with prescription ObjectId
+  const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api";
+  const patientId = "68ca84ec9d5dbf4593515b75";
+  const prescriptionId = "68c84b6413c049c87529b85c";
 
   /** Extract pharmacyId string from any order shape */
   const extractPharmacyId = (order: any): string => {
@@ -81,7 +63,6 @@ export default function SearchPharma() {
       );
 
       if (!res.ok) {
-        // fallback to /orders if /latest not available
         res = await fetch(
           `${API_BASE}/orders?patientId=${patientId}&prescriptionId=${prescriptionId}`
         );
@@ -99,7 +80,6 @@ export default function SearchPharma() {
           console.warn("Could not extract pharmacyId from order:", o);
           return;
         }
-        // since backend sorts by createdAt desc, keep the first
         if (!map[key]) map[key] = o;
       });
 
@@ -112,7 +92,6 @@ export default function SearchPharma() {
   /** Place new order */
   const placeOrder = async (pharmacyId: string) => {
     try {
-      // optimistic update
       setOrdersMap((prev) => ({ ...prev, [pharmacyId]: { status: "pending", _temp: true } }));
 
       const res = await fetch(`${API_BASE}/orders`, {
@@ -130,7 +109,6 @@ export default function SearchPharma() {
           Alert.alert("Info", data.message || "Order already exists");
           return;
         }
-        // revert optimistic
         setOrdersMap((prev) => {
           const next = { ...prev };
           delete next[pharmacyId];
@@ -165,86 +143,322 @@ export default function SearchPharma() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <ActivityIndicator size="large" style={{ marginTop: 50 }} />;
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E40AF" />
+        <Text style={styles.loadingText}>Finding nearby pharmacies...</Text>
+      </View>
+    );
+  }
 
-  /** Render status line for a given pharmacy */
-  const renderStatusText = (pharmacyId: string) => {
+  /** Render status with icon and styling */
+  const renderStatusBadge = (pharmacyId: string) => {
     const order = ordersMap[pharmacyId];
     if (!order) return null;
 
     const status = order.status;
+    let statusConfig = {
+      text: "Unknown",
+      backgroundColor: "#E5E7EB",
+      textColor: "#6B7280",
+      icon: "●"
+    };
+
     switch (status) {
       case "pending":
-        return <Text>Your order is sent and pending</Text>;
+        statusConfig = {
+          text: "Order Sent",
+          backgroundColor: "#FEF3C7",
+          textColor: "#D97706",
+          icon: "⏱"
+        };
+        break;
       case "confirmed":
-        return <Text>Order is confirmed</Text>;
+        statusConfig = {
+          text: "Confirmed",
+          backgroundColor: "#D1FAE5",
+          textColor: "#059669",
+          icon: "✓"
+        };
+        break;
       case "rejected":
-        return <Text style={{ color: "red" }}>Order was rejected</Text>;
+        statusConfig = {
+          text: "Rejected",
+          backgroundColor: "#FEE2E2",
+          textColor: "#DC2626",
+          icon: "✗"
+        };
+        break;
       case "ready":
-        return <Text>Order is ready at pharmacy</Text>;
+        statusConfig = {
+          text: "Ready for Pickup",
+          backgroundColor: "#DBEAFE",
+          textColor: "#1E40AF",
+          icon: "✓"
+        };
+        break;
       case "completed":
-        return <Text>Order is completed</Text>;
-      default:
-        return <Text>Status: {status ?? "unknown"}</Text>;
+        statusConfig = {
+          text: "Completed",
+          backgroundColor: "#D1FAE5",
+          textColor: "#059669",
+          icon: "✓"
+        };
+        break;
     }
+
+    return (
+      <View style={[styles.statusBadge, { backgroundColor: statusConfig.backgroundColor }]}>
+        <Text style={[styles.statusIcon, { color: statusConfig.textColor }]}>
+          {statusConfig.icon}
+        </Text>
+        <Text style={[styles.statusText, { color: statusConfig.textColor }]}>
+          {statusConfig.text}
+        </Text>
+      </View>
+    );
+  };
+
+  interface Pharmacy {
+    _id: string;
+    name: string;
+    address?: string;
+    // Add other properties as needed
+  }
+
+  const renderPharmacyItem = ({ item }: { item: Pharmacy }) => {
+    const pharmacyIdKey = String(item._id);
+    const existingOrder = ordersMap[pharmacyIdKey];
+    const existingStatus = existingOrder ? existingOrder.status : null;
+    const isActive = existingStatus && ["pending", "confirmed", "ready"].includes(existingStatus);
+
+    return (
+      <View style={styles.pharmacyCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.pharmacyInfo}>
+            <Text style={styles.pharmacyName}>{item.name}</Text>
+            <Text style={styles.pharmacyAddress}>{item.address || "Address not available"}</Text>
+          </View>
+          <View style={styles.onlineIndicator}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.onlineText}>Online</Text>
+          </View>
+        </View>
+
+        {renderStatusBadge(pharmacyIdKey)}
+
+        <TouchableOpacity
+          onPress={() => placeOrder(item._id)}
+          disabled={!!isActive}
+          style={[
+            styles.orderButton,
+            isActive && styles.orderButtonDisabled
+          ]}
+        >
+          <Text style={[
+            styles.orderButtonText,
+            isActive && styles.orderButtonTextDisabled
+          ]}>
+            {existingOrder ? "Order Sent" : "Send Order"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>
-        Nearby Pharmacies
-      </Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Nearby Pharmacies</Text>
+        <Text style={styles.subtitle}>
+          {pharmacies.length} {pharmacies.length === 1 ? 'pharmacy' : 'pharmacies'} available
+        </Text>
+      </View>
 
       {pharmacies.length === 0 ? (
-        <Text>No pharmacies nearby</Text>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateIcon}>🏥</Text>
+          <Text style={styles.emptyStateTitle}>No Pharmacies Found</Text>
+          <Text style={styles.emptyStateText}>
+            We couldn't find any pharmacies in your area at the moment.
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={pharmacies}
           keyExtractor={(item) => String(item._id)}
-          renderItem={({ item }) => {
-            const pharmacyIdKey = String(item._id);
-            const existingOrder = ordersMap[pharmacyIdKey];
-            const existingStatus = existingOrder ? existingOrder.status : null;
-
-            const isActive =
-              existingStatus && ["pending", "confirmed", "ready"].includes(existingStatus);
-
-            return (
-              <View
-                style={{
-                  padding: 15,
-                  backgroundColor: "#f2f2f2",
-                  marginBottom: 10,
-                  borderRadius: 10,
-                }}
-              >
-                <Text style={{ fontSize: 18, fontWeight: "600" }}>{item.name}</Text>
-                <Text style={{ fontSize: 14, color: "gray" }}>
-                  {item.address || "No address"}
-                </Text>
-                <Text style={{ fontSize: 14 }}>✅ Online</Text>
-
-                <View style={{ marginTop: 8 }}>{renderStatusText(pharmacyIdKey)}</View>
-
-                <TouchableOpacity
-                  onPress={() => placeOrder(item._id)}
-                  disabled={!!isActive}
-                  style={{
-                    marginTop: 10,
-                    backgroundColor: isActive ? "#ccc" : "#007bff",
-                    padding: 10,
-                    borderRadius: 8,
-                  }}
-                >
-                  <Text style={{ color: "white", textAlign: "center" }}>
-                    {existingOrder ? (isActive ? "Order Sent" : "Order Sent") : "Order Now"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            );
-          }}
+          renderItem={renderPharmacyItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
         />
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#1E40AF',
+    fontWeight: '500',
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '400',
+  },
+  listContainer: {
+    padding: 24,
+  },
+  pharmacyCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#1E40AF',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  pharmacyInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  pharmacyName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  pharmacyAddress: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  onlineIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  onlineText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  statusIcon: {
+    fontSize: 12,
+    marginRight: 6,
+    fontWeight: '600',
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  orderButton: {
+    backgroundColor: '#1E40AF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#1E40AF',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  orderButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  orderButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  orderButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyStateIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1E40AF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});

@@ -2,30 +2,31 @@
 // Patient dashboard (updated logic for appointment status & join button)
 // Keep your existing dependencies in package.json (axios, expo, etc.)
 
-import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { JSX, useEffect, useMemo, useState } from "react";
-import PrescriptionsList from "../components/PrescriptionsList";
 import {
   Alert,
   Dimensions,
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
 import Toast from "react-native-toast-message";
-import PatientLocation from "../components/loc";
 import AIChat from "../components/AIChat";
-const API_BASE = "http://localhost:5000"; // change if needed
+import AppointmentsSection from "../components/AppointmentsSection";
+
+import FamilyMembers from "../components/FamilyMembers";
+import HealthProfileCard from "../components/HealthProfileCard";
+import HealthTipsCard from "../components/HealthTipsCard";
+import PatientHeader from "../components/PatientHeader";
+import PrescriptionsList from "../components/PrescriptionsList";
+import SOSButton from "../components/SOSButton";
+import PatientLocation from "../components/loc";
+const API_BASE = "https://5aa83c1450d9.ngrok-free.app"; // change if needed
 const { width } = Dimensions.get("window");
 
 /* ============================
@@ -389,417 +390,68 @@ if (data.length > 0 && !selectedFamily) {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      <LinearGradient colors={["#1565C0", "#1976D2"]} style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.welcomeText}>Welcome back</Text>
-            <Text style={styles.nameText}>{selectedFamily?.name ?? "Loading..."} 👋</Text>
-          </View>
-
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Ionicons name="notifications-outline" size={24} color="#fff" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>2</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Ionicons name="settings-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Image source={{ uri: "https://via.placeholder.com/40x40/1565C0/ffffff?text=P" }} style={styles.profilePic} />
-          </View>
-        </View>
-      </LinearGradient>
+      <PatientHeader name={selectedFamily?.name} />
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Family section */}
         <AIChat />
-        <View style={styles.familySection}>
-          <Text style={styles.sectionLabel}>Family Members</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
-            {familyProfiles.map((profile) => (
-              <TouchableOpacity
-                key={profile._id ?? profile.uid}
-                style={[styles.familyCard, selectedFamilyId === (profile._id ?? profile.uid) && styles.familyCardActive]}
-                onPress={() => setSelectedFamily(profile)}
-              >
-                <Ionicons name="person" size={24} color={selectedFamilyId === (profile._id ?? profile.uid) ? "#fff" : "#1565C0"} />
-                <Text style={[styles.familyText, selectedFamilyId === (profile._id ?? profile.uid) && styles.familyTextActive]}>{profile.name}</Text>
-              </TouchableOpacity>
-            ))}
-
-            {familyProfiles.length < 5 && (
-              <TouchableOpacity style={[styles.familyCard, styles.addFamilyCard]} onPress={() => {
-                setAddingNewProfile(true);
-                setEditingProfile(false);
-                setNewProfileDraft({
-                  name: "",
-                  age: "",
-                  gender: "Male",
-                  email: "",
-                  phone: "",
-                  bloodGroup: "",
-                  address: "",
-                });
-              }}>
-                <Ionicons name="add" size={28} color="#1565C0" />
-                <Text style={styles.familyText}>Add</Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        </View>
+        <FamilyMembers
+          familyProfiles={familyProfiles}
+          selectedFamilyId={selectedFamilyId as any}
+          onSelect={(profile) => setSelectedFamily(profile as any)}
+          onAddPress={() => {
+            setAddingNewProfile(true);
+            setEditingProfile(false);
+            setNewProfileDraft({ name: "", age: "", gender: "Male", email: "", phone: "", bloodGroup: "", address: "" });
+          }}
+        />
 
         {/* Profile card */}
-        <View style={styles.card}>
-          <TouchableWithoutFeedback onPress={() => toggleSection("profile")}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <Ionicons name="person-circle" size={24} color="#1565C0" />
-                <Text style={styles.cardTitle}>Health Profile</Text>
-              </View>
-              <PatientLocation />
-              <View style={styles.cardHeaderRight}>
-                {!addingNewProfile && selectedFamily && (
-                  <TouchableOpacity onPress={() => setEditingProfile((s) => !s)}>
-                    <Ionicons name={editingProfile ? "close-outline" : "create-outline"} size={22} color="#1565C0" />
-                  </TouchableOpacity>
-                )}
-                <Ionicons name={expanded.profile ? "chevron-up" : "chevron-down"} size={20} color="#666" />
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-
-          {expanded.profile && (
-            <View style={styles.expandedContent}>
-              {addingNewProfile ? (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Full name"
-                    value={String(newProfileDraft.name ?? "")}
-                    onChangeText={(text) => setNewProfileDraft((p) => ({ ...p, name: text }))}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Age"
-                    keyboardType="numeric"
-                    value={String(newProfileDraft.age ?? "")}
-                    onChangeText={(text) => setNewProfileDraft((p) => ({ ...p, age: text === "" ? "" : Number(text) }))}
-                  />
-                  <View style={{ flexDirection: "row", marginBottom: 12 }}>
-                    {(["Male", "Female", "Other"] as const).map((g) => (
-                      <GenderButton key={g} label={g} selected={(newProfileDraft.gender ?? "Male") === g} onPress={() => setNewProfileDraft((p) => ({ ...p, gender: g }))} />
-                    ))}
-                  </View>
-                  <TextInput style={styles.input} placeholder="Email" value={String(newProfileDraft.email ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, email: t }))} />
-                  <TextInput style={styles.input} placeholder="Phone" keyboardType="phone-pad" value={String(newProfileDraft.phone ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, phone: t }))} />
-                  <TextInput style={styles.input} placeholder="Blood group" value={String(newProfileDraft.bloodGroup ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, bloodGroup: t }))} />
-                  <TextInput style={styles.input} placeholder="Address" value={String(newProfileDraft.address ?? "")} onChangeText={(t) => setNewProfileDraft((p) => ({ ...p, address: t }))} />
-
-                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <TouchableOpacity style={[styles.saveButton, { flex: 1, marginRight: 8 }]} onPress={() => handleCreateProfile(newProfileDraft)}>
-                      <Text style={styles.saveButtonText}>Save</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.cancelButton, { flex: 1 }]} onPress={() => { setAddingNewProfile(false); setNewProfileDraft({}); }}>
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              ) : selectedFamily ? (
-                <>
-                  {[
-                    { key: "name", label: "Name" },
-                    { key: "age", label: "Age" },
-                    { key: "gender", label: "Gender" },
-                    { key: "email", label: "Email" },
-                    { key: "phone", label: "Phone" },
-                    { key: "bloodGroup", label: "Blood Group" },
-                    { key: "address", label: "Address" },
-                  ].map((f) => (
-                    <View key={f.key} style={styles.inputRow}>
-                      <Text style={styles.inputLabel}>{f.label}</Text>
-
-                      {editingProfile ? (
-                        f.key !== "gender" ? (
-                          <TextInput
-                            style={styles.input}
-                            value={String((selectedFamily as any)[f.key] ?? "")}
-                            keyboardType={f.key === "age" ? "numeric" : "default"}
-                            onChangeText={(text) =>
-                              setSelectedFamily((prev) => prev ? ({ ...(prev as FamilyProfile), [f.key]: f.key === "age" ? (text === "" ? "" : Number(text)) : text }) : prev)
-                            }
-                          />
-                        ) : (
-                          <View style={{ flexDirection: "row" }}>
-                            {(["Male", "Female", "Other"] as const).map((g) => (
-                              <GenderButton key={g} label={g} selected={selectedFamily?.gender === g} onPress={() => setSelectedFamily((p) => p ? ({ ...(p as FamilyProfile), gender: g }) : p)} />
-                            ))}
-                          </View>
-                        )
-                      ) : (
-                        <Text style={styles.inputValue}>
-                          {String((selectedFamily as any)[f.key] !== undefined && (selectedFamily as any)[f.key] !== null ? (selectedFamily as any)[f.key] : "-")}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-
-                  {editingProfile && (
-                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <TouchableOpacity style={[styles.saveButton, { flex: 1, marginRight: 8 }]} onPress={() => {
-                        if (selectedFamily) handleSaveProfile(selectedFamily as FamilyProfile);
-                      }}>
-                        <Text style={styles.saveButtonText}>Save</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity style={[styles.cancelButton, { flex: 1 }]} onPress={() => {
-                        setEditingProfile(false);
-                        if (selectedFamily?.uid) fetchPatientDetails(selectedFamily.uid);
-                      }}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </>
-              ) : (
-                <Text>No profile selected</Text>
-              )}
-            </View>
-          )}
-        </View>
-
+        <HealthProfileCard
+          expanded={expanded.profile}
+          onToggle={() => toggleSection("profile")}
+          selectedFamily={selectedFamily as any}
+          editingProfile={editingProfile}
+          setEditingProfile={(v) => setEditingProfile(v)}
+          addingNewProfile={addingNewProfile}
+          setAddingNewProfile={(v) => setAddingNewProfile(v)}
+          newProfileDraft={newProfileDraft}
+          setNewProfileDraft={(val) => setNewProfileDraft(val)}
+          onSaveExisting={(p) => handleSaveProfile(p as any)}
+          onCreateNew={(d) => handleCreateProfile(d)}
+          onRefreshSelected={() => { setEditingProfile(false); if (selectedFamily?.uid) fetchPatientDetails(selectedFamily.uid); }}
+        />
+        <PatientLocation />
         {/* Appointments card */}
-        <View style={styles.card}>
-          <TouchableWithoutFeedback onPress={() => toggleSection("appointments")}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <Ionicons name="calendar" size={24} color="#1565C0" />
-                <Text style={styles.cardTitle}>Appointments</Text>
-              </View>
-              <View style={styles.cardHeaderRight}>
-                <Ionicons name={expanded.appointments ? "chevron-up" : "chevron-down"} size={20} color="#666" />
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-
-          {expanded.appointments && (
-            <View style={styles.expandedContent}>
-              {/* Current appointment block (booked) - show different UI depending on decision */}
-              {appointments.find((a) => a.status === "booked") && (
-                <View style={[styles.card, { marginBottom: 16 }]}>
-                  <View style={styles.cardHeader}>
-                    {/* Determine icon based on decision */}
-                    {(() => {
-                      const first = appointments.find((a) => a.status === "booked");
-                      if (!first) return <Ionicons name="time-outline" size={24} color="#FF9800" />;
-                      if (first.decision === "accepted") {
-                        return <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />;
-                      } else if (first.decision === "declined") {
-                        return <Ionicons name="close-circle" size={24} color="#ef4444" />;
-                      } else {
-                        return <Ionicons name="time-outline" size={24} color="#FF9800" />;
-                      }
-                    })()}
-                    <Text style={styles.cardTitle}>Your Current Appointment</Text>
-                  </View>
-
-                  <View style={styles.expandedContent}>
-                    {appointments.filter((a) => a.status === "booked").map((appt, idx) => (
-                      <View key={idx} style={{ marginBottom: 10 }}>
-                        <Text style={styles.appointmentInfo}>Doctor: {(appt.doctorId as any)?.name ?? (appt as any).doctorName}</Text>
-                        <Text style={styles.appointmentInfo}>Specialization: {(appt.doctorId as any)?.specialization ?? "-"}</Text>
-                        <Text style={styles.appointmentInfo}>Requested Date: {appt.requestedDate ?? "-"}</Text>
-                        <Text style={styles.appointmentInfo}>Requested Time: {appt.requestedTime ?? "-"}</Text>
-
-                        {appt.symptomsDescription ? (
-                          <Text style={{ color: "#666", marginTop: 6 }}>
-                            Symptoms: {appt.symptomsDescription} ({appt.symptomDuration}, {appt.symptomSeverity})
-                          </Text>
-                        ) : null}
-
-                        {/* Show Join button only when accepted AND scheduledDateTime exists and it's time */}
-                        {appt.decision === "accepted" && appt.scheduledDateTime ? (
-                          isJoinEnabled(appt) ? (
-                            <TouchableOpacity
-  style={styles.videoCallButton}
-  onPress={() => {
-    if (appt.videoLink) {
-router.push({ pathname: "/(screens)/videoCallScreen", params: { videoLink: appt.videoLink } });
-      Alert.alert("No link", "Doctor has not shared a video link yet.");
-    }
-  }}
->
-  <Ionicons name="videocam" size={20} color="#fff" />
-  <Text style={styles.videoCallText}>Join Video Consultation</Text>
-</TouchableOpacity>
-                          ) : (
-                            <Text style={{ marginTop: 8, color: "#666" }}>
-                              Consultation confirmed for {new Date(appt.scheduledDateTime as any).toLocaleString()}. Join will be enabled at scheduled time.
-                            </Text>
-                          )
-                        ) : appt.decision === "pending" ? (
-                          <Text style={{ marginTop: 8, color: "#FF8F00" }}>Booking pending - doctor will accept and schedule date/time.</Text>
-                        ) : appt.decision === "declined" ? (
-                          <Text style={{ marginTop: 8, color: "#ef4444" }}>Appointment was declined by the doctor.</Text>
-                        ) : null}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* My Appointments list */}
-              <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 10 }}>My Appointments</Text>
-              {appointments.length === 0 ? (
-                <Text style={{ color: "#666" }}>No appointments yet</Text>
-              ) : (
-                appointments.map((appt, index) => (
-                  <View key={appt._id ?? index} style={styles.appointmentItem}>
-                    <View style={styles.appointmentLeft}>
-                      <Ionicons name="medical" size={20} color="#1565C0" />
-                      <View style={styles.appointmentDetails}>
-                        <Text style={styles.appointmentDoctor}>{(appt.doctorId as any)?.name ?? "Doctor"}</Text>
-                        <Text style={styles.appointmentType}>{(appt.doctorId as any)?.specialization ?? "-"}</Text>
-                        <Text style={styles.appointmentDate}>{appt.requestedDate ?? "Not scheduled"} {appt.requestedTime ? `at ${appt.requestedTime}` : ""}</Text>
-
-                        {appt.symptomsDescription ? (
-                          <Text style={{ color: "#666", marginTop: 6 }}>
-                            Symptoms: {appt.symptomsDescription} ({appt.symptomDuration}, {appt.symptomSeverity})
-                          </Text>
-                        ) : null}
-
-                      </View>
-                    </View>
-
-                    {/* status badge mapping */}
-                    {(() => {
-                      // map decision/status to colors
-                      let bg = "#FFF3E0";
-                      let color = "#FF8F00";
-                      let text = appt.decision ?? appt.status ?? "pending";
-
-                      if (appt.decision === "accepted") {
-                        bg = "#E8F5E8";
-                        color = "#388E3C";
-                        text = "confirmed";
-                      } else if (appt.decision === "pending") {
-                        bg = "#FFF3E0";
-                        color = "#FF8F00";
-                        text = "pending";
-                      } else if (appt.decision === "declined") {
-                        bg = "#FFEDEE";
-                        color = "#C62828";
-                        text = "declined";
-                      } else if (appt.status === "completed") {
-                        bg = "#E8F5E8";
-                        color = "#388E3C";
-                        text = "completed";
-                      } else if (appt.status === "cancelled") {
-                        bg = "#FFEDEE";
-                        color = "#C62828";
-                        text = "cancelled";
-                      }
-
-                      return (
-                        <View style={[styles.statusBadge, { backgroundColor: bg }]}>
-                          <Text style={[styles.statusText, { color }]}>{text}</Text>
-                        </View>
-                      );
-                    })()}
-                  </View>
-                ))
-              )}
-
-              {/* Book new appointment */}
-              <View style={{ marginTop: 20 }}>
-                
-                <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 10 }}>Book New Appointment</Text>
-                {doctors.map((doctor) => (
-                  <View key={doctor._id} style={styles.doctorCard}>
-                    <View style={styles.doctorHeader}>
-                      <Ionicons name="person-circle" size={40} color="#1565C0" />
-                      <View style={styles.doctorInfo}>
-                        <Text style={styles.doctorName}>{doctor.name}</Text>
-                        <Text style={styles.doctorSpec}>{doctor.specialization}</Text>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity style={styles.bookButton} onPress={() => openBookingForDoctor(doctor)}>
-                      <Text style={styles.bookButtonText}>Book Consultation</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-
-                {/* Booking form */}
-                {showBookingForm && selectedDoctor && (
-                  <>
-                    <View style={styles.formSection}>
-                      <Text style={styles.sectionTitle}>Patient Details</Text>
-                      <TextInput style={styles.input} value={patientDetails?.name ?? ""} editable={false} placeholder="Name" />
-                      <TextInput style={styles.input} value={patientDetails?.age ? String(patientDetails.age) : ""} editable={false} placeholder="Age" />
-                      <TextInput style={styles.input} value={patientDetails?.gender ?? ""} editable={false} placeholder="Gender" />
-                    </View>
-
-                    <View style={{ marginTop: 20 }}>
-                      <Text style={{ fontWeight: "600", marginBottom: 8 }}>Booking with {selectedDoctor.name}</Text>
-
-                      <TextInput style={[styles.input, { minHeight: 80 }]} placeholder="Describe your symptoms" value={symptomsDescription} onChangeText={setSymptomsDescription} multiline />
-
-                      <TextInput style={styles.input} placeholder="For how many days? (e.g., 2 days)" value={symptomDuration} onChangeText={setSymptomDuration} />
-
-                      <View style={{ marginVertical: 8 }}>
-                        <Text style={{ marginBottom: 6, color: "#666" }}>Severity</Text>
-                        <Picker selectedValue={symptomSeverity} onValueChange={(itemValue) => setSymptomSeverity(itemValue as any)}>
-                          <Picker.Item label="Mild" value="Mild" />
-                          <Picker.Item label="Moderate" value="Moderate" />
-                          <Picker.Item label="Severe" value="Severe" />
-                        </Picker>
-                      </View>
-
-                      <TouchableOpacity style={styles.saveButton} onPress={confirmBooking}>
-                        <Text style={styles.saveButtonText}>Confirm Booking</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity style={[styles.cancelButton, { marginTop: 8 }]} onPress={() => { setShowBookingForm(false); setSelectedDoctor(null); }}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
+        <AppointmentsSection
+          expanded={expanded.appointments}
+          onToggle={() => toggleSection("appointments")}
+          appointments={appointments as any}
+          isJoinEnabled={isJoinEnabled}
+          doctors={doctors as any}
+          showBookingForm={showBookingForm}
+          selectedDoctor={selectedDoctor as any}
+          onOpenBooking={(d) => openBookingForDoctor(d as any)}
+          patientDetails={{ name: patientDetails?.name, age: patientDetails?.age, gender: patientDetails?.gender }}
+          symptomsDescription={symptomsDescription}
+          setSymptomsDescription={setSymptomsDescription}
+          symptomDuration={symptomDuration}
+          setSymptomDuration={setSymptomDuration}
+          symptomSeverity={symptomSeverity}
+          setSymptomSeverity={(v) => setSymptomSeverity(v)}
+          onConfirmBooking={confirmBooking}
+          onCancelBooking={() => { setShowBookingForm(false); setSelectedDoctor(null); }}
+          onNavigateToVideo={(videoLink) => router.push({ pathname: "/(screens)/videoCallScreen" as any, params: { videoLink } as any } as any)}
+        />
 
         {/* insert prescriptions tab directly below Appointments */}
-<PrescriptionsList patientUid="68c817a736d9cf859ee67c62" />
+        <PrescriptionsList patientUid="68c817a736d9cf859ee67c62" />
 
 
         {/* Health Tips */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <Ionicons name="bulb" size={24} color="#1565C0" />
-              <Text style={styles.cardTitle}>Daily Health Tips</Text>
-            </View>
-          </View>
-          <View style={styles.tipsContainer}>
-            <View style={styles.tipItem}><Text style={styles.tipText}>💧 Drink 8 glasses of water daily</Text></View>
-            <View style={styles.tipItem}><Text style={styles.tipText}>🏃‍♂️ Exercise for 30 minutes daily</Text></View>
-            <View style={styles.tipItem}><Text style={styles.tipText}>🍎 Eat more fruits and vegetables</Text></View>
-            <View style={styles.tipItem}><Text style={styles.tipText}>😴 Get 7-8 hours of sleep</Text></View>
-          </View>
-        </View>
+        <HealthTipsCard />
 
-        <TouchableOpacity style={styles.sosButton} onPress={() => {
-          Alert.alert("🚨 Emergency Alert", "Emergency services and family contacts have been notified with your GPS location!");
-        }}>
-          <LinearGradient colors={['#F44336', '#D32F2F']} style={styles.sosGradient}>
-            <Ionicons name="warning" size={32} color="white" />
-            <Text style={styles.sosText}>Emergency SOS</Text>
-            <Text style={styles.sosSubtext}>Tap for immediate help</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <SOSButton />
 
         <View style={styles.bottomSpacing} />
       </ScrollView>

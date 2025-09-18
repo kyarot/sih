@@ -1,7 +1,7 @@
 // app/pharmacy/inventory.tsx
 import axios from "axios";
 import { Stack, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 type Item = { 
@@ -16,12 +16,11 @@ type Item = {
 
 type SortOption = "name-asc" | "name-desc" | "stock-high" | "stock-low" | "price-asc" | "price-desc";
 
-const API_BASE = "http://localhost:5000/api/drugs"; // <-- change to your machine IP if testing on a physical device
+const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api/drugs";
 
 export default function InventoryPage() {
   const router = useRouter();
 
-  // start empty; we will fetch from API on mount
   const [items, setItems] = useState<Item[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
@@ -50,13 +49,11 @@ export default function InventoryPage() {
     };
   }, []);
 
-  // Fetch all drugs
   const fetchDrugs = async () => {
     try {
       setRefreshing(true);
       const res = await axios.get(`${API_BASE}/raw`);
       const data = res.data.data || res.data;
-      // map server objects to Item shape (server may use _id)
       const mapped: Item[] = (Array.isArray(data) ? data : []).map((d: any) => ({
         id: d._id ?? d.id ?? `${d.name}-${d.brand}`,
         name: d.name ?? d.title ?? "Unnamed",
@@ -77,10 +74,8 @@ export default function InventoryPage() {
     }
   };
 
-  // Store all items for filtering
   const [allItems, setAllItems] = useState<Item[]>([]);
 
-  // Sorting and filtering logic (client-side sorting)
   const filteredAndSortedItems = useMemo(() => {
     let filtered = allItems.filter(item => {
       const searchLower = searchQuery.toLowerCase();
@@ -109,7 +104,6 @@ export default function InventoryPage() {
     }
   }, [allItems, searchQuery, sortOption]);
 
-  // Update stock via API (explicit "Update" button)
   const updateStock = async (id: string, newQty: string) => {
     const quantity = parseInt(newQty, 10);
     if (isNaN(quantity) || quantity < 0) {
@@ -118,12 +112,10 @@ export default function InventoryPage() {
     }
 
     try {
-      // optimistic UI update
       setItems(prev => prev.map(item => item.id === id ? { ...item, qty: quantity } : item));
       setAllItems(prev => prev.map(item => item.id === id ? { ...item, qty: quantity } : item));
       const res = await axios.put(`${API_BASE}/${id}`, { quantity });
       const updated = res.data.data || res.data;
-      // map server returned item (if present)
       const mapped = {
         id: updated._id ?? updated.id ?? id,
         name: updated.name ?? undefined,
@@ -140,19 +132,16 @@ export default function InventoryPage() {
       Alert.alert("Success", "Stock updated successfully!");
     } catch (e: any) {
       Alert.alert("Error", e.response?.data?.message || e.message || "Failed to update stock");
-      await fetchDrugs(); // fallback: re-sync
+      await fetchDrugs();
     }
   };
 
-  // Quick adjust (optimistic) and sync to server
   const quickAdjustStock = async (id: string, delta: number) => {
-    // save previous state for rollback
     const prevItems = items;
     const target = items.find(i => i.id === id);
     if (!target) return;
     const newQty = Math.max(0, target.qty + delta);
 
-    // optimistic update
     setItems(prev => prev.map(item => item.id === id ? { ...item, qty: newQty } : item));
     setAllItems(prev => prev.map(item => item.id === id ? { ...item, qty: newQty } : item));
 
@@ -172,26 +161,19 @@ export default function InventoryPage() {
       setAllItems(prev => prev.map(item => item.id === id ? { ...item, ...mapped } : item));
     } catch (e: any) {
       Alert.alert("Error", e.response?.data?.message || e.message || "Failed to update stock");
-      // rollback
       setItems(prevItems);
       setAllItems(prevItems);
-      // optionally re-fetch to ensure consistency
       fetchDrugs();
     }
   };
 
-  // Delete a drug
   const confirmDelete = (id: string) => {
-    console.log("confirmDelete called with id:", id); // Debug log
-    
-    // Use custom modal instead of Alert
     setDrugToDelete(id);
     setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = () => {
     if (drugToDelete) {
-      console.log("Delete confirmed for:", drugToDelete);
       deleteDrug(drugToDelete);
     }
     setShowDeleteModal(false);
@@ -199,7 +181,6 @@ export default function InventoryPage() {
   };
 
   const handleDeleteCancel = () => {
-    console.log("Delete cancelled");
     setShowDeleteModal(false);
     setDrugToDelete(null);
   };
@@ -212,18 +193,14 @@ export default function InventoryPage() {
         return;
       }
 
-      // Check if it's a real MongoDB ObjectId (24 hex characters)
       if (id.match(/^[0-9a-fA-F]{24}$/)) {
-        // This is a real MongoDB ID, delete directly
         await axios.delete(`${API_BASE}/${id}`);
       } else {
-        // This is a composite ID, delete by name and brand
         const encodedName = encodeURIComponent(item.name);
         const encodedBrand = item.brand ? encodeURIComponent(item.brand) : 'undefined';
         await axios.delete(`${API_BASE}/by-name/${encodedName}/${encodedBrand}`);
       }
       
-      // remove locally
       setItems(prev => prev.filter(item => item.id !== id));
       setAllItems(prev => prev.filter(item => item.id !== id));
       setExpandedItem(null);
@@ -233,7 +210,6 @@ export default function InventoryPage() {
     }
   };
 
-  // Add new medicine
   const addMedicine = async () => {
     if (!newMedicine.name || !newMedicine.price || !newMedicine.quantity) {
       Alert.alert("Error", "Please fill in all required fields");
@@ -272,7 +248,7 @@ export default function InventoryPage() {
 
   const renderSortButtons = () => (
     <View style={styles.sortContainer}>
-      <Text style={styles.sortLabel}>Sort by:</Text>
+      <Text style={styles.sortLabel}>Sort by</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScrollView}>
         <TouchableOpacity 
           style={[styles.sortBtn, sortOption === "name-asc" && styles.activeSortBtn]}
@@ -315,10 +291,10 @@ export default function InventoryPage() {
   );
 
   const getStockStatus = (qty: number) => {
-    if (qty <= 10) return { color: "#FF3B30", status: "Critical" };
-    if (qty <= 20) return { color: "#FF9500", status: "Low" };
-    if (qty <= 50) return { color: "#007AFF", status: "Medium" };
-    return { color: "#34C759", status: "Good" };
+    if (qty <= 10) return { color: "#DC2626", status: "Critical", opacity: 1 };
+    if (qty <= 20) return { color: "#EA580C", status: "Low", opacity: 1 };
+    if (qty <= 50) return { color: "#1E40AF", status: "Medium", opacity: 1 };
+    return { color: "#059669", status: "Good", opacity: 1 };
   };
 
   const renderInventoryCard = ({ item }: { item: Item }) => {
@@ -331,109 +307,120 @@ export default function InventoryPage() {
         <TouchableOpacity 
           style={styles.cardHeader}
           onPress={() => setExpandedItem(isExpanded ? null : item.id)}
+          activeOpacity={0.7}
         >
-          <View style={styles.medicineInfo}>
-            <Text style={styles.medicineName}>{item.name}</Text>
-            {item.brand && (
-              <Text style={styles.medicineBrand}>{item.brand}</Text>
-            )}
-            {item.category && (
-              <Text style={styles.medicineCategory}>{item.category}</Text>
-            )}
-            <View style={styles.stockRow}>
-              <View style={[styles.stockBadge, { backgroundColor: stockStatus.color }]}>
-                <Text style={styles.stockBadgeText}>{stockStatus.status}</Text>
+          <View style={styles.cardContent}>
+            <View style={styles.medicineInfo}>
+              <Text style={styles.medicineName} numberOfLines={2}>{item.name}</Text>
+              {item.brand && (
+                <Text style={styles.medicineBrand} numberOfLines={1}>{item.brand}</Text>
+              )}
+              {item.category && (
+                <Text style={styles.medicineCategory} numberOfLines={1}>{item.category}</Text>
+              )}
+              
+              <View style={styles.infoRow}>
+                <View style={[styles.stockBadge, { backgroundColor: stockStatus.color }]}>
+                  <Text style={styles.stockBadgeText}>{stockStatus.status}</Text>
+                </View>
+                <Text style={styles.stockText}>Stock: {item.qty}</Text>
               </View>
-              <Text style={styles.stockText}>Stock: {item.qty}</Text>
+              
               {item.price && (
-                <Text style={styles.priceText}>₹{item.price}</Text>
+                <Text style={styles.priceText}>₹{item.price.toFixed(2)}</Text>
               )}
             </View>
-          </View>
-          
-          <View style={styles.quickActions}>
-            <TouchableOpacity 
-              style={styles.quickBtn}
-              onPress={() => quickAdjustStock(item.id, -1)}
-            >
-              <Text style={styles.quickBtnText}>-</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickBtn}
-              onPress={() => quickAdjustStock(item.id, 1)}
-            >
-              <Text style={styles.quickBtnText}>+</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.expandBtn}
-              onPress={() => setExpandedItem(isExpanded ? null : item.id)}
-            >
-              <Text style={styles.expandBtnText}>{isExpanded ? "▲" : "▼"}</Text>
-            </TouchableOpacity>
+            
+            <View style={styles.quickActions}>
+              <TouchableOpacity 
+                style={styles.quickBtn}
+                onPress={() => quickAdjustStock(item.id, -1)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.quickBtnText}>−</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.quickBtn}
+                onPress={() => quickAdjustStock(item.id, 1)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.quickBtnText}>+</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.expandBtn}
+                onPress={() => setExpandedItem(isExpanded ? null : item.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.expandBtnText}>{isExpanded ? "▲" : "▼"}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
 
         {isExpanded && (
           <View style={styles.expandedContent}>
+            <View style={styles.divider} />
+            
             <Text style={styles.expandedTitle}>Update Stock</Text>
             <View style={styles.stockUpdateRow}>
               <TextInput
-                style={styles.stockInput}
+              style={[styles.stockInput, styles.mr8]}
                 value={currentEditValue}
                 onChangeText={(text) => setEditingStock(prev => ({ ...prev, [item.id]: text }))}
                 keyboardType="numeric"
-                placeholder="Enter new stock quantity"
+                placeholder="Enter quantity"
+                placeholderTextColor="#9CA3AF"
               />
               <TouchableOpacity 
                 style={styles.updateBtn}
                 onPress={() => updateStock(item.id, currentEditValue)}
+                activeOpacity={0.8}
               >
                 <Text style={styles.updateBtnText}>Update</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.presetActions}>
-              <Text style={styles.presetLabel}>Quick Adjust:</Text>
+              <Text style={styles.presetLabel}>Quick Adjust</Text>
               <View style={styles.presetBtns}>
                 <TouchableOpacity 
-                  style={styles.presetBtn}
+                style={[styles.presetBtn, styles.mr8]}
                   onPress={() => quickAdjustStock(item.id, -10)}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetBtnText}>-10</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.presetBtn}
+                style={[styles.presetBtn, styles.mr8]}
                   onPress={() => quickAdjustStock(item.id, -5)}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetBtnText}>-5</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.presetBtn}
+                style={[styles.presetBtn, styles.mr8]}
                   onPress={() => quickAdjustStock(item.id, 5)}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetBtnText}>+5</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.presetBtn}
                   onPress={() => quickAdjustStock(item.id, 10)}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetBtnText}>+10</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Delete button (uses same style patterns) */}
-            <View style={{ marginTop: 12 }}>
-              <TouchableOpacity
-                style={[styles.presetBtn, { backgroundColor: "#FF3B30", alignSelf: "flex-start" }]}
-                onPress={() => {
-                  console.log("Delete button pressed for item:", item.id, item.name);
-                  confirmDelete(item.id);
-                }}
-              >
-                <Text style={[styles.presetBtnText, { color: "#FFFFFF" }]}>Delete</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => confirmDelete(item.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.deleteBtnText}>Delete Item</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -446,8 +433,9 @@ export default function InventoryPage() {
         options={{ 
           title: "Inventory Management",
           headerShown: true,
-          headerStyle: { backgroundColor: "#FFFFFF" },
-          headerTitleStyle: { fontSize: 20, fontWeight: "700", color: "#1C1C1E" },
+          headerStyle: { backgroundColor: "#1E40AF" },
+          headerTitleStyle: { fontSize: 18, fontWeight: "600", color: "#FFFFFF" },
+          headerTintColor: "#FFFFFF",
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()}>
               <Text style={styles.backBtn}>← Back</Text>
@@ -456,31 +444,27 @@ export default function InventoryPage() {
         }} 
       />
 
-      {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search medicines or categories..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#8E8E93"
-        />
-        <TouchableOpacity style={styles.searchIcon}>
-          <Text style={styles.searchIconText}>🔍</Text>
-        </TouchableOpacity>
+        <View style={styles.searchInputContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search medicines, brands, categories..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#9CA3AF"
+          />
+        </View>
       </View>
 
-      {/* Sort Options */}
       {renderSortButtons()}
 
-      {/* Results Count */}
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsText}>
-          {filteredAndSortedItems.length} medicines found
+          {filteredAndSortedItems.length} medicine{filteredAndSortedItems.length !== 1 ? 's' : ''} found
         </Text>
       </View>
 
-      {/* Inventory Grid - 2 items per row */}
       <View style={styles.medicineListContainer}>
         <FlatList
           data={filteredAndSortedItems}
@@ -492,7 +476,7 @@ export default function InventoryPage() {
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyIcon}>📦</Text>
               <Text style={styles.emptyTitle}>No medicines found</Text>
               <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
             </View>
@@ -502,14 +486,14 @@ export default function InventoryPage() {
         />
       </View>
 
-      {/* Add Medicine Form */}
       <View style={styles.addMedicineContainer}>
         <TouchableOpacity 
           style={styles.addMedicineBtn}
           onPress={() => setShowAddForm(!showAddForm)}
+          activeOpacity={0.8}
         >
           <Text style={styles.addMedicineBtnText}>
-            {showAddForm ? "▼ Hide Add Medicine" : "▲ Add New Medicine"}
+            {showAddForm ? "Cancel" : "Add New Medicine"}
           </Text>
         </TouchableOpacity>
 
@@ -522,6 +506,7 @@ export default function InventoryPage() {
               placeholder="Medicine Name *"
               value={newMedicine.name}
               onChangeText={(text) => setNewMedicine(prev => ({ ...prev, name: text }))}
+              placeholderTextColor="#9CA3AF"
             />
             
             <TextInput
@@ -529,6 +514,7 @@ export default function InventoryPage() {
               placeholder="Brand"
               value={newMedicine.brand}
               onChangeText={(text) => setNewMedicine(prev => ({ ...prev, brand: text }))}
+              placeholderTextColor="#9CA3AF"
             />
             
             <TextInput
@@ -536,6 +522,7 @@ export default function InventoryPage() {
               placeholder="Category"
               value={newMedicine.category}
               onChangeText={(text) => setNewMedicine(prev => ({ ...prev, category: text }))}
+              placeholderTextColor="#9CA3AF"
             />
             
             <View style={styles.formRow}>
@@ -545,6 +532,7 @@ export default function InventoryPage() {
                 value={newMedicine.price}
                 onChangeText={(text) => setNewMedicine(prev => ({ ...prev, price: text }))}
                 keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
               />
               
               <TextInput
@@ -553,32 +541,21 @@ export default function InventoryPage() {
                 value={newMedicine.quantity}
                 onChangeText={(text) => setNewMedicine(prev => ({ ...prev, quantity: text }))}
                 keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
               />
             </View>
             
-            <View style={styles.formButtons}>
-              <TouchableOpacity 
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setShowAddForm(false);
-                  setNewMedicine({ name: "", brand: "", category: "", price: "", quantity: "" });
-                }}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.submitBtn}
-                onPress={addMedicine}
-              >
-                <Text style={styles.submitBtnText}>Add Medicine</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity 
+              style={styles.submitBtn}
+              onPress={addMedicine}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.submitBtnText}>Add Medicine</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
 
-      {/* Custom Delete Confirmation Modal */}
       <Modal
         visible={showDeleteModal}
         transparent={true}
@@ -587,20 +564,22 @@ export default function InventoryPage() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Drug</Text>
+            <Text style={styles.modalTitle}>Delete Medicine</Text>
             <Text style={styles.modalMessage}>
-              Are you sure you want to delete this drug? This action cannot be undone.
+              Are you sure you want to delete this medicine? This action cannot be undone.
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
+                style={styles.cancelButton}
                 onPress={handleDeleteCancel}
+                activeOpacity={0.8}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.deleteButton]}
+                style={styles.deleteButton}
                 onPress={handleDeleteConfirm}
+                activeOpacity={0.8}
               >
                 <Text style={styles.deleteButtonText}>Delete</Text>
               </TouchableOpacity>
@@ -615,49 +594,51 @@ export default function InventoryPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F9FAFB",
   },
   backBtn: {
     fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontWeight: "500",
   },
   searchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 12,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    color: "#1C1C1E",
-  },
-  searchIcon: {
-    padding: 4,
-  },
-  searchIconText: {
-    fontSize: 18,
+    color: "#374151",
   },
   sortContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   sortLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#8E8E93",
-    marginBottom: 8,
+    color: "#6B7280",
+    marginBottom: 12,
   },
   sortScrollView: {
     flexGrow: 0,
@@ -666,35 +647,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E7EB",
   },
   activeSortBtn: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: "#1E40AF",
+    borderColor: "#1E40AF",
   },
   sortBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#8E8E93",
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6B7280",
   },
   activeSortText: {
     color: "#FFFFFF",
   },
   resultsHeader: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   resultsText: {
     fontSize: 14,
-    color: "#8E8E93",
+    color: "#6B7280",
     fontWeight: "500",
   },
   listContainer: {
-    paddingHorizontal: 8,
-    paddingBottom: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
   },
   row: {
     justifyContent: "space-between",
@@ -707,84 +691,92 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: "hidden",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardHeader: {
     padding: 16,
   },
+  cardContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
   medicineInfo: {
-    marginBottom: 12,
+    flex: 1,
+    marginRight: 12,
   },
   medicineName: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#1C1C1E",
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 4,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   medicineBrand: {
     fontSize: 12,
-    color: "#007AFF",
+    color: "#1E40AF",
     marginBottom: 4,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   medicineCategory: {
     fontSize: 12,
-    color: "#8E8E93",
+    color: "#6B7280",
     marginBottom: 8,
   },
-  stockRow: {
+  infoRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 6,
     flexWrap: "wrap",
-    gap: 8,
   },
   stockBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 12,
+    marginRight: 8,
   },
   stockBadgeText: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "600",
     color: "#FFFFFF",
   },
   stockText: {
     fontSize: 12,
-    color: "#1C1C1E",
-    fontWeight: "600",
+    color: "#374151",
+    fontWeight: "500",
   },
   priceText: {
-    fontSize: 12,
-    color: "#34C759",
+    fontSize: 14,
+    color: "#059669",
     fontWeight: "600",
+    marginTop: 4,
   },
   quickActions: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    // gap not fully supported; space with margin
   },
   quickBtn: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#F2F2F7",
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   quickBtnText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#007AFF",
+    color: "#1E40AF",
   },
   expandBtn: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#1E40AF",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -794,36 +786,40 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   expandedContent: {
-    borderTopWidth: 1,
-    borderTopColor: "#F2F2F7",
-    padding: 16,
-    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginBottom: 16,
   },
   expandedTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1C1C1E",
+    color: "#111827",
     marginBottom: 12,
   },
   stockUpdateRow: {
     flexDirection: "row",
-    gap: 8,
+    // use margin on input and button instead of gap
     marginBottom: 16,
   },
   stockInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     fontSize: 14,
     backgroundColor: "#FFFFFF",
+    color: "#374151",
   },
   updateBtn: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#1E40AF",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
     justifyContent: "center",
   },
@@ -833,26 +829,43 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   presetActions: {
-    marginTop: 8,
+    marginBottom: 16,
   },
   presetLabel: {
     fontSize: 12,
-    color: "#8E8E93",
+    color: "#6B7280",
     marginBottom: 8,
+    fontWeight: "500",
   },
   presetBtns: {
     flexDirection: "row",
-    gap: 8,
+    // space preset buttons with marginRight
   },
   presetBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#E5E5EA",
-    borderRadius: 6,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   presetBtnText: {
     fontSize: 12,
-    color: "#1C1C1E",
+    color: "#374151",
+    fontWeight: "500",
+  },
+  mr8: {
+    marginRight: 8,
+  },
+  deleteBtn: {
+    backgroundColor: "#DC2626",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
     fontWeight: "600",
   },
   emptyState: {
@@ -868,33 +881,27 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1C1C1E",
+    color: "#111827",
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#8E8E93",
+    color: "#6B7280",
     textAlign: "center",
   },
   medicineListContainer: {
     flex: 1,
-    maxHeight: 400,
+    backgroundColor: "#F9FAFB",
   },
   addMedicineContainer: {
     backgroundColor: "#FFFFFF",
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
   },
   addMedicineBtn: {
-    padding: 16,
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: "#1E40AF",
     alignItems: "center",
   },
   addMedicineBtnText: {
@@ -903,56 +910,40 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   addMedicineForm: {
-    padding: 16,
+    padding: 20,
+    backgroundColor: "#F9FAFB",
   },
   formTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    color: "#1C1C1E",
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 16,
     textAlign: "center",
   },
   formInput: {
     borderWidth: 1,
-    borderColor: "#E5E5EA",
+    borderColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
     backgroundColor: "#FFFFFF",
     marginBottom: 12,
+    color: "#374151",
   },
   formRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 12,
   },
   formInputHalf: {
     flex: 1,
-    marginBottom: 12,
-  },
-  formButtons: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: "#F2F2F7",
-    alignItems: "center",
-  },
-  cancelBtnText: {
-    color: "#8E8E93",
-    fontSize: 16,
-    fontWeight: "600",
   },
   submitBtn: {
-    flex: 1,
-    paddingVertical: 12,
+    backgroundColor: "#059669",
+    paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: "#34C759",
     alignItems: "center",
+    marginTop: 8,
   },
   submitBtnText: {
     color: "#FFFFFF",
@@ -978,37 +969,41 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1C1C1E",
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 12,
     textAlign: "center",
   },
   modalMessage: {
-    fontSize: 16,
-    color: "#8E8E93",
+    fontSize: 14,
+    color: "#6B7280",
     marginBottom: 24,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 20,
   },
   modalButtons: {
     flexDirection: "row",
     gap: 12,
   },
-  modalButton: {
+  cancelButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   deleteButton: {
-    backgroundColor: "#FF3B30",
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#DC2626",
   },
   cancelButtonText: {
-    color: "#8E8E93",
+    color: "#6B7280",
     fontSize: 16,
     fontWeight: "600",
   },

@@ -69,5 +69,5 @@ app.use("/api/video", videoRoutes);
 //pharmacy routes
 app.use("/api/drugs", drugRoutes);
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8082;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -44,7 +44,7 @@ export default function PharmacyPage() {
       const idToken = await cred.user.getIdToken();
 
       // Save to backend
-      const res = await fetch("http://localhost:5000/api/pharmacies/register-pharmacy", {
+      const res = await fetch("https://5aa83c1450d9.ngrok-free.app/api/pharmacies/register-pharmacy", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -99,7 +99,7 @@ export default function PharmacyPage() {
 
       // Fetch pharmacy by UID
       const uid = cred.user.uid;
-      const res = await fetch(`http://localhost:5000/api/pharmacies/owner/${uid}`, {
+      const res = await fetch(`https://5aa83c1450d9.ngrok-free.app/api/pharmacies/owner/${uid}`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
 
@@ -154,6 +154,7 @@ export default function PharmacyPage() {
   if (mode === "login") {
     return (
       <View style={styles.mainContainer}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.headerContainer}>
             <View style={styles.iconContainer}><Text style={styles.iconText}>⚕️</Text></View>
@@ -229,22 +230,22 @@ function Divider() {
 
 // ---------------- Styles ----------------
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContainer: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
-  headerContainer: { alignItems: 'center', marginBottom: 40 },
-  iconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#E0F2FE', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  headerContainer: { alignItems: 'center', marginBottom: 32 },
+  iconContainer: { width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(30,64,175,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   iconText: { fontSize: 36 },
-  title: { fontSize: 32, fontWeight: '800', color: '#1E293B', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#64748B', textAlign: 'center', lineHeight: 24 },
-  formContainer: { width: '100%', maxWidth: 400, alignSelf: 'center' },
-  inputContainer: { marginBottom: 20 },
-  inputLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  input: { width: '100%', height: 56, borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, fontSize: 16, backgroundColor: '#FFFFFF', color: '#1F2937' },
-  btnPrimary: { width: '100%', height: 56, backgroundColor: '#0EA5E9', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 24, elevation: 8 },
-  btnPrimaryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { marginHorizontal: 16, fontSize: 14, color: '#9CA3AF', fontWeight: '500' },
-  btnSecondary: { width: '100%', height: 56, backgroundColor: 'transparent', borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' },
-  btnSecondaryText: { color: '#0EA5E9', fontSize: 16, fontWeight: '600' },
+  title: { fontSize: 30, fontWeight: '800', color: '#1E40AF', marginBottom: 6, textAlign: 'center' },
+  subtitle: { fontSize: 16, color: 'rgba(30,64,175,0.8)', textAlign: 'center', lineHeight: 24 },
+  formContainer: { width: '100%', maxWidth: 420, alignSelf: 'center' },
+  inputContainer: { marginBottom: 18 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: '#1E40AF', marginBottom: 8 },
+  input: { width: '100%', height: 56, borderWidth: 1.5, borderColor: '#CBD5E1', borderRadius: 14, paddingHorizontal: 16, fontSize: 16, backgroundColor: '#FFFFFF', color: '#0F172A', shadowColor: '#1E40AF', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  btnPrimary: { width: '100%', height: 56, backgroundColor: '#1E40AF', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 24, elevation: 6, shadowColor: '#1E40AF', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  btnPrimaryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
+  dividerText: { marginHorizontal: 16, fontSize: 14, color: '#64748B', fontWeight: '600' },
+  btnSecondary: { width: '100%', height: 56, backgroundColor: 'transparent', borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#1E40AF' },
+  btnSecondaryText: { color: '#1E40AF', fontSize: 16, fontWeight: '700' },
 });

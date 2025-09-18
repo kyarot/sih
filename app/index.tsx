@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {  Stack} from "expo-router";
 import {
   View,
@@ -8,14 +8,84 @@ import {
   Dimensions,
   StatusBar,
   SafeAreaView,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
+import TranslateButton from "../components/TranslateButton";
 
 const { width, height } = Dimensions.get("window");
 
+// Typing Animation Component
+const TypingText = ({ text, style, delay = 0 }: { text: string; style: any; delay?: number }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (currentIndex < text.length) {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }
+    }, delay + (currentIndex * 2)); // 150ms delay between each character
+
+    return () => clearTimeout(timer);
+  }, [currentIndex, text, delay]);
+
+  return (
+    <Text style={style}>
+      {displayedText}
+      <Text style={{ opacity: 0.7 }}>|</Text>
+    </Text>
+  );
+};
+
 export default function HomePage() {
   const router = useRouter();
+  
+  // Animation values
+  const fadeAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(50);
+  const logoScaleAnim = new Animated.Value(0.5);
+  const buttonAnim = new Animated.Value(0);
+  const featuresAnim = new Animated.Value(0);
+
+  useEffect(() => {
+    // Start animations with staggered timing
+    Animated.sequence([
+      // Logo animation
+      Animated.timing(logoScaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      // Fade in and slide up for main content
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]),
+      // Button animations
+      Animated.timing(buttonAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      // Features animation
+      Animated.timing(featuresAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -26,24 +96,60 @@ export default function HomePage() {
       >
         <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
+            {/* Top-right translate button */}
+            <View style={styles.topRight}>
+              <TranslateButton />
+            </View>
           {/* Header Section */}
           <View style={styles.headerSection}>
-            <View style={styles.logoContainer}>
+            <Animated.View 
+              style={[
+                styles.logoContainer,
+                {
+                  transform: [{ scale: logoScaleAnim }],
+                }
+              ]}
+            >
               <View style={styles.logoCircle}>
                 <Text style={styles.logoText}>+</Text>
               </View>
-            </View>
-            <Text style={styles.title}>TeleMedicine</Text>
-            <Text style={styles.subtitle}>
-              Your Health, Our Priority
-            </Text>
-            <Text style={styles.description}>
-              Connect with healthcare professionals from the comfort of your home
-            </Text>
+            </Animated.View>
+            
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }}
+            >
+              <TypingText 
+                text="MediConnect" 
+                style={styles.title}
+                delay={800}
+              />
+              <Text style={styles.subtitle}>
+                Your Health, Our Priority
+              </Text>
+              <Text style={styles.description}>
+                Connect with healthcare professionals from the comfort of your home
+              </Text>
+            </Animated.View>
           </View>
 
           {/* Action Buttons Section */}
-          <View style={styles.actionsSection}>
+          <Animated.View 
+            style={[
+              styles.actionsSection,
+              {
+                opacity: buttonAnim,
+                transform: [{ 
+                  translateY: buttonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  })
+                }],
+              }
+            ]}
+          >
             <TouchableOpacity
               style={[styles.primaryButton, styles.shadowEffect]}
               onPress={() => router.push("/auth")}
@@ -66,10 +172,23 @@ export default function HomePage() {
               <Text style={styles.secondaryButtonText}>Quick Access</Text>
               <Text style={styles.secondaryButtonSubtext}>For existing patients</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           {/* Features Section */}
-          <View style={styles.featuresSection}>
+          <Animated.View 
+            style={[
+              styles.featuresSection,
+              {
+                opacity: featuresAnim,
+                transform: [{ 
+                  translateY: featuresAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [40, 0],
+                  })
+                }],
+              }
+            ]}
+          >
             <View style={styles.featureItem}>
               <View style={styles.featureIcon}>
                 <Text style={styles.featureIconText}>📱</Text>
@@ -90,7 +209,7 @@ export default function HomePage() {
               </View>
               <Text style={styles.featureText}>Secure & Private</Text>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </LinearGradient>
     </SafeAreaView>
@@ -111,6 +230,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 40,
+  },
+  topRight: {
+    position: "absolute",
+    top: 20,
+    right: 24,
+    zIndex: 10,
   },
   headerSection: {
     alignItems: "center",
@@ -145,6 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 16,
+     textAlign: "center",
     fontWeight: "500",
   },
   description: {
@@ -254,7 +380,7 @@ export function HomePageSimple() {
               <Text style={styles.logoText}>+</Text>
             </View>
           </View>
-          <Text style={styles.title}>TeleMedicine</Text>
+          <Text style={styles.title}>MediConnect</Text>
           <Text style={styles.subtitle}>Your Health, Our Priority</Text>
           <Text style={styles.description}>
             Connect with healthcare professionals from the comfort of your home
