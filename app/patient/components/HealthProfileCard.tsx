@@ -32,7 +32,7 @@ function GenderButton({
     <TouchableOpacity
       onPress={onPress}
       style={[styles.genderBtn, selected && styles.genderBtnSelected]}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
       <Text style={[styles.genderBtnText, selected && styles.genderBtnTextSelected]}>
         {label}
@@ -73,35 +73,51 @@ export default function HealthProfileCard({
   const { t } = useTranslation(); // ✅
 
   const profileFields = [
-    { key: "name", label: t("full_name"), icon: "person" },
-    { key: "age", label: t("age"), icon: "calendar" },
-    { key: "gender", label: t("gender"), icon: "male-female" },
-    { key: "email", label: t("email_address"), icon: "mail" },
-    { key: "phone", label: t("phone_number"), icon: "call" },
-    { key: "bloodGroup", label: t("blood_group"), icon: "water" },
-    { key: "address", label: t("address"), icon: "location" },
+    { key: "name", label: "Full Name", icon: "person-outline", required: true },
+    { key: "age", label: "Age", icon: "calendar-outline", required: false },
+    { key: "gender", label: "Gender", icon: "people-outline", required: false },
+    { key: "email", label: "Email Address", icon: "mail-outline", required: false },
+    { key: "phone", label: "Phone Number", icon: "call-outline", required: false },
+    { key: "bloodGroup", label: "Blood Type", icon: "water-outline", required: false },
+    { key: "address", label: "Address", icon: "location-outline", required: false },
   ];
 
+  const getBloodTypeIcon = (bloodType: string) => {
+    if (!bloodType) return "water-outline";
+    return "medical-outline";
+  };
+
+  const formatProfileSubtext = (profile: FamilyProfile) => {
+    const parts = [];
+    if (profile.age) parts.push(`${profile.age} years old`);
+    if (profile.gender) parts.push(profile.gender);
+    if (profile.bloodGroup) parts.push(`Type ${profile.bloodGroup}`);
+    return parts.length > 0 ? parts.join(" • ") : "Health Profile";
+  };
+
   return (
-    <View style={styles.card}>
+    <View style={styles.container}>
       <TouchableWithoutFeedback onPress={onToggle}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.iconContainer}>
-              <Ionicons name="person-circle" size={24} color="white" />
+              <Ionicons name="medical" size={18} color="white" />
             </View>
-            <Text style={styles.title}>{t("health_profile")}</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.title}>Medical Profile</Text>
+              <Text style={styles.subtitle}>Personal health information</Text>
+            </View>
           </View>
           <View style={styles.headerActions}>
             {!addingNewProfile && selectedFamily && (
               <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => setEditingProfile(!editingProfile)}
-                activeOpacity={0.8}
+                activeOpacity={0.7}
               >
                 <Ionicons
-                  name={editingProfile ? "close" : "create"}
-                  size={20}
+                  name={editingProfile ? "close" : "create-outline"}
+                  size={16}
                   color="white"
                 />
               </TouchableOpacity>
@@ -109,7 +125,7 @@ export default function HealthProfileCard({
             <View style={styles.chevronContainer}>
               <Ionicons
                 name={expanded ? "chevron-up" : "chevron-down"}
-                size={24}
+                size={18}
                 color="white"
               />
             </View>
@@ -123,17 +139,23 @@ export default function HealthProfileCard({
             <View style={styles.formContainer}>
               <View style={styles.formHeader}>
                 <View style={styles.formIconContainer}>
-                  <Ionicons name="person-add" size={20} color="white" />
+                  <Ionicons name="person-add-outline" size={16} color="white" />
                 </View>
-                <Text style={styles.formTitle}>{t("add_new_profile")}</Text>
+                <View style={styles.formHeaderText}>
+                  <Text style={styles.formTitle}>Create New Profile</Text>
+                  <Text style={styles.formSubtitle}>Add family member details</Text>
+                </View>
               </View>
 
               <View style={styles.formContent}>
                 {profileFields.map((field) => (
                   <View key={field.key} style={styles.inputContainer}>
                     <View style={styles.inputHeader}>
-                      <Ionicons name={field.icon as any} size={16} color="#1E40AF" />
-                      <Text style={styles.inputLabel}>{field.label}</Text>
+                      <Ionicons name={field.icon as any} size={14} color="#1E40AF" />
+                      <Text style={styles.inputLabel}>
+                        {field.label}
+                        {field.required && <Text style={styles.requiredStar}> *</Text>}
+                      </Text>
                     </View>
 
                     {field.key === "gender" ? (
@@ -141,7 +163,7 @@ export default function HealthProfileCard({
                         {(["Male", "Female", "Other"] as const).map((g) => (
                           <GenderButton
                             key={g}
-                            label={t(g.toLowerCase())}
+                            label={g}
                             selected={(newProfileDraft.gender ?? "Male") === g}
                             onPress={() =>
                               setNewProfileDraft({ ...newProfileDraft, gender: g as Gender })
@@ -152,7 +174,7 @@ export default function HealthProfileCard({
                     ) : (
                       <TextInput
                         style={styles.input}
-                        placeholder={`${t("enter")} ${field.label.toLowerCase()}`}
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
                         placeholderTextColor="#94A3B8"
                         value={String((newProfileDraft as any)[field.key] ?? "")}
                         keyboardType={
@@ -160,6 +182,8 @@ export default function HealthProfileCard({
                             ? "numeric"
                             : field.key === "phone"
                             ? "phone-pad"
+                            : field.key === "email"
+                            ? "email-address"
                             : "default"
                         }
                         onChangeText={(text) => {
@@ -180,17 +204,17 @@ export default function HealthProfileCard({
                   <TouchableOpacity
                     style={styles.saveButton}
                     onPress={() => onCreateNew(newProfileDraft)}
-                    activeOpacity={0.9}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="checkmark" size={20} color="white" />
-                    <Text style={styles.saveButtonText}>{t("save_profile")}</Text>
+                    <Ionicons name="checkmark-circle-outline" size={16} color="white" />
+                    <Text style={styles.saveButtonText}>Create Profile</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={() => setAddingNewProfile(false)}
-                    activeOpacity={0.9}
+                    activeOpacity={0.8}
                   >
-                    <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -199,17 +223,17 @@ export default function HealthProfileCard({
             <View style={styles.profileContainer}>
               <View style={styles.profileHeader}>
                 <View style={styles.avatarContainer}>
-                  <Ionicons name="person" size={32} color="white" />
+                  <Ionicons name="person" size={24} color="white" />
                 </View>
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{selectedFamily.name}</Text>
                   <Text style={styles.profileSubtext}>
-                    {selectedFamily.age && selectedFamily.gender
-                      ? `${selectedFamily.age} ${t("years")} • ${selectedFamily.gender}`
-                      : selectedFamily.age
-                      ? `${selectedFamily.age} ${t("years")}`
-                      : selectedFamily.gender || t("profile")}
+                    {formatProfileSubtext(selectedFamily)}
                   </Text>
+                  <View style={styles.profileBadge}>
+                    <Ionicons name="shield-checkmark-outline" size={12} color="#10B981" />
+                    <Text style={styles.profileBadgeText}>Verified Profile</Text>
+                  </View>
                 </View>
               </View>
 
@@ -218,9 +242,14 @@ export default function HealthProfileCard({
                   <View key={field.key} style={styles.fieldContainer}>
                     <View style={styles.fieldHeader}>
                       <View style={styles.fieldIconContainer}>
-                        <Ionicons name={field.icon as any} size={16} color="#1E40AF" />
+                        <Ionicons 
+                          name={field.key === "bloodGroup" ? getBloodTypeIcon((selectedFamily as any)[field.key]) : field.icon as any} 
+                          size={14} 
+                          color="#1E40AF" 
+                        />
                       </View>
                       <Text style={styles.fieldLabel}>{field.label}</Text>
+                      {field.required && <Text style={styles.requiredIndicator}>Required</Text>}
                     </View>
 
                     {editingProfile ? (
@@ -229,7 +258,7 @@ export default function HealthProfileCard({
                           {(["Male", "Female", "Other"] as const).map((g) => (
                             <GenderButton
                               key={g}
-                              label={t(g.toLowerCase())}
+                              label={g}
                               selected={selectedFamily?.gender === g}
                               onPress={() => {
                                 (selectedFamily as any).gender = g;
@@ -246,6 +275,8 @@ export default function HealthProfileCard({
                               ? "numeric"
                               : field.key === "phone"
                               ? "phone-pad"
+                              : field.key === "email"
+                              ? "email-address"
                               : "default"
                           }
                           placeholderTextColor="#94A3B8"
@@ -265,11 +296,17 @@ export default function HealthProfileCard({
                         <Text style={styles.fieldValue}>
                           {String(
                             (selectedFamily as any)[field.key] !== undefined &&
-                              (selectedFamily as any)[field.key] !== null
+                              (selectedFamily as any)[field.key] !== null &&
+                              (selectedFamily as any)[field.key] !== ""
                               ? (selectedFamily as any)[field.key]
-                              : t("not_provided")
+                              : "Not specified"
                           )}
                         </Text>
+                        {field.key === "bloodGroup" && (selectedFamily as any)[field.key] && (
+                          <View style={styles.bloodTypeIndicator}>
+                            <Ionicons name="medical" size={12} color="#DC2626" />
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
@@ -282,27 +319,50 @@ export default function HealthProfileCard({
                       onPress={() => {
                         if (selectedFamily) onSaveExisting(selectedFamily as FamilyProfile);
                       }}
-                      activeOpacity={0.9}
+                      activeOpacity={0.8}
                     >
-                      <Ionicons name="checkmark" size={20} color="white" />
-                      <Text style={styles.saveButtonText}>{t("save_changes")}</Text>
+                      <Ionicons name="save-outline" size={16} color="white" />
+                      <Text style={styles.saveButtonText}>Save Changes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.cancelButton}
                       onPress={onRefreshSelected}
-                      activeOpacity={0.9}
+                      activeOpacity={0.8}
                     >
-                      <Text style={styles.cancelButtonText}>{t("cancel")}</Text>
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
                     </TouchableOpacity>
                   </View>
                 )}
               </View>
+
+              {!editingProfile && (
+                <View style={styles.profileActions}>
+                  <TouchableOpacity style={styles.actionCard} activeOpacity={0.8}>
+                    <Ionicons name="document-text-outline" size={18} color="#1E40AF" />
+                    <Text style={styles.actionCardText}>Medical Records</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionCard} activeOpacity={0.8}>
+                    <Ionicons name="calendar-outline" size={18} color="#1E40AF" />
+                    <Text style={styles.actionCardText}>Appointments</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="person-outline" size={48} color="#E5E7EB" />
-              <Text style={styles.emptyText}>{t("no_profile_selected")}</Text>
-              <Text style={styles.emptySubtext}>{t("select_family_member")}</Text>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="person-add-outline" size={40} color="#94A3B8" />
+              </View>
+              <Text style={styles.emptyTitle}>No Profile Selected</Text>
+              <Text style={styles.emptySubtext}>Select a family member to view their medical profile and health information.</Text>
+              <TouchableOpacity 
+                style={styles.createProfileButton}
+                onPress={() => setAddingNewProfile(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={16} color="#1E40AF" />
+                <Text style={styles.createProfileButtonText}>Create New Profile</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -311,55 +371,61 @@ export default function HealthProfileCard({
   );
 }
 
-
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "white",
-    borderRadius: 16,
+  container: {
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   header: {
     backgroundColor: "#1E40AF",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 10,
+  },
+  headerText: {
+    flex: 1,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: "white",
-    marginLeft: 12,
+    marginBottom: 1,
+  },
+  subtitle: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   editButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
@@ -369,114 +435,152 @@ const styles = StyleSheet.create({
   },
   content: {
     backgroundColor: "white",
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderRadius: 12,
+    marginTop: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
 
   // Form Container
   formContainer: {
-    padding: 20,
+    padding: 16,
   },
   formHeader: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F8FAFC",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   formIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "#1E40AF",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 10,
+  },
+  formHeaderText: {
+    flex: 1,
   },
   formTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#1E293B",
-    marginLeft: 12,
+    marginBottom: 1,
+  },
+  formSubtitle: {
+    fontSize: 11,
+    color: "#64748B",
   },
   formContent: {
-    gap: 16,
+    gap: 12,
   },
 
   // Profile Container
   profileContainer: {
-    padding: 20,
+    padding: 16,
   },
   profileHeader: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F8FAFC",
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#1E40AF",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 12,
   },
   profileInfo: {
-    marginLeft: 16,
     flex: 1,
   },
   profileName: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
     color: "#1E293B",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   profileSubtext: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#64748B",
     fontWeight: "500",
+    marginBottom: 4,
+  },
+  profileBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  profileBadgeText: {
+    fontSize: 10,
+    color: "#10B981",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   profileContent: {
-    gap: 16,
+    gap: 12,
   },
 
   // Input Fields
   inputContainer: {
-    gap: 8,
+    gap: 6,
   },
   fieldContainer: {
-    gap: 8,
+    gap: 6,
   },
   inputHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   fieldHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: "#1E293B",
+    flex: 1,
   },
   fieldLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     color: "#1E293B",
+    flex: 1,
+  },
+  requiredStar: {
+    color: "#DC2626",
+  },
+  requiredIndicator: {
+    fontSize: 9,
+    color: "#DC2626",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   fieldIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
@@ -484,34 +588,41 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#D1D5DB",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 13,
     backgroundColor: "white",
     color: "#1E293B",
   },
   fieldValueContainer: {
     backgroundColor: "#F8FAFC",
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 6,
+    padding: 10,
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   fieldValue: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#1E293B",
     fontWeight: "500",
+    flex: 1,
+  },
+  bloodTypeIndicator: {
+    marginLeft: 8,
   },
 
   // Gender Buttons
   genderContainer: {
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
   },
   genderBtn: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    padding: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#D1D5DB",
     alignItems: "center",
@@ -524,7 +635,7 @@ const styles = StyleSheet.create({
   genderBtnText: {
     fontWeight: "600",
     color: "#64748B",
-    fontSize: 14,
+    fontSize: 12,
   },
   genderBtnTextSelected: {
     color: "#1E40AF",
@@ -533,58 +644,104 @@ const styles = StyleSheet.create({
   // Action Buttons
   actionButtons: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
+    gap: 8,
+    marginTop: 6,
   },
   saveButton: {
     backgroundColor: "#1E40AF",
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
   },
   saveButtonText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 13,
   },
   cancelButton: {
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#D1D5DB",
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
   },
   cancelButtonText: {
     color: "#64748B",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 13,
+  },
+
+  // Profile Actions
+  profileActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  actionCardText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#1E40AF",
+    textAlign: "center",
   },
 
   // Empty State
   emptyState: {
     alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
   },
-  emptyText: {
+  emptyIcon: {
+    marginBottom: 12,
+  },
+  emptyTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#64748B",
-    marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#94A3B8",
     textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  createProfileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#1E40AF",
+    gap: 6,
+  },
+  createProfileButtonText: {
+    color: "#1E40AF",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

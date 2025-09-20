@@ -394,7 +394,6 @@ if (data.length > 0 && !selectedFamily) {
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Family section */}
-        <AIChat />
         <FamilyMembers
           familyProfiles={familyProfiles}
           selectedFamilyId={selectedFamilyId as any}
@@ -455,6 +454,9 @@ if (data.length > 0 && !selectedFamily) {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Floating AI Chat Button */}
+      <AIChat />
 
       <Toast />
     </View>

@@ -1,5 +1,6 @@
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Profile } from "./types";
+import React from "react";
 
 interface Props {
   visible: boolean;

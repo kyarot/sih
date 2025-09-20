@@ -7,7 +7,9 @@ import {
   Alert, 
   StyleSheet, 
   ActivityIndicator,
-  Dimensions 
+  Dimensions,
+  Platform,
+  Animated
 } from "react-native";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,13 +18,14 @@ import { useTranslation } from "../../../components/TranslateProvider";
 const { width } = Dimensions.get('window');
 
 export default function PatientLocation() {
-  const { t } = useTranslation(); // ✅ use translation
+  const { t } = useTranslation();
   const [location, setLocation] = useState<{ latitude: number | null; longitude: number | null }>({
     latitude: null,
     longitude: null,
   });
   const [loading, setLoading] = useState(false);
   const [locationSaved, setLocationSaved] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const getAndSaveLocation = async () => {
     try {
@@ -82,167 +85,265 @@ export default function PatientLocation() {
     return `${lat.toFixed(6)}°, ${lng.toFixed(6)}°`;
   };
 
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleSaveLocation = (e: any) => {
+    e.stopPropagation();
+    getAndSaveLocation();
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="location" size={28} color="white" />
+    <TouchableOpacity
+      style={[
+        styles.container,
+        isExpanded && styles.containerExpanded
+      ]}
+      onPress={toggleExpanded}
+      activeOpacity={0.8}
+    >
+      {/* Compact View */}
+      <View style={styles.compactView}>
+        <View style={[
+          styles.iconContainer,
+          locationSaved && styles.iconContainerSaved
+        ]}>
+          <Ionicons 
+            name={locationSaved ? "checkmark-circle" : "location"} 
+            size={20} 
+            color="white" 
+          />
         </View>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>{t("location_services")}</Text>
+        
+        <View style={styles.compactText}>
+          <Text style={styles.title}>Location Services</Text>
           <Text style={styles.subtitle}>
-            {locationSaved ? t("location_updated") : t("help_find_pharmacies")}
+            {locationSaved ? "Location saved" : "Tap to manage"}
           </Text>
+        </View>
+
+        <View style={styles.expandIcon}>
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={16} 
+            color="#64748B" 
+          />
         </View>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <Ionicons name="shield-checkmark-outline" size={24} color="#1E40AF" />
-            <View style={styles.infoText}>
-              <Text style={styles.infoTitle}>{t("secure_private")}</Text>
-              <Text style={styles.infoDescription}>
-                {t("secure_private_msg")}
+      {/* Expanded Content */}
+      {isExpanded && (
+        <View style={styles.expandedContent}>
+          <View style={styles.divider} />
+          
+          <Text style={styles.description}>
+            Enable location services to help healthcare providers deliver personalized care and locate nearby medical facilities.
+          </Text>
+
+          {/* Location Info */}
+          {location.latitude && location.longitude && (
+            <View style={styles.locationInfo}>
+              <View style={styles.locationHeader}>
+                <Ionicons name="pin" size={16} color="#1E40AF" />
+                <Text style={styles.locationTitle}>Current Position</Text>
+              </View>
+              <Text style={styles.coordinates}>
+                {formatCoordinates(location.latitude, location.longitude)}
+              </Text>
+              <Text style={styles.timestamp}>
+                Updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Ionicons name="map-outline" size={24} color="#1E40AF" />
-            <View style={styles.infoText}>
-              <Text style={styles.infoTitle}>{t("better_service")}</Text>
-              <Text style={styles.infoDescription}>
-                {t("better_service_msg")}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {location.latitude && location.longitude && (
-          <View style={styles.locationCard}>
-            <View style={styles.locationHeader}>
-              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-              <Text style={styles.locationTitle}>{t("current_location")}</Text>
-            </View>
-            <Text style={styles.coordinatesText}>
-              {formatCoordinates(location.latitude, location.longitude)}
-            </Text>
-            <View style={styles.locationMeta}>
-              <Ionicons name="time-outline" size={16} color="#6B7280" />
-              <Text style={styles.locationTime}>
-                {t("updated_at")} {new Date().toLocaleTimeString()}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.locationButton,
-            loading && styles.locationButtonDisabled,
-            locationSaved && styles.locationButtonSuccess
-          ]}
-          onPress={getAndSaveLocation}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Ionicons 
-              name={locationSaved ? "checkmark-circle-outline" : "location-outline"} 
-              size={20} 
-              color="white" 
-            />
           )}
-          <Text style={styles.locationButtonText}>
-            {loading 
-              ? t("getting_location") 
-              : locationSaved 
-                ? t("update_location") 
-                : t("save_location")
-            }
-          </Text>
-        </TouchableOpacity>
 
-        {locationSaved && (
-          <Text style={styles.successMessage}>
-            ✓ {t("location_success")}
-          </Text>
-        )}
-      </View>
-    </View>
+          {/* Action Button */}
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              loading && styles.actionButtonLoading,
+              locationSaved && styles.actionButtonSaved
+            ]}
+            onPress={handleSaveLocation}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Ionicons 
+                name={locationSaved ? "refresh" : "location"} 
+                size={18} 
+                color="white" 
+              />
+            )}
+            <Text style={styles.actionButtonText}>
+              {loading 
+                ? "Getting Location..." 
+                : locationSaved 
+                  ? "Update Location" 
+                  : "Save Location"
+              }
+            </Text>
+          </TouchableOpacity>
+
+          {/* Privacy Note */}
+          <View style={styles.privacyNote}>
+            <Ionicons name="shield-checkmark-outline" size={14} color="#64748B" />
+            <Text style={styles.privacyText}>
+              Your location is encrypted and secure
+            </Text>
+          </View>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    marginBottom: 16,
-    elevation: 8,
+    backgroundColor: "white",
+    borderRadius: 16,
+    marginVertical: 8,
     shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: 'hidden',
+  },
+  containerExpanded: {
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+    elevation: 8,
   },
-  header: {
+
+  // Compact View
+  compactView: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#1E40AF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    padding: 16,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1E40AF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 12,
   },
-  headerText: { flex: 1 },
-  title: { fontSize: 18, fontWeight: "700", color: "white" },
-  subtitle: { fontSize: 14, color: "rgba(255,255,255,0.9)" },
-  content: { padding: 20 },
-  infoSection: { marginBottom: 20 },
-  infoItem: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16 },
-  infoText: { marginLeft: 12, flex: 1 },
-  infoTitle: { fontSize: 16, fontWeight: "600", color: "#1E40AF" },
-  infoDescription: { fontSize: 14, color: "#475569" },
-  locationCard: {
-    backgroundColor: "#F8FAFC",
+  iconContainerSaved: {
+    backgroundColor: "#10B981",
+  },
+  compactText: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  expandIcon: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
-    padding: 16,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Expanded Content
+  expandedContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginBottom: 16,
+    marginHorizontal: -16,
+  },
+  description: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+
+  // Location Info
+  locationInfo: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  locationHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  locationTitle: { fontSize: 16, fontWeight: "700", marginLeft: 8, color: "#1E40AF" },
-  coordinatesText: { fontSize: 14, color: "#334155", marginBottom: 4 },
-  locationMeta: { flexDirection: "row", alignItems: "center" },
-  locationTime: { fontSize: 12, color: "#6B7280", marginLeft: 4 },
-  locationButton: {
+  locationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  locationTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E40AF",
+    marginLeft: 6,
+  },
+  coordinates: {
+    fontSize: 13,
+    color: "#374151",
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 4,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+
+  // Action Button
+  actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#1E40AF",
-    paddingVertical: 14,
     borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  locationButtonDisabled: { opacity: 0.6 },
-  locationButtonSuccess: { backgroundColor: "#10B981" },
-  locationButtonText: { color: "white", fontSize: 16, fontWeight: "600", marginLeft: 8 },
-  successMessage: {
-    marginTop: 12,
-    fontSize: 14,
+  actionButtonLoading: {
+    opacity: 0.8,
+  },
+  actionButtonSaved: {
+    backgroundColor: "#10B981",
+  },
+  actionButtonText: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#10B981",
-    textAlign: "center",
+    color: "white",
+    marginLeft: 8,
+  },
+
+  // Privacy Note
+  privacyNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  privacyText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+    marginLeft: 6,
   },
 });

@@ -1,5 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { ActiveSection } from "./types";
+import React from "react";
 
 interface NavItem {
   id: string;
@@ -61,14 +63,9 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
       minHeight: 56,
     },
     navIcon: {
-      fontSize: 20,
       marginRight: 16,
       width: 24,
       textAlign: 'center',
-      color: '#6B7280',
-    },
-    activeNavIcon: {
-      color: 'white',
     },
     navTextContainer: {
       flex: 1,
@@ -140,12 +137,13 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
             activeOpacity={0.8}
           >
             <View style={styles.navItemContent}>
-              <Text style={[
-                styles.navIcon,
-                isActive && styles.activeNavIcon
-              ]}>
-                {item.icon}
-              </Text>
+              <View style={styles.navIcon}>
+                <MaterialIcons 
+                  name={item.icon as any} 
+                  size={20} 
+                  color={isActive ? 'white' : '#6B7280'}
+                />
+              </View>
               <View style={styles.navTextContainer}>
                 <Text style={[
                   styles.navLabel,

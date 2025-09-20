@@ -14,11 +14,13 @@ import {
   View,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
+import { MaterialIcons } from '@expo/vector-icons';
 
 // ✅ Firebase compat (needed for Recaptcha)
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
+import React from "react";
 
 // ---------------- Firebase Config ----------------
 const firebaseConfig = {
@@ -203,7 +205,9 @@ export default function PatientAuth() {
         />
 
         <View style={styles.headerContainer}>
-          <View style={styles.iconContainer}><Text style={styles.iconText}>💙</Text></View>
+          <View style={styles.iconContainer}>
+            <MaterialIcons name="person" size={34} color="#1E40AF" />
+          </View>
           <Text style={styles.headerTitle}>PatientConnect</Text>
           <Text style={styles.headerSubtitle}>Fast, secure access with your Patient Code or phone</Text>
         </View>
@@ -334,7 +338,6 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, justifyContent: "center", padding: 24 },
   headerContainer: { alignItems: 'center', marginBottom: 24 },
   iconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(30,64,175,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  iconText: { fontSize: 34 },
   headerTitle: { fontSize: 28, fontWeight: '800', color: '#1E40AF', marginBottom: 6 },
   headerSubtitle: { fontSize: 14, color: 'rgba(30,64,175,0.8)', textAlign: 'center' },
   tabContainer: {

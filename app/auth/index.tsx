@@ -1,5 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { useRouter,Stack } from "expo-router";
+import React from "react";
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -9,13 +11,18 @@ export default function AuthPage() {
   type RoleButtonProps = {
     title: string;
     onPress: () => void;
-    icon: string;
+    iconName: string;
+    iconFamily: 'MaterialIcons' | 'Ionicons';
   };
 
-  const RoleButton = ({ title, onPress, icon }: RoleButtonProps) => (
+  const RoleButton = ({ title, onPress, iconName, iconFamily }: RoleButtonProps) => (
     <TouchableOpacity style={styles.roleButton} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.buttonInner}>
-        <Text style={styles.buttonIcon}>{icon}</Text>
+        {iconFamily === 'MaterialIcons' ? (
+          <MaterialIcons name={iconName as any} size={28} color="#FFFFFF" style={styles.buttonIcon} />
+        ) : (
+          <Ionicons name={iconName as any} size={28} color="#FFFFFF" style={styles.buttonIcon} />
+        )}
         <Text style={styles.buttonText}>{title}</Text>
         <Text style={styles.buttonArrow}>→</Text>
       </View>
@@ -37,19 +44,22 @@ export default function AuthPage() {
           <View style={styles.roleContainer}>
             <RoleButton
               title="DoctorConnect"
-              icon="👨‍⚕️"
+              iconName="medical-services"
+              iconFamily="MaterialIcons"
               onPress={() => router.push("/auth/doctor")}
             />
             
             <RoleButton
               title="PatientConnect"
-              icon="👤"
+              iconName="person"
+              iconFamily="MaterialIcons"
               onPress={() => router.push("/auth/patient")}
             />
             
             <RoleButton
               title="PharmacyConnect"
-              icon="🏥"
+              iconName="local-pharmacy"
+              iconFamily="MaterialIcons"
               onPress={() => router.push("/auth/pharmacy")}
             />
           </View>
@@ -129,7 +139,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E40AF',
   },
   buttonIcon: {
-    fontSize: 28,
     marginRight: 16,
   },
   buttonText: {

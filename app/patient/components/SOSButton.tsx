@@ -16,8 +16,8 @@ export default function SOSButton() {
     >
       <LinearGradient colors={["#F44336", "#D32F2F"]} style={styles.sosGradient}>
         <Ionicons name="warning" size={32} color="white" />
-        <Text style={styles.sosText}>{t("emergency_sos")}</Text>
-        <Text style={styles.sosSubtext}>{t("tap_for_help")}</Text>
+        <Text style={styles.sosText}>{t("SOS")}</Text>
+        <Text style={styles.sosSubtext}>{t("TAP FOR HELP")}</Text>
       </LinearGradient>
     </TouchableOpacity>
   );

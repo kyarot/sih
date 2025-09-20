@@ -3,6 +3,8 @@ import axios from "axios";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import React from "react";
 
 type Item = { 
   id: string; 
@@ -446,7 +448,7 @@ export default function InventoryPage() {
 
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search medicines, brands, categories..."
@@ -476,7 +478,7 @@ export default function InventoryPage() {
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📦</Text>
+              <Ionicons name="cube-outline" size={48} color="#9CA3AF" style={styles.emptyIcon} />
               <Text style={styles.emptyTitle}>No medicines found</Text>
               <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
             </View>
@@ -618,7 +620,6 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   searchIcon: {
-    fontSize: 16,
     marginRight: 12,
   },
   searchInput: {
@@ -875,7 +876,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyIcon: {
-    fontSize: 48,
     marginBottom: 16,
   },
   emptyTitle: {

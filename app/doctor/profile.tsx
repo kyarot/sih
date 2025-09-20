@@ -375,7 +375,7 @@ export default function DoctorProfile() {
 const styles = StyleSheet.create({
   safeArea: { 
     flex: 1, 
-    backgroundColor: "white" 
+    backgroundColor: "#1E40AF" 
   },
   loadingContainer: {
     flex: 1,

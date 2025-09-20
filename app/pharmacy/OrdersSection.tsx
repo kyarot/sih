@@ -1,5 +1,6 @@
 import React from "react";
 import { FlatList, ScrollView, Text, TouchableOpacity, View, StyleSheet, Dimensions } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 import { Order } from "./types";
 
 const { width } = Dimensions.get('window');
@@ -13,10 +14,10 @@ interface Props {
 export default function OrdersSection({ orders, changeStatus, getStatusColor }: Props) {
   const getStatusIcon = (status: Order["status"]) => {
     switch (status) {
-      case "confirmed": return "⏳";
-      case "ready": return "✅";
-      case "completed": return "🎉";
-      default: return "📋";
+      case "confirmed": return "time-outline";
+      case "ready": return "checkmark-circle-outline";
+      case "completed": return "checkmark-done-outline";
+      default: return "list-outline";
     }
   };
 
@@ -29,7 +30,7 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
       <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <View style={styles.headerIconContainer}>
-            <Text style={styles.headerIcon}>📦</Text>
+            <Ionicons name="cube-outline" size={24} color="#1E40AF" style={styles.headerIcon} />
           </View>
           <Text style={styles.sectionHeader}>Active Orders</Text>
           <Text style={styles.sectionSubtitle}>Manage your pharmacy orders efficiently</Text>
@@ -46,7 +47,7 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
                 <View style={styles.orderInfo}>
                   <View style={styles.patientSection}>
                     <View style={styles.patientIcon}>
-                      <Text style={styles.patientIconText}>👤</Text>
+                      <Ionicons name="person-outline" size={20} color="#6B7280" style={styles.patientIconText} />
                     </View>
                     <View style={styles.patientDetails}>
                       <Text style={styles.patientName}>{item.patientName}</Text>
@@ -54,7 +55,7 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
                     </View>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                    <Text style={styles.statusIcon}>{getStatusIcon(item.status)}</Text>
+                    <Ionicons name={getStatusIcon(item.status) as any} size={16} color="white" style={styles.statusIcon} />
                     <Text style={styles.statusText}>{String(item.status).toUpperCase()}</Text>
                   </View>
                 </View>
@@ -98,7 +99,7 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
                       onPress={() => changeStatus(item.id, "ready")}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.actionButtonIcon}>✅</Text>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="white" style={styles.actionButtonIcon} />
                       <Text style={styles.actionButtonText}>Mark Ready</Text>
                     </TouchableOpacity>
                   )}
@@ -108,7 +109,7 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
                       onPress={() => changeStatus(item.id, "completed")}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.actionButtonIcon}>🎉</Text>
+                      <Ionicons name="checkmark-done-outline" size={20} color="white" style={styles.actionButtonIcon} />
                       <Text style={styles.actionButtonText}>Complete Order</Text>
                     </TouchableOpacity>
                   )}
@@ -119,7 +120,7 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📦</Text>
+              <Ionicons name="cube-outline" size={48} color="#9CA3AF" style={styles.emptyIcon} />
               <Text style={styles.emptyTitle}>No Active Orders</Text>
               <Text style={styles.emptySubtitle}>New orders will appear here</Text>
             </View>
@@ -159,7 +160,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   headerIcon: {
-    fontSize: 24,
     color: 'white',
   },
   sectionHeader: {
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   patientIconText: {
-    fontSize: 16,
   },
   patientDetails: {
     flex: 1,
@@ -236,7 +235,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   statusIcon: {
-    fontSize: 12,
     marginRight: 4,
   },
   statusText: {
@@ -336,7 +334,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E40AF',
   },
   actionButtonIcon: {
-    fontSize: 16,
     marginRight: 8,
   },
   actionButtonText: {
@@ -352,7 +349,6 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyIcon: {
-    fontSize: 48,
     marginBottom: 16,
     opacity: 0.5,
   },

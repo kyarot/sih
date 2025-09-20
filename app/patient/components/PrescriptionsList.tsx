@@ -172,23 +172,46 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
     // router.push("/patient/searchPharma")
   }
 
+  const getTimeOfDayIcon = (m: Medicine) => {
+    if (m.morning && m.afternoon && m.night) return "sunny";
+    if (m.morning && m.night) return "partly-sunny";
+    if (m.morning) return "sunny-outline";
+    if (m.afternoon) return "partly-sunny-outline";
+    if (m.night) return "moon-outline";
+    return "time-outline";
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Recent";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.header} onPress={() => setExpanded((s) => !s)}>
         <View style={styles.headerContent}>
           <View style={styles.iconContainer}>
-            <Ionicons name="document-text" size={24} color="white" />
+            <Ionicons name="medical" size={20} color="white" />
           </View>
           <View style={styles.headerText}>
-            <Text style={styles.title}>{t("my_prescriptions")}</Text>
+            <Text style={styles.title}>Medical Prescriptions</Text>
             <Text style={styles.subtitle}>
-              {prescriptions.length}{" "}
-              {prescriptions.length === 1 ? t("prescription") : t("prescriptions")}
+              {prescriptions.length === 0 ? "No prescriptions available" :
+               prescriptions.length === 1 ? "1 active prescription" :
+               `${prescriptions.length} total prescriptions`}
             </Text>
           </View>
         </View>
         <View style={styles.chevronContainer}>
-          <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={20} color="white" />
+          <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color="white" />
         </View>
       </TouchableOpacity>
 
@@ -197,13 +220,15 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#1E40AF" />
-              <Text style={styles.loadingText}>{t("loading_prescriptions")}</Text>
+              <Text style={styles.loadingText}>Loading medical records...</Text>
             </View>
           ) : prescriptions.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyTitle}>{t("no_prescriptions_found")}</Text>
-              <Text style={styles.emptyText}>{t("prescriptions_will_appear")}</Text>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="document-text-outline" size={48} color="#94A3B8" />
+              </View>
+              <Text style={styles.emptyTitle}>No Prescriptions Found</Text>
+              <Text style={styles.emptyText}>Your prescription history will appear here once doctors issue new prescriptions.</Text>
             </View>
           ) : (
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -214,27 +239,31 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                     onPress={() =>
                       setExpandedPrescription((cur) => (cur === pres._id ? null : pres._id))
                     }
+                    activeOpacity={0.8}
                   >
                     <View style={styles.presHeaderLeft}>
                       <View style={styles.doctorAvatar}>
-                        <Ionicons name="person" size={20} color="#1E40AF" />
+                        <Ionicons name="person" size={18} color="#1E40AF" />
                       </View>
                       <View style={styles.doctorInfo}>
                         <Text style={styles.doctorName}>
-                          {(pres.doctorId as any)?.name ?? t("doctor")}
+                          Dr. {(pres.doctorId as any)?.name ?? "Healthcare Provider"}
                         </Text>
                         <Text style={styles.doctorSpecialization}>
-                          {(pres.doctorId as any)?.specialization ?? t("general_medicine")}
+                          {(pres.doctorId as any)?.specialization ?? "General Medicine"}
                         </Text>
-                        <Text style={styles.prescriptionDate}>
-                          {new Date(pres.createdAt || Date.now()).toLocaleDateString()}
-                        </Text>
+                        <View style={styles.prescriptionMeta}>
+                          <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
+                          <Text style={styles.prescriptionDate}>
+                            {formatDate(pres.createdAt)}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                     <View style={styles.expandButton}>
                       <Ionicons
                         name={expandedPrescription === pres._id ? "chevron-up" : "chevron-down"}
-                        size={20}
+                        size={18}
                         color="#6B7280"
                       />
                     </View>
@@ -243,7 +272,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                   {expandedPrescription === pres._id && (
                     <View style={styles.presBody}>
                       <View style={styles.medicinesHeader}>
-                        <Text style={styles.medicinesTitle}>{t("prescribed_medications")}</Text>
+                        <Text style={styles.medicinesTitle}>Prescribed Medications</Text>
                         <View style={styles.medicineCount}>
                           <Text style={styles.medicineCountText}>
                             {pres.medicines?.length || 0}
@@ -256,23 +285,46 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                           {pres.medicines.map((m, i) => (
                             <View key={i} style={styles.medicineCard}>
                               <View style={styles.medicineHeader}>
-                                <Text style={styles.medicineName}>
-                                  {m.name ?? t("unknown_medicine")}
-                                </Text>
+                                <View style={styles.medicineNameContainer}>
+                                  <Text style={styles.medicineName}>
+                                    {m.name ?? "Unnamed Medication"}
+                                  </Text>
+                                  <Text style={styles.medicineDosage}>
+                                    {m.dosage || "As prescribed"}
+                                  </Text>
+                                </View>
                                 <View style={styles.quantityBadge}>
-                                  <Text style={styles.quantityText}>{m.quantity ?? "-"}</Text>
+                                  <Text style={styles.quantityText}>{m.quantity ?? "N/A"}</Text>
                                 </View>
                               </View>
-                              <View style={styles.timingContainer}>
-                                <Ionicons name="time-outline" size={16} color="#6B7280" />
-                                <Text style={styles.timingText}>{formatWhen(m)}</Text>
+                              
+                              <View style={styles.medicineDetails}>
+                                <View style={styles.timingContainer}>
+                                  <Ionicons name={getTimeOfDayIcon(m)} size={14} color="#1E40AF" />
+                                  <Text style={styles.timingText}>{formatWhen(m)}</Text>
+                                </View>
+                                
+                                {m.duration && (
+                                  <View style={styles.durationContainer}>
+                                    <Ionicons name="hourglass-outline" size={14} color="#64748B" />
+                                    <Text style={styles.durationText}>{m.duration}</Text>
+                                  </View>
+                                )}
                               </View>
+
+                              {m.instructions && (
+                                <View style={styles.instructionsContainer}>
+                                  <Text style={styles.instructionsLabel}>Instructions:</Text>
+                                  <Text style={styles.instructionsText}>{m.instructions}</Text>
+                                </View>
+                              )}
                             </View>
                           ))}
                         </View>
                       ) : (
                         <View style={styles.noMedicines}>
-                          <Text style={styles.noMedicinesText}>{t("no_medicines_listed")}</Text>
+                          <Ionicons name="medical-outline" size={24} color="#9CA3AF" />
+                          <Text style={styles.noMedicinesText}>No medications listed in this prescription</Text>
                         </View>
                       )}
 
@@ -280,14 +332,19 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                         <TouchableOpacity
                           style={styles.downloadBtn}
                           onPress={() => generateAndDownloadPdf(pres)}
+                          activeOpacity={0.8}
                         >
-                          <Ionicons name="download-outline" size={20} color="white" />
-                          <Text style={styles.downloadBtnText}>{t("download_pdf")}</Text>
+                          <Ionicons name="download-outline" size={18} color="white" />
+                          <Text style={styles.downloadBtnText}>Download PDF</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.pharmacyBtn} onPress={goToPharmacyList}>
-                          <Ionicons name="location-outline" size={20} color="#1E40AF" />
-                          <Text style={styles.pharmacyBtnText}>{t("find_pharmacies")}</Text>
+                        <TouchableOpacity 
+                          style={styles.pharmacyBtn} 
+                          onPress={goToPharmacyList}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="storefront-outline" size={18} color="#1E40AF" />
+                          <Text style={styles.pharmacyBtnText}>Find Pharmacies</Text>
                         </TouchableOpacity>
                       </View>
 
@@ -306,7 +363,6 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     marginTop: 16,
@@ -314,19 +370,19 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#1E40AF",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    padding: 18,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     shadowColor: "#1E40AF",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 3,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   headerContent: {
     flexDirection: "row",
@@ -334,102 +390,102 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 12,
   },
   headerText: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
     color: "white",
     marginBottom: 2,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "500",
   },
   chevronContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },
   body: {
     backgroundColor: "white",
-    borderRadius: 16,
+    borderRadius: 14,
     marginTop: 8,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   loadingContainer: {
-    padding: 40,
+    padding: 32,
     alignItems: "center",
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
+    fontSize: 14,
     color: "#1E40AF",
     fontWeight: "500",
   },
   emptyState: {
-    padding: 40,
+    padding: 32,
     alignItems: "center",
   },
   emptyIcon: {
-    fontSize: 48,
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#1E40AF",
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#6B7280",
     textAlign: "center",
+    lineHeight: 20,
   },
   scrollView: {
-    maxHeight: 500,
+    maxHeight: 450,
   },
   presCard: {
     backgroundColor: "white",
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: "#F1F5F9",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   firstCard: {
-    marginTop: 16,
+    marginTop: 14,
   },
   presHeader: {
-    padding: 16,
+    padding: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -440,9 +496,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   doctorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: "#EFF6FF",
     justifyContent: "center",
     alignItems: "center",
@@ -452,67 +508,72 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   doctorName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: "#1E40AF",
     marginBottom: 2,
   },
   doctorSpecialization: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#6B7280",
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  prescriptionMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   prescriptionDate: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#9CA3AF",
     fontWeight: "500",
   },
   expandButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "#F9FAFB",
     justifyContent: "center",
     alignItems: "center",
   },
   presBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: "#F1F5F9",
   },
   medicinesHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-    marginTop: 16,
+    marginBottom: 12,
+    marginTop: 14,
   },
   medicinesTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: "#374151",
   },
   medicineCount: {
     backgroundColor: "#1E40AF",
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
+    paddingVertical: 3,
+    minWidth: 20,
     alignItems: "center",
   },
   medicineCountText: {
     color: "white",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   medicinesList: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   medicineCard: {
     backgroundColor: "#F8FAFC",
-    padding: 16,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 10,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: "#E2E8F0",
@@ -520,96 +581,142 @@ const styles = StyleSheet.create({
   medicineHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
+  medicineNameContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
   medicineName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: "#1F2937",
-    flex: 1,
+    marginBottom: 2,
+  },
+  medicineDosage: {
+    fontSize: 12,
+    color: "#64748B",
+    fontStyle: "italic",
   },
   quantityBadge: {
     backgroundColor: "#EFF6FF",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   quantityText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     color: "#1E40AF",
+  },
+  medicineDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
   timingContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
   },
   timingText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginLeft: 6,
+    fontSize: 13,
+    color: "#1E40AF",
+    fontWeight: "500",
+  },
+  durationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  durationText: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  instructionsContainer: {
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  instructionsLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 3,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  instructionsText: {
+    fontSize: 12,
+    color: "#4B5563",
+    lineHeight: 16,
   },
   noMedicines: {
     padding: 20,
     alignItems: "center",
+    gap: 8,
   },
   noMedicinesText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#6B7280",
     fontStyle: "italic",
+    textAlign: "center",
   },
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 14,
+    gap: 10,
   },
   downloadBtn: {
     flex: 1,
     flexDirection: "row",
     backgroundColor: "#1E40AF",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
     shadowColor: "#1E40AF",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   downloadBtnText: {
     color: "white",
     fontWeight: "600",
-    marginLeft: 8,
-    fontSize: 16,
+    fontSize: 14,
   },
   pharmacyBtn: {
     flex: 1,
     flexDirection: "row",
     backgroundColor: "white",
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: "#1E40AF",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
   },
   pharmacyBtnText: {
     color: "#1E40AF",
     fontWeight: "600",
-    marginLeft: 8,
-    fontSize: 16,
+    fontSize: 14,
   },
   searchPharmaContainer: {
-    marginTop: 16,
+    marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: 16,
+    borderTopColor: "#F1F5F9",
+    paddingTop: 14,
   },
 });

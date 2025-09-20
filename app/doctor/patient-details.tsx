@@ -178,7 +178,7 @@ export default PatientDetailsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#1E40AF",
   },
   header: {
     backgroundColor: "#1E40AF",

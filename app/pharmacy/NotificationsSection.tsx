@@ -1,4 +1,5 @@
 import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 import { Item, Notification } from "./types";
 
 interface Props {
@@ -40,7 +41,6 @@ export default function NotificationsSection({ notifications, items, getTimeAgo,
       elevation: 4,
     },
     emptyStateIcon: {
-      fontSize: 64,
       marginBottom: 24,
       opacity: 0.6,
     },
@@ -133,10 +133,18 @@ export default function NotificationsSection({ notifications, items, getTimeAgo,
       borderRadius: 8,
       alignSelf: 'flex-start',
     },
+    addressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    addressIcon: {
+      marginRight: 8,
+    },
     notificationAddress: {
       fontSize: 15,
       color: '#64748B',
-      marginBottom: 16,
+      flex: 1,
       lineHeight: 22,
       backgroundColor: '#F8FAFC',
       padding: 12,
@@ -220,7 +228,7 @@ export default function NotificationsSection({ notifications, items, getTimeAgo,
 
       {notifications.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateIcon}>🔔</Text>
+          <Ionicons name="notifications-outline" size={48} color="#9CA3AF" style={styles.emptyStateIcon} />
           <Text style={styles.emptyStateTitle}>No New Requests</Text>
           <Text style={styles.emptyStateText}>New order requests from patients will appear here</Text>
         </View>
@@ -247,7 +255,12 @@ export default function NotificationsSection({ notifications, items, getTimeAgo,
                   {item.pickup === "delivery" ? "🚚 Home Delivery" : "🏪 Self Pickup"}
                 </Text>
 
-                {item.address && <Text style={styles.notificationAddress}>📍 {item.address}</Text>}
+                {item.address && (
+                  <View style={styles.addressContainer}>
+                    <Ionicons name="location-outline" size={16} color="#6B7280" style={styles.addressIcon} />
+                    <Text style={styles.notificationAddress}>{item.address}</Text>
+                  </View>
+                )}
 
                 <Text style={styles.notificationItemsTitle}>Requested Items:</Text>
                 {item.items.map((orderItem, index) => {

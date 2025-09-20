@@ -19,7 +19,7 @@ export default function SearchPharma() {
   const [ordersMap, setOrdersMap] = useState<{ [key: string]: any }>({});
 
   const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api";
-  const patientId = "68ca84ec9d5dbf4593515b75";
+  const patientId = "68cc3790a38afb070f20912d";
   const prescriptionId = "68c84b6413c049c87529b85c";
 
   /** Extract pharmacyId string from any order shape */

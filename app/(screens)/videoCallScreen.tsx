@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, Platform, TouchableOpacity } from "react-native
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import React from "react";
 
 export default function VideoCallScreen() {
   const { videoLink } = useLocalSearchParams();
