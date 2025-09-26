@@ -17,7 +17,7 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useTranslation } from "../../../components/TranslateProvider";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://7300c4c894de.ngrok-free.app";
 
 type Medicine = {
   name?: string;

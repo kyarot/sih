@@ -18,7 +18,7 @@ type Item = {
 
 type SortOption = "name-asc" | "name-desc" | "stock-high" | "stock-low" | "price-asc" | "price-desc";
 
-const API_BASE = "http://localhost:5000/api/drugs";
+const API_BASE = "https://7300c4c894de.ngrok-free.app/api/drugs";
 
 export default function InventoryPage() {
   const router = useRouter();

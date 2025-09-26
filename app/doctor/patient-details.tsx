@@ -52,7 +52,7 @@ const PatientDetailsScreen: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/appointments/doctor/${storedDoctorId}`);
+      const res = await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/doctor/${storedDoctorId}`);
       const data: Appointment[] = await res.json();
 
       // Group appointments by patientId

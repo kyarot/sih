@@ -48,7 +48,7 @@ export default function DoctorProfile() {
   const fetchDoctor = async () => {
     if (!doctorId) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/doctors/${doctorId}`);
+      const res = await axios.get(`https://7300c4c894de.ngrok-free.app/api/doctors/${doctorId}`);
       setDoctor(res.data);
     } catch (err) {
       console.log(err);
@@ -59,7 +59,7 @@ export default function DoctorProfile() {
   const handleSave = async () => {
     if (!doctor || !doctorId) return;
     try {
-      const res = await axios.put(`http://localhost:5000/api/doctors/${doctorId}`, doctor);
+      const res = await axios.put(`https://7300c4c894de.ngrok-free.app/api/doctors/${doctorId}`, doctor);
       setDoctor(res.data);
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully");

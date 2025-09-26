@@ -60,7 +60,7 @@ const ActivityScreen: React.FC = () => {
     setDoctorId(storedDoctorId);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/appointments/doctor/${storedDoctorId}`);
+      const res = await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/doctor/${storedDoctorId}`);
       const data = await res.json();
       setAppointments(data || []);
     } catch (err) {
@@ -78,7 +78,7 @@ const ActivityScreen: React.FC = () => {
     if (!doctorId) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/appointments/doctor/${doctorId}`);
+      const res = await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/doctor/${doctorId}`);
       const data = await res.json();
       setAppointments(data || []);
     } catch (err) {
@@ -97,7 +97,7 @@ const ActivityScreen: React.FC = () => {
       }
 
       // For declined/later decisions
-      await fetch(`http://localhost:5000/api/appointments/${id}/decision`, {
+      await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/${id}/decision`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision, scheduledDateTime: null }),
@@ -340,7 +340,7 @@ const ActivityScreen: React.FC = () => {
                 date.getMinutes()
               );
               try {
-                await fetch(`http://localhost:5000/api/appointments/${pendingDecisionId}/decision`, {
+                await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/${pendingDecisionId}/decision`, {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ decision: "accepted", scheduledDateTime: finalDate }),

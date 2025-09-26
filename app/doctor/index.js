@@ -45,7 +45,7 @@ export default function DoctorLanding() {
         if (!doctorId) return;
 
         // Fetch all appointments for this doctor
-        const response = await axios.get(`http://localhost:5000/api/appointments/doctor/${doctorId}`);
+        const response = await axios.get(`https://7300c4c894de.ngrok-free.app/api/appointments/doctor/${doctorId}`);
         const appointments = response.data;
 
         // Initialize counts for each day: Sun -> Sat

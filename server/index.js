@@ -26,7 +26,8 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // MongoDB Connection
 mongoose
@@ -71,10 +72,10 @@ app.post("/diagnose", async (req, res) => {
 app.use("/api/video", videoRoutes);
 
 //pharmacy routes
-app.use("/api/drugs", drugRoutes);
+app.use("/api/drugs",drugRoutes);
 console.log("API Key:", process.env.GOOGLE_API_KEY);
 
 // Start server
-const PORT = process.env.PORT || 8082;
+const PORT = process.env.PORT || 8083;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 

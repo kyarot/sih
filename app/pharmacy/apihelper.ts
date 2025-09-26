@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/orders"; // change to your backend URL
+const API_URL = "https://7300c4c894de.ngrok-free.app/api/orders"; // change to your backend URL
 
 // Fetch pending orders
 export const fetchPendingOrders = async (pharmacyId: string) => {

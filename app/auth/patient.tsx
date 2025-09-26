@@ -72,7 +72,7 @@ export default function PatientAuth() {
     phone?: string;
   }) => {
     try {
-      await fetch("http://localhost:5000/api/patients/register-patient", {
+      await fetch("https://7300c4c894de.ngrok-free.app/api/patients/register-patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, code, accountId, email, phone }),
@@ -165,7 +165,7 @@ export default function PatientAuth() {
     try {
       // Verify with backend
       const res = await fetch(
-        `http://localhost:5000/api/patients/${patientCode}`
+        `https://7300c4c894de.ngrok-free.app/api/patients/${patientCode}`
       );
       const data = await res.json();
 

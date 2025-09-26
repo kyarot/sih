@@ -71,7 +71,7 @@ export default function PharmacyLocation() {
       };
       setLocation(coords);
 
-      const res = await fetch("http://localhost:5000/api/pharmacies/update-location", {
+      const res = await fetch("https://7300c4c894de.ngrok-free.app/api/pharmacies/update-location", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

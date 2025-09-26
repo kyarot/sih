@@ -86,7 +86,7 @@ const PrescriptionForm = ({
       });
 
       const response = await axios.post(
-        "http://localhost:5000/api/prescriptions",
+        "https://7300c4c894de.ngrok-free.app/api/prescriptions",
         {
           doctorId,
           patientId,
