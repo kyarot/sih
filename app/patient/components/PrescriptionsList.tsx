@@ -15,10 +15,9 @@ import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import SearchPharma from "./searchPharma";
-import { useTranslation } from "../../../components/TranslateProvider"; 
+import { useTranslation } from "../../../components/TranslateProvider";
 
-const API_BASE = "https://5aa83c1450d9.ngrok-free.app";
+const API_BASE = "http://localhost:5000";
 
 type Medicine = {
   name?: string;
@@ -40,17 +39,34 @@ type Prescription = {
   pdfUrl?: string;
 };
 
+type Pharmacy = {
+  _id: string;
+  name: string;
+  matchedMedicines: { name: string; requiredQty: number; availableQty: number }[];
+  missingMedicines: { name: string; requiredQty: number; availableQty: number }[];
+  hasAllMedicines: boolean;
+};
+
 export default function PrescriptionsList({ patientUid }: { patientUid?: string | null }) {
-  const { t } = useTranslation(); // ✅
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [expandedPrescription, setExpandedPrescription] = useState<string | null>(null);
+
+  // 🆕 Pharmacy results state
+  const [pharmacyResults, setPharmacyResults] = useState<{ [key: string]: Pharmacy[] }>({});
+  const [pharmacyLoading, setPharmacyLoading] = useState<{ [key: string]: boolean }>({});
+
   const router = useRouter();
 
+  // ✅ Fetch prescriptions for this patient
   useEffect(() => {
-    if (!patientUid) return;
-    fetchPrescriptions(patientUid);
+    if (patientUid && patientUid.trim().length === 24) {
+      fetchPrescriptions(patientUid);
+    } else if (patientUid) {
+      console.warn("⚠️ Invalid patientUid passed to PrescriptionsList:", patientUid);
+    }
   }, [patientUid]);
 
   async function fetchPrescriptions(uid: string) {
@@ -59,10 +75,27 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
       const res = await axios.get(`${API_BASE}/api/prescriptions/patient/${uid}`);
       setPrescriptions(res.data || []);
     } catch (err) {
-      console.error("fetchPrescriptions:", err);
+      console.error("❌ fetchPrescriptions error:", err);
       Alert.alert(t("error"), t("failed_load_prescriptions"));
     } finally {
       setLoading(false);
+    }
+  }
+
+  // 🆕 Fetch pharmacies for a prescription
+  async function fetchPharmaciesForPrescription(pres: Prescription) {
+    if (!patientUid || !pres._id) return;
+    try {
+      setPharmacyLoading((prev) => ({ ...prev, [pres._id]: true }));
+      const res = await axios.get(
+        `${API_BASE}/api/pharmacies/nearby/${patientUid}?prescriptionId=${pres._id}&fullMatch=false`
+      );
+      setPharmacyResults((prev) => ({ ...prev, [pres._id]: res.data.pharmacies || [] }));
+    } catch (err) {
+      console.error("❌ fetchPharmacies error:", err);
+      Alert.alert("Error", "Failed to fetch pharmacies");
+    } finally {
+      setPharmacyLoading((prev) => ({ ...prev, [pres._id]: false }));
     }
   }
 
@@ -109,7 +142,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
           (m, i) => `
           <tr>
             <td>${i + 1}</td>
-            <td>${m.name || "-"}</td>
+            <td>${m.name || t("unnamed_medication")}</td>
             <td>${m.quantity || "-"}</td>
             <td>
               ${m.morning ? t("morning") : ""}
@@ -134,7 +167,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
           </head>
           <body>
             <h1>${t("prescription")}</h1>
-            <p><b>${t("doctor_id")}:</b> ${pres.doctorId}</p>
+            <p><b>${t("doctor_id")}:</b> ${typeof pres.doctorId === "object" ? (pres.doctorId as any)?.name ?? pres.doctorId?._id : pres.doctorId}</p>
             <p><b>${t("patient_id")}:</b> ${pres.patientId}</p>
             <p><b>${t("date")}:</b> ${new Date(pres.createdAt ?? Date.now()).toLocaleString()}</p>
 
@@ -168,10 +201,6 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
     }
   }
 
-  function goToPharmacyList() {
-    // router.push("/patient/searchPharma")
-  }
-
   const getTimeOfDayIcon = (m: Medicine) => {
     if (m.morning && m.afternoon && m.night) return "sunny";
     if (m.morning && m.night) return "partly-sunny";
@@ -182,17 +211,68 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "Recent";
+    if (!dateString) return t("recent");
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+
+    if (diffDays === 1) return t("yesterday");
+    if (diffDays < 7) return `${diffDays} ${t("days_ago")}`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} ${t("weeks_ago")}`;
     return date.toLocaleDateString();
   };
+
+  // ✅ Inline pharmacy list renderer
+  function renderPharmacies(presId: string) {
+    const pharmacies = pharmacyResults[presId] || [];
+    const isLoading = pharmacyLoading[presId];
+
+    if (isLoading) {
+      return (
+        <View style={styles.loadingPharma}>
+          <ActivityIndicator size="small" color="#1E40AF" />
+          <Text style={styles.loadingText}>Finding pharmacies...</Text>
+        </View>
+      );
+    }
+
+    if (!pharmacies.length) {
+      return (
+        <View style={styles.emptyPharma}>
+          <Ionicons name="storefront-outline" size={20} color="#9CA3AF" />
+          <Text style={styles.emptyPharmaText}>No nearby pharmacies found with these medicines</Text>
+        </View>
+      );
+    }
+
+    return pharmacies.map((pharm) => (
+      <View key={pharm._id} style={styles.pharmaCard}>
+        <Text style={styles.pharmaName}>
+          <Ionicons name="storefront" size={14} color="#1E40AF" /> {pharm.name}
+        </Text>
+
+        {pharm.hasAllMedicines ? (
+          <Text style={styles.allMeds}>✅ All medicines available</Text>
+        ) : (
+          <Text style={styles.someMeds}>⚠️ Some medicines missing</Text>
+        )}
+
+        <View style={styles.medsList}>
+          {pharm.matchedMedicines.map((m, i) => (
+            <Text key={i} style={styles.matchedMed}>
+              ✅ {m.name} (Available: {m.availableQty})
+            </Text>
+          ))}
+          {pharm.missingMedicines.map((m, i) => (
+            <Text key={i} style={styles.missingMed}>
+              ❌ {m.name} (Needed: {m.requiredQty}, Found: {m.availableQty})
+            </Text>
+          ))}
+        </View>
+      </View>
+    ));
+  }
 
   return (
     <View style={styles.container}>
@@ -202,11 +282,13 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
             <Ionicons name="medical" size={20} color="white" />
           </View>
           <View style={styles.headerText}>
-            <Text style={styles.title}>Medical Prescriptions</Text>
+            <Text style={styles.title}>{t("medical_prescriptions")}</Text>
             <Text style={styles.subtitle}>
-              {prescriptions.length === 0 ? "No prescriptions available" :
-               prescriptions.length === 1 ? "1 active prescription" :
-               `${prescriptions.length} total prescriptions`}
+              {prescriptions.length === 0
+                ? t("no_prescriptions_available")
+                : prescriptions.length === 1
+                ? t("one_active_prescription")
+                : `${prescriptions.length} ${t("total_prescriptions")}`}
             </Text>
           </View>
         </View>
@@ -220,15 +302,15 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#1E40AF" />
-              <Text style={styles.loadingText}>Loading medical records...</Text>
+              <Text style={styles.loadingText}>{t("loading_medical_records")}</Text>
             </View>
           ) : prescriptions.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
                 <Ionicons name="document-text-outline" size={48} color="#94A3B8" />
               </View>
-              <Text style={styles.emptyTitle}>No Prescriptions Found</Text>
-              <Text style={styles.emptyText}>Your prescription history will appear here once doctors issue new prescriptions.</Text>
+              <Text style={styles.emptyTitle}>{t("no_prescriptions_found")}</Text>
+              <Text style={styles.emptyText}>{t("prescription_history_info")}</Text>
             </View>
           ) : (
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -247,16 +329,14 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                       </View>
                       <View style={styles.doctorInfo}>
                         <Text style={styles.doctorName}>
-                          Dr. {(pres.doctorId as any)?.name ?? "Healthcare Provider"}
+                          {t("dr_prefix")} {(pres.doctorId as any)?.name ?? t("healthcare_provider")}
                         </Text>
                         <Text style={styles.doctorSpecialization}>
-                          {(pres.doctorId as any)?.specialization ?? "General Medicine"}
+                          {(pres.doctorId as any)?.specialization ?? t("general_medicine")}
                         </Text>
                         <View style={styles.prescriptionMeta}>
                           <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
-                          <Text style={styles.prescriptionDate}>
-                            {formatDate(pres.createdAt)}
-                          </Text>
+                          <Text style={styles.prescriptionDate}>{formatDate(pres.createdAt)}</Text>
                         </View>
                       </View>
                     </View>
@@ -272,11 +352,9 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                   {expandedPrescription === pres._id && (
                     <View style={styles.presBody}>
                       <View style={styles.medicinesHeader}>
-                        <Text style={styles.medicinesTitle}>Prescribed Medications</Text>
+                        <Text style={styles.medicinesTitle}>{t("prescribed_medications")}</Text>
                         <View style={styles.medicineCount}>
-                          <Text style={styles.medicineCountText}>
-                            {pres.medicines?.length || 0}
-                          </Text>
+                          <Text style={styles.medicineCountText}>{pres.medicines?.length || 0}</Text>
                         </View>
                       </View>
 
@@ -286,24 +364,20 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                             <View key={i} style={styles.medicineCard}>
                               <View style={styles.medicineHeader}>
                                 <View style={styles.medicineNameContainer}>
-                                  <Text style={styles.medicineName}>
-                                    {m.name ?? "Unnamed Medication"}
-                                  </Text>
-                                  <Text style={styles.medicineDosage}>
-                                    {m.dosage || "As prescribed"}
-                                  </Text>
+                                  <Text style={styles.medicineName}>{m.name ?? t("unnamed_medication")}</Text>
+                                  <Text style={styles.medicineDosage}>{m.dosage || t("as_prescribed")}</Text>
                                 </View>
                                 <View style={styles.quantityBadge}>
-                                  <Text style={styles.quantityText}>{m.quantity ?? "N/A"}</Text>
+                                  <Text style={styles.quantityText}>{m.quantity ?? t("n_a")}</Text>
                                 </View>
                               </View>
-                              
+
                               <View style={styles.medicineDetails}>
                                 <View style={styles.timingContainer}>
                                   <Ionicons name={getTimeOfDayIcon(m)} size={14} color="#1E40AF" />
                                   <Text style={styles.timingText}>{formatWhen(m)}</Text>
                                 </View>
-                                
+
                                 {m.duration && (
                                   <View style={styles.durationContainer}>
                                     <Ionicons name="hourglass-outline" size={14} color="#64748B" />
@@ -314,7 +388,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
 
                               {m.instructions && (
                                 <View style={styles.instructionsContainer}>
-                                  <Text style={styles.instructionsLabel}>Instructions:</Text>
+                                  <Text style={styles.instructionsLabel}>{t("instructions")}:</Text>
                                   <Text style={styles.instructionsText}>{m.instructions}</Text>
                                 </View>
                               )}
@@ -324,7 +398,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                       ) : (
                         <View style={styles.noMedicines}>
                           <Ionicons name="medical-outline" size={24} color="#9CA3AF" />
-                          <Text style={styles.noMedicinesText}>No medications listed in this prescription</Text>
+                          <Text style={styles.noMedicinesText}>{t("no_medications_listed")}</Text>
                         </View>
                       )}
 
@@ -335,22 +409,21 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                           activeOpacity={0.8}
                         >
                           <Ionicons name="download-outline" size={18} color="white" />
-                          <Text style={styles.downloadBtnText}>Download PDF</Text>
+                          <Text style={styles.downloadBtnText}>{t("download_pdf")}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                          style={styles.pharmacyBtn} 
-                          onPress={goToPharmacyList}
+                        <TouchableOpacity
+                          style={styles.pharmacyBtn}
+                          onPress={() => fetchPharmaciesForPrescription(pres)}
                           activeOpacity={0.8}
                         >
                           <Ionicons name="storefront-outline" size={18} color="#1E40AF" />
-                          <Text style={styles.pharmacyBtnText}>Find Pharmacies</Text>
+                          <Text style={styles.pharmacyBtnText}>{t("find_pharmacies")}</Text>
                         </TouchableOpacity>
                       </View>
 
-                      <View style={styles.searchPharmaContainer}>
-                        <SearchPharma />
-                      </View>
+                      {/* 🆕 Inline pharmacy results */}
+                      {renderPharmacies(pres._id)}
                     </View>
                   )}
                 </View>
@@ -364,359 +437,142 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
+  container: { flex: 1 },
   header: {
-    backgroundColor: "#1E40AF",
-    borderRadius: 14,
-    padding: 18,
     flexDirection: "row",
     justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: "#1E40AF",
     alignItems: "center",
-    shadowColor: "#1E40AF",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
+  headerContent: { flexDirection: "row", alignItems: "center" },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#2563EB",
     alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
-  headerText: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "white",
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "500",
-  },
-  chevronContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  body: {
-    backgroundColor: "white",
-    borderRadius: 14,
-    marginTop: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  loadingContainer: {
-    padding: 32,
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#1E40AF",
-    fontWeight: "500",
-  },
-  emptyState: {
-    padding: 32,
-    alignItems: "center",
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1E40AF",
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  scrollView: {
-    maxHeight: 450,
-  },
+  headerText: { flex: 1 },
+  title: { color: "white", fontSize: 16, fontWeight: "600" },
+  subtitle: { color: "#E5E7EB", fontSize: 12 },
+  chevronContainer: {},
+  body: { padding: 12 },
+  loadingContainer: { alignItems: "center", marginVertical: 20 },
+  loadingText: { marginTop: 8, color: "#6B7280" },
+  emptyState: { alignItems: "center", marginVertical: 20 },
+  emptyIcon: { marginBottom: 10 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: "#374151" },
+  emptyText: { color: "#6B7280", textAlign: "center", paddingHorizontal: 20 },
+  scrollView: { marginTop: 10 },
   presCard: {
     backgroundColor: "white",
-    marginHorizontal: 14,
-    marginBottom: 12,
     borderRadius: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: "#E5E7EB",
   },
-  firstCard: {
-    marginTop: 14,
-  },
+  firstCard: { marginTop: 10 },
   presHeader: {
-    padding: 14,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
   },
-  presHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
+  presHeaderLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
   doctorAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#EFF6FF",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E0E7FF",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+    marginRight: 10,
   },
-  doctorInfo: {
-    flex: 1,
-  },
-  doctorName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1E40AF",
-    marginBottom: 2,
-  },
-  doctorSpecialization: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
-  prescriptionMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  prescriptionDate: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    fontWeight: "500",
-  },
-  expandButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#F9FAFB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  presBody: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-  },
-  medicinesHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-    marginTop: 14,
-  },
-  medicinesTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#374151",
-  },
+  doctorInfo: { flex: 1 },
+  doctorName: { fontWeight: "600", color: "#1E293B" },
+  doctorSpecialization: { color: "#6B7280", fontSize: 12 },
+  prescriptionMeta: { flexDirection: "row", alignItems: "center", marginTop: 2 },
+  prescriptionDate: { fontSize: 12, color: "#9CA3AF", marginLeft: 4 },
+  expandButton: { justifyContent: "center", alignItems: "center", paddingLeft: 8 },
+  presBody: { padding: 12 },
+  medicinesHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  medicinesTitle: { fontWeight: "600", color: "#1E293B" },
   medicineCount: {
-    backgroundColor: "#1E40AF",
-    borderRadius: 10,
+    backgroundColor: "#E0E7FF",
+    borderRadius: 12,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    minWidth: 20,
-    alignItems: "center",
+    paddingVertical: 2,
   },
-  medicineCountText: {
-    color: "white",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  medicinesList: {
-    marginBottom: 16,
-  },
+  medicineCountText: { color: "#1E40AF", fontSize: 12, fontWeight: "600" },
+  medicinesList: { marginTop: 10 },
   medicineCard: {
-    backgroundColor: "#F8FAFC",
-    padding: 14,
-    borderRadius: 10,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    padding: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E5E7EB",
   },
-  medicineHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  medicineNameContainer: {
-    flex: 1,
-    marginRight: 8,
-  },
-  medicineName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 2,
-  },
-  medicineDosage: {
-    fontSize: 12,
-    color: "#64748B",
-    fontStyle: "italic",
-  },
+  medicineHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  medicineNameContainer: { flex: 1 },
+  medicineName: { fontWeight: "600", color: "#1E293B" },
+  medicineDosage: { color: "#6B7280", fontSize: 12 },
   quantityBadge: {
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: "#E0E7FF",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  quantityText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#1E40AF",
-  },
-  medicineDetails: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  timingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  timingText: {
-    fontSize: 13,
-    color: "#1E40AF",
-    fontWeight: "500",
-  },
-  durationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  durationText: {
-    fontSize: 12,
-    color: "#64748B",
-  },
-  instructionsContainer: {
-    marginTop: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-  },
-  instructionsLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 3,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  instructionsText: {
-    fontSize: 12,
-    color: "#4B5563",
-    lineHeight: 16,
-  },
-  noMedicines: {
-    padding: 20,
-    alignItems: "center",
-    gap: 8,
-  },
-  noMedicinesText: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontStyle: "italic",
-    textAlign: "center",
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 14,
-    gap: 10,
-  },
+  quantityText: { color: "#1E40AF", fontSize: 12, fontWeight: "600" },
+  medicineDetails: { flexDirection: "row", marginTop: 6, alignItems: "center" },
+  timingContainer: { flexDirection: "row", alignItems: "center", marginRight: 12 },
+  timingText: { marginLeft: 4, fontSize: 12, color: "#374151" },
+  durationContainer: { flexDirection: "row", alignItems: "center" },
+  durationText: { marginLeft: 4, fontSize: 12, color: "#6B7280" },
+  instructionsContainer: { marginTop: 6 },
+  instructionsLabel: { fontSize: 12, fontWeight: "600", color: "#374151" },
+  instructionsText: { fontSize: 12, color: "#374151" },
+  noMedicines: { alignItems: "center", marginTop: 10 },
+  noMedicinesText: { color: "#6B7280", fontSize: 12 },
+  actions: { flexDirection: "row", marginTop: 12, justifyContent: "space-between" },
   downloadBtn: {
-    flex: 1,
     flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#1E40AF",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    shadowColor: "#1E40AF",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
-  downloadBtnText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 14,
-  },
+  downloadBtnText: { marginLeft: 6, color: "white", fontWeight: "600" },
   pharmacyBtn: {
-    flex: 1,
     flexDirection: "row",
-    backgroundColor: "white",
-    borderWidth: 1.5,
-    borderColor: "#1E40AF",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#1E40AF",
   },
-  pharmacyBtnText: {
-    color: "#1E40AF",
-    fontWeight: "600",
-    fontSize: 14,
+  pharmacyBtnText: { marginLeft: 6, color: "#1E40AF", fontWeight: "600" },
+  loadingPharma: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  emptyPharma: { marginTop: 10, alignItems: "center" },
+  emptyPharmaText: { color: "#6B7280", fontSize: 12 },
+  pharmaCard: {
+    marginTop: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
   },
-  searchPharmaContainer: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    paddingTop: 14,
-  },
+  pharmaName: { fontWeight: "600", color: "#1E293B" },
+  allMeds: { color: "#059669", fontSize: 12, marginTop: 4 },
+  someMeds: { color: "#EA580C", fontSize: 12, marginTop: 4 },
+  medsList: { marginTop: 6 },
+  matchedMed: { fontSize: 12, color: "#059669" },
+  missingMed: { fontSize: 12, color: "#DC2626" },
 });

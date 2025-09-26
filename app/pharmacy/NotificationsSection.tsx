@@ -1,6 +1,7 @@
 import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { Item, Notification } from "./types";
+import React from "react";
 
 interface Props {
   notifications: Notification[];

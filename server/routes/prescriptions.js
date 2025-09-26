@@ -6,10 +6,12 @@ import fs from "fs";
 import path from "path";
 import cloudinary from "../config/cloudinaryConfig.js";
 import mongoose from "mongoose";
+import multer from "multer";
 
-const router = express.Router();
+const prescriptionRoutes = express.Router();
+const upload = multer({ dest: "tmp/" });
 
-// helper to wait for PDF write finish
+// helper: wait until PDF written
 function writePdfToFile(doc, outputPath) {
   return new Promise((resolve, reject) => {
     const stream = fs.createWriteStream(outputPath);
@@ -20,27 +22,30 @@ function writePdfToFile(doc, outputPath) {
   });
 }
 
-// POST /api/prescriptions
-router.post("/", async (req, res) => {
+/**
+ * POST /api/prescriptions
+ * Create prescription from medicines array → PDF → Cloudinary → DB
+ */
+prescriptionRoutes.post("/", async (req, res) => {
   try {
     const { doctorId, patientId, medicines } = req.body;
 
-    if (!doctorId || !patientId || !Array.isArray(medicines) || medicines.length === 0)
+    if (!doctorId || !patientId || !Array.isArray(medicines) || medicines.length === 0) {
       return res.status(400).json({ message: "doctorId, patientId and medicines required" });
-
-    // Validate ObjectId
-    if (!mongoose.isValidObjectId(doctorId) || !mongoose.isValidObjectId(patientId)) {
-      return res.status(400).json({ message: "doctorId and patientId must be valid MongoDB ObjectId (24 hex chars)" });
     }
 
-    // make temp folder
+    if (!mongoose.isValidObjectId(doctorId) || !mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ message: "doctorId and patientId must be valid ObjectId" });
+    }
+
+    // temp folder
     const tmpDir = path.join(process.cwd(), "tmp");
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
 
     const fileName = `prescription_${Date.now()}.pdf`;
     const filePath = path.join(tmpDir, fileName);
 
-    // Generate PDF with pdfkit
+    // generate PDF
     const doc = new PDFDocument({ margin: 40 });
     doc.fontSize(18).text("Prescription", { align: "center" });
     doc.moveDown();
@@ -62,22 +67,19 @@ router.post("/", async (req, res) => {
       doc.moveDown();
     });
 
-    // Wait for PDF file to be written
     await writePdfToFile(doc, filePath);
 
-    // Upload to Cloudinary
+    // upload PDF
     const cloudRes = await cloudinary.uploader.upload(filePath, {
       resource_type: "raw",
       folder: "prescriptions",
-      format:"pdf",
+      format: "pdf",
       use_filename: true,
       unique_filename: false,
     });
 
-    // remove temp file
     fs.unlinkSync(filePath);
 
-    // Save to DB
     const newPrescription = await Prescription.create({
       doctorId,
       patientId,
@@ -91,18 +93,59 @@ router.post("/", async (req, res) => {
       pdfUrl: cloudRes.secure_url,
     });
   } catch (err) {
-    console.error("prescription route error:", err);
+    console.error("POST /api/prescriptions error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
+});
 
-  
+/**
+ * POST /api/prescriptions/upload-file
+ * Upload existing PDF file directly
+ */
+prescriptionRoutes.post("/upload-file", upload.single("pdf"), async (req, res) => {
+  try {
+    const { doctorId, patientId } = req.body;
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    if (!doctorId || !patientId) return res.status(400).json({ message: "doctorId & patientId required" });
+    if (!mongoose.isValidObjectId(doctorId) || !mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ message: "doctorId and patientId must be valid ObjectId" });
+    }
+
+    const filePath = req.file.path;
+
+    const cloudRes = await cloudinary.uploader.upload(filePath, {
+      resource_type: "auto",
+      folder: "prescriptions",
+      use_filename: true,
+      unique_filename: false,
+    });
+
+    fs.unlinkSync(filePath);
+
+    const newPrescription = await Prescription.create({
+      doctorId,
+      patientId,
+      medicines: [], // no structured medicines here
+      pdfUrl: cloudRes.secure_url,
+    });
+
+    res.status(201).json({
+      message: "Prescription uploaded",
+      prescription: newPrescription,
+      pdfUrl: cloudRes.secure_url,
+    });
+  } catch (err) {
+    console.error("POST /api/prescriptions/upload-file error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /**
  * GET /api/prescriptions/patient/:patientId
- * Returns all prescriptions for a patient (most recent first). Populates doctor name & specialization.
+ * Fetch all prescriptions for a patient
  */
-router.get("/patient/:patientId", async (req, res) => {
+prescriptionRoutes.get("/patient/:patientId", async (req, res) => {
   try {
     const { patientId } = req.params;
     if (!mongoose.isValidObjectId(patientId))
@@ -122,9 +165,9 @@ router.get("/patient/:patientId", async (req, res) => {
 
 /**
  * GET /api/prescriptions/:id/pdf
- * Redirects to cloudinary pdf URL (so clients can hit a stable server endpoint).
+ * Redirect to cloudinary pdf URL
  */
-router.get("/:id/pdf", async (req, res) => {
+prescriptionRoutes.get("/:id/pdf", async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id))
@@ -136,7 +179,7 @@ router.get("/:id/pdf", async (req, res) => {
     if (pres.pdfUrl) {
       return res.redirect(pres.pdfUrl);
     } else {
-      return res.status(404).json({ message: "PDF not found for this prescription" });
+      return res.status(404).json({ message: "PDF not found" });
     }
   } catch (err) {
     console.error("GET /api/prescriptions/:id/pdf error:", err);
@@ -144,4 +187,4 @@ router.get("/:id/pdf", async (req, res) => {
   }
 });
 
-export default router;
+export default prescriptionRoutes;

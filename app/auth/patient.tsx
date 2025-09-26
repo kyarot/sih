@@ -72,7 +72,7 @@ export default function PatientAuth() {
     phone?: string;
   }) => {
     try {
-      await fetch("https://5aa83c1450d9.ngrok-free.app/api/patients/register-patient", {
+      await fetch("http://localhost:5000/api/patients/register-patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, code, accountId, email, phone }),
@@ -165,7 +165,7 @@ export default function PatientAuth() {
     try {
       // Verify with backend
       const res = await fetch(
-        `https://5aa83c1450d9.ngrok-free.app/api/patients/${patientCode}`
+        `http://localhost:5000/api/patients/${patientCode}`
       );
       const data = await res.json();
 
@@ -179,11 +179,12 @@ export default function PatientAuth() {
       await AsyncStorage.setItem("currentPatient", JSON.stringify(patient));
       await AsyncStorage.setItem("PatientUid", patient.uid);
       await AsyncStorage.setItem("patientId", patient._id);
+      await AsyncStorage.setItem("patientAcc", patient.accountId);
 
       // Navigate using UID (PAT-XXXX), not _id
       router.push({
         pathname: "/patient/home/[id]",
-        params: { id: patient.uid }, // ✅ use uid (PAT-XXXX)
+        params: { id: patient._id }, // ✅ use uid (PAT-XXXX)
       });
     } catch (err: any) {
       Alert.alert("Login Error", err.message);

@@ -44,7 +44,7 @@ export default function PharmacyPage() {
       const idToken = await cred.user.getIdToken();
 
       // Save to backend
-      const res = await fetch("https://5aa83c1450d9.ngrok-free.app/api/pharmacies/register-pharmacy", {
+      const res = await fetch("http://localhost:5000/api/pharmacies/register-pharmacy", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -99,7 +99,7 @@ export default function PharmacyPage() {
 
       // Fetch pharmacy by UID
       const uid = cred.user.uid;
-      const res = await fetch(`https://5aa83c1450d9.ngrok-free.app/api/pharmacies/owner/${uid}`, {
+      const res = await fetch(`http://localhost:5000/api/pharmacies/owner/${uid}`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
 

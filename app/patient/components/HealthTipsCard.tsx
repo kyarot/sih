@@ -9,33 +9,33 @@ export default function HealthTipsCard() {
   const healthTips = [
     {
       icon: "water" as keyof typeof Ionicons.glyphMap,
-      text: "Stay hydrated with 8-10 glasses of water daily",
-      category: "Hydration"
+      text: t("hydration_text"),
+      category: t("hydration")
     },
     {
       icon: "fitness" as keyof typeof Ionicons.glyphMap,
-      text: "Maintain 30 minutes of physical activity daily",
-      category: "Exercise"
+      text: t("exercise_text"),
+      category: t("exercise")
     },
     {
-      icon: "nutrition" as keyof typeof Ionicons.glyphMap,
-      text: "Include 5 servings of fruits and vegetables",
-      category: "Nutrition"
+      icon: "nutrition" as keyof typeof Ionicons.glyphMap, // 👈 change this to a valid Ionicon if missing
+      text: t("nutrition_text"),
+      category: t("nutrition")
     },
     {
       icon: "moon" as keyof typeof Ionicons.glyphMap,
-      text: "Ensure 7-9 hours of quality sleep nightly",
-      category: "Rest"
+      text: t("rest_text"),
+      category: t("rest")
     },
     {
       icon: "heart" as keyof typeof Ionicons.glyphMap,
-      text: "Practice stress management and mindfulness",
-      category: "Mental Health"
+      text: t("mental_health_text"),
+      category: t("mental_health")
     },
     {
       icon: "medical" as keyof typeof Ionicons.glyphMap,
-      text: "Schedule regular health check-ups",
-      category: "Prevention"
+      text: t("prevention_text"),
+      category: t("prevention")
     }
   ];
 
@@ -46,8 +46,8 @@ export default function HealthTipsCard() {
           <Ionicons name="bulb" size={18} color="#FFFFFF" />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.cardTitle}>Daily Wellness Tips</Text>
-          <Text style={styles.cardSubtitle}>Evidence-based health guidance</Text>
+          <Text style={styles.cardTitle}>{t("wellness_tips")}</Text>
+          <Text style={styles.cardSubtitle}>{t("guidance")}</Text>
         </View>
       </View>
 
@@ -71,9 +71,7 @@ export default function HealthTipsCard() {
 
       <View style={styles.footerContainer}>
         <View style={styles.footerDivider} />
-        <Text style={styles.footerText}>
-          Consult healthcare professionals for personalized advice
-        </Text>
+        <Text style={styles.footerText}>{t("consult")}</Text>
       </View>
     </View>
   );
@@ -92,14 +90,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
-  
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     padding: 20,
     paddingBottom: 16,
   },
-  
   iconContainer: {
     width: 36,
     height: 36,
@@ -109,11 +105,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 12,
   },
-  
   headerText: {
     flex: 1,
   },
-  
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -121,19 +115,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     marginBottom: 2,
   },
-  
   cardSubtitle: {
     fontSize: 12,
     fontWeight: "500",
     color: "#64748B",
     letterSpacing: 0.1,
   },
-  
   tipsContainer: {
     paddingHorizontal: 20,
     gap: 12,
   },
-  
   tipItem: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -143,7 +134,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  
   tipIconContainer: {
     width: 32,
     height: 32,
@@ -156,11 +146,9 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     marginTop: 2,
   },
-  
   tipContent: {
     flex: 1,
   },
-  
   tipCategory: {
     fontSize: 11,
     fontWeight: "600",
@@ -169,7 +157,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 4,
   },
-  
   tipText: {
     fontSize: 14,
     color: "#374151",
@@ -177,19 +164,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: 0.1,
   },
-  
   footerContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
     paddingTop: 16,
   },
-  
   footerDivider: {
     height: 1,
     backgroundColor: "#E2E8F0",
     marginBottom: 12,
   },
-  
   footerText: {
     fontSize: 11,
     fontWeight: "500",

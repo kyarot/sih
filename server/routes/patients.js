@@ -53,7 +53,7 @@ router.post("/register-patient", async (req, res) => {
   }
 });
 
-
+// ---------------- Update Patient Location ----------------
 router.post("/update-location", async (req, res) => {
   try {
     const { uid, coordinates } = req.body; // [lng, lat]
@@ -75,9 +75,11 @@ router.post("/update-location", async (req, res) => {
     res.json({ success: true, patient });
   } catch (err) {
     console.error("updatePatientLocation error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+    res.status(500).json({ success: false, error: err.message});
+}
 });
+
+
 
 // @route   GET /api/patients/family/:accountId
 // @desc    Get all family profiles linked to an account

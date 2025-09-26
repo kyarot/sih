@@ -1,4 +1,3 @@
-// app/pharmacy/PharmacyLocation.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,12 +6,15 @@ import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View, ActivityIn
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
+import { useTranslation } from "../../components/TranslateProvider"; // adjust path if needed
 
 const { width } = Dimensions.get('window');
 
 export default function PharmacyLocation() {
   const router = useRouter();
   const params = useLocalSearchParams<{ pharmacyId?: string }>();
+  const { t } = useTranslation(); // <-- Translation hook
+
   const [location, setLocation] = useState<{ latitude: number | null; longitude: number | null }>({
     latitude: null,
     longitude: null,
@@ -32,7 +34,7 @@ export default function PharmacyLocation() {
         }
 
         if (!id) {
-          Alert.alert("Missing pharmacy", "No pharmacy selected. Please login again.");
+          Alert.alert(t("missingPharmacy"), t("noPharmacySelected"));
           router.replace("/");
           return;
         }
@@ -48,7 +50,7 @@ export default function PharmacyLocation() {
 
   const getAndSaveLocation = async () => {
     if (!pharmacyId) {
-      Alert.alert("Error", "No pharmacy selected. Please login again.");
+      Alert.alert(t("error"), t("noPharmacySelected"));
       return;
     }
 
@@ -57,7 +59,7 @@ export default function PharmacyLocation() {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission denied", "Location access is required");
+        Alert.alert(t("permissionDenied"), t("locationRequired"));
         setIsLoading(false);
         return;
       }
@@ -69,73 +71,50 @@ export default function PharmacyLocation() {
       };
       setLocation(coords);
 
-      // Send to backend
-      const res = await fetch("https://5aa83c1450d9.ngrok-free.app/api/pharmacies/update-location", {
+      const res = await fetch("http://localhost:5000/api/pharmacies/update-location", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pharmacyId: pharmacyId,
-          coordinates: [coords.longitude, coords.latitude], // [lng, lat]
+          pharmacyId,
+          coordinates: [coords.longitude, coords.latitude],
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update");
+      if (!res.ok) throw new Error(data.message || t("failedUpdate"));
       setLocationSaved(true);
-      Alert.alert("Success", "Location saved successfully");
+      Alert.alert(t("success"), t("locationSaved"));
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      Alert.alert(t("error"), err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  const handleSaveLocation = (e: any) => {
-    e.stopPropagation();
-    getAndSaveLocation();
-  };
+  const toggleExpanded = () => setIsExpanded(!isExpanded);
+  const handleSaveLocation = (e: any) => { e.stopPropagation(); getAndSaveLocation(); };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <View style={styles.contentContainer}>
         <TouchableOpacity
-          style={[
-            styles.card,
-            isExpanded && styles.cardExpanded
-          ]}
+          style={[styles.card, isExpanded && styles.cardExpanded]}
           onPress={toggleExpanded}
           activeOpacity={0.8}
         >
           {/* Compact View */}
           <View style={styles.compactView}>
-            <View style={[
-              styles.iconContainer,
-              locationSaved && styles.iconContainerSaved
-            ]}>
-              <Ionicons 
-                name={locationSaved ? "checkmark-circle" : "storefront"} 
-                size={22} 
-                color="white" 
-              />
+            <View style={[styles.iconContainer, locationSaved && styles.iconContainerSaved]}>
+              <Ionicons name={locationSaved ? "checkmark-circle" : "storefront"} size={22} color="white" />
             </View>
-            
             <View style={styles.compactText}>
-              <Text style={styles.title}>Pharmacy Location</Text>
+              <Text style={styles.title}>{t("pharmacyLocation")}</Text>
               <Text style={styles.subtitle}>
-                {locationSaved ? "Location active" : "Setup location services"}
+                {locationSaved ? t("locationActive") : t("setupLocationServices")}
               </Text>
             </View>
-
             <View style={styles.expandIcon}>
-              <Ionicons 
-                name={isExpanded ? "chevron-up" : "chevron-down"} 
-                size={16} 
-                color="#64748B" 
-              />
+              <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
             </View>
           </View>
 
@@ -145,7 +124,7 @@ export default function PharmacyLocation() {
               <View style={styles.divider} />
               
               <Text style={styles.description}>
-                Enable location services to help patients find your pharmacy easily and provide accurate delivery options.
+                {t("enableLocationServicesDescription")}
               </Text>
 
               {/* Benefits Section */}
@@ -155,8 +134,8 @@ export default function PharmacyLocation() {
                     <Ionicons name="people-outline" size={18} color="#1E40AF" />
                   </View>
                   <View style={styles.benefitText}>
-                    <Text style={styles.benefitTitle}>Patient Discovery</Text>
-                    <Text style={styles.benefitDesc}>Help patients locate your pharmacy</Text>
+                    <Text style={styles.benefitTitle}>{t("patientDiscovery")}</Text>
+                    <Text style={styles.benefitDesc}>{t("helpPatientsLocate")}</Text>
                   </View>
                 </View>
 
@@ -165,8 +144,8 @@ export default function PharmacyLocation() {
                     <Ionicons name="car-outline" size={18} color="#10B981" />
                   </View>
                   <View style={styles.benefitText}>
-                    <Text style={styles.benefitTitle}>Delivery Services</Text>
-                    <Text style={styles.benefitDesc}>Enable precise delivery options</Text>
+                    <Text style={styles.benefitTitle}>{t("deliveryServices")}</Text>
+                    <Text style={styles.benefitDesc}>{t("enableDeliveryOptions")}</Text>
                   </View>
                 </View>
 
@@ -175,8 +154,8 @@ export default function PharmacyLocation() {
                     <Ionicons name="shield-checkmark-outline" size={18} color="#7C3AED" />
                   </View>
                   <View style={styles.benefitText}>
-                    <Text style={styles.benefitTitle}>Secure & Private</Text>
-                    <Text style={styles.benefitDesc}>Your data is encrypted and protected</Text>
+                    <Text style={styles.benefitTitle}>{t("securePrivate")}</Text>
+                    <Text style={styles.benefitDesc}>{t("dataEncrypted")}</Text>
                   </View>
                 </View>
               </View>
@@ -186,13 +165,13 @@ export default function PharmacyLocation() {
                 <View style={styles.locationInfo}>
                   <View style={styles.locationHeader}>
                     <Ionicons name="pin" size={16} color="#1E40AF" />
-                    <Text style={styles.locationTitle}>Current Pharmacy Location</Text>
+                    <Text style={styles.locationTitle}>{t("currentPharmacyLocation")}</Text>
                   </View>
                   <Text style={styles.coordinates}>
                     {`${location.latitude.toFixed(6)}°, ${location.longitude.toFixed(6)}°`}
                   </Text>
                   <Text style={styles.timestamp}>
-                    Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {t("lastUpdated")}: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </View>
               )}
@@ -210,19 +189,14 @@ export default function PharmacyLocation() {
                 {isLoading ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Ionicons 
-                    name={locationSaved ? "refresh" : "location"} 
-                    size={18} 
-                    color="white" 
-                  />
+                  <Ionicons name={locationSaved ? "refresh" : "location"} size={18} color="white" />
                 )}
                 <Text style={styles.actionButtonText}>
                   {isLoading 
-                    ? "Acquiring Location..." 
+                    ? t("acquiringLocation") 
                     : locationSaved 
-                      ? "Update Pharmacy Location" 
-                      : "Save Pharmacy Location"
-                  }
+                      ? t("updatePharmacyLocation") 
+                      : t("savePharmacyLocation")}
                 </Text>
               </TouchableOpacity>
 
@@ -233,7 +207,7 @@ export default function PharmacyLocation() {
                     <Ionicons name="checkmark-circle" size={18} color="#10B981" />
                   </View>
                   <Text style={styles.successText}>
-                    Pharmacy location saved successfully! Patients can now find you easily.
+                    {t("pharmacyLocationSaved")}
                   </Text>
                 </View>
               )}
@@ -242,7 +216,7 @@ export default function PharmacyLocation() {
               <View style={styles.statusInfo}>
                 <Ionicons name="information-circle-outline" size={14} color="#64748B" />
                 <Text style={styles.statusText}>
-                  Location services help patients discover your pharmacy and enable delivery options
+                  {t("locationServicesHelp")}
                 </Text>
               </View>
             </View>
@@ -252,6 +226,7 @@ export default function PharmacyLocation() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   screen: {

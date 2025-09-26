@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import en from "../locales/en.json";
 import hi from "../locales/hi.json";
 import pa from "../locales/pa.json";
@@ -21,20 +23,40 @@ export const useTranslation = () => {
   return ctx;
 };
 
-const translations: Record<LanguageCode, any> = { en, hi, pa };
+const translations: Record<LanguageCode, Record<string, string>> = { en, hi, pa };
 const API_BASE = "http://localhost:5000";
 
 export const TranslateProvider = ({ children }: { children: React.ReactNode }) => {
-  const [lang, setLang] = useState<LanguageCode>("en");
+  const [lang, setLangState] = useState<LanguageCode>("en");
 
+  // Load saved language on startup
+  useEffect(() => {
+    const loadLang = async () => {
+      const savedLang = await AsyncStorage.getItem("appLanguage");
+      if (savedLang && ["en", "hi", "pa"].includes(savedLang)) {
+        setLangState(savedLang as LanguageCode);
+      }
+    };
+    loadLang();
+  }, []);
+
+  // Save new language to AsyncStorage
+  const setLang = async (newLang: LanguageCode) => {
+    setLangState(newLang);
+    await AsyncStorage.setItem("appLanguage", newLang);
+  };
+
+  // Translation function (sync)
   const t = (key: string) => translations[lang][key] || key;
 
+  // Dynamic translation via backend API (async)
   const translateDynamic = async (text: string) => {
     if (!text) return "";
     try {
       const res = await axios.post(`${API_BASE}/api/translate`, { text, target: lang });
-      return res.data.translated || text;
-    } catch {
+      return res.data.translatedText || text;
+    } catch (err) {
+      console.error("translateDynamic error:", err);
       return text;
     }
   };

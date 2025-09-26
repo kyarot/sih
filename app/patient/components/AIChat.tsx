@@ -1,4 +1,6 @@
 import React, { useState, useRef } from "react";
+import * as Speech from "expo-speech";
+
 import {
   View,
   Text,
@@ -15,7 +17,7 @@ import {
   Modal,
 } from "react-native";
 import { Audio } from "expo-av";
-import * as Speech from "expo-speech";
+import axios from "axios";
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from "../../../components/TranslateProvider"; 
 
@@ -35,11 +37,12 @@ export default function AIChat() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [speakerEnabled, setSpeakerEnabled] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Floating button animations
+  // Floating button pulse animation
   React.useEffect(() => {
     const pulseAnimation = Animated.loop(
       Animated.sequence([
@@ -55,14 +58,13 @@ export default function AIChat() {
         }),
       ])
     );
-    
-    if (!isExpanded) {
-      pulseAnimation.start();
-    } else {
+
+    if (!isExpanded) pulseAnimation.start();
+    else {
       pulseAnimation.stop();
       pulseAnim.setValue(1);
     }
-    
+
     return () => pulseAnimation.stop();
   }, [isExpanded]);
 
@@ -79,97 +81,67 @@ export default function AIChat() {
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     setIsExpanded(true);
   };
 
-  // 🎙️ Start Recording
+  // 🎙️ Start recording
   const startRecording = async () => {
     try {
-      console.log("Requesting permissions..");
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
 
-      console.log("Starting recording..");
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
+      recordingRef.current = recording;
       setRecording(recording);
-      console.log("Recording started");
     } catch (err) {
       console.error("Failed to start recording", err);
     }
   };
 
-  // 🛑 Stop Recording + Send to Whisper
+  // 🛑 Stop recording + send to backend for transcription
   const stopRecording = async () => {
-    console.log("Stopping recording..");
-    if (!recording) return;
-    await recording.stopAndUnloadAsync();
-    const uri = recording.getURI();
-    console.log("Recording stopped and stored at", uri);
-    setRecording(null);
-
-    if (uri) {
-      await sendAudioToWhisper(uri);
-    }
-  };
-
-  // ⬆️ Upload audio to Whisper API
-  const sendAudioToWhisper = async (uri: string) => {
     try {
-      setLoading(true);
+      if (!recordingRef.current) return;
 
-      const formData = new FormData();
-      formData.append("file", {
-        uri,
-        type: "audio/m4a",
-        name: "speech.m4a",
-      } as any);
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      setRecording(null);
 
-      const res = await fetch("https://api.whisper-api.com/transcribe", {
-        method: "POST",
-        headers: {
-          "X-API-Key": "xeFbxbTcprg5knh8d6IY4SZ3xWOxA_e9IBj6BBIRMkA",
-        },
-        body: formData,
-      });
+      if (!uri) return;
 
-      const data = await res.json();
-      console.log("Whisper Transcribe Response:", data);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const reader = new FileReader();
 
-      const { task_id } = data;
-      if (!task_id) {
-        throw new Error("No task_id returned from Whisper API");
-      }
+      reader.onloadend = async () => {
+        const base64Audio = reader.result?.toString().split(",")[1];
+        if (!base64Audio) return;
 
-      let transcription = "";
-      while (!transcription) {
-        const statusRes = await fetch(`https://api.whisper-api.com/status/${task_id}`, {
-          headers: { "X-API-Key": "xeFbxbTcprg5knh8d6IY4SZ3xWOxA_e9IBj6BBIRMkA" },
-        });
-
-        const statusData = await statusRes.json();
-        console.log("Whisper Status:", statusData);
-
-        if (statusData.status === "completed") {
-          transcription = statusData.result;
-        } else if (statusData.status === "failed") {
-          throw new Error("Whisper transcription failed");
-        } else {
-          await new Promise((r) => setTimeout(r, 2000));
+        try {
+          setLoading(true);
+          const res = await axios.post(
+            "https://5aa83c1450d9.ngrok-free.app/api/speech/transcribe",
+            { audio: base64Audio }
+          );
+          const transcription = res.data.transcription;
+          if (transcription) handleSubmit(transcription);
+        } catch (err) {
+          console.error("Transcription Error:", err);
+        } finally {
+          setLoading(false);
         }
-      }
+      };
 
-      if (transcription) {
-        handleSubmit(transcription);
-      }
+      reader.readAsDataURL(blob);
     } catch (err) {
-      console.error("Whisper API Error:", err);
-    } finally {
+      console.error("Stop recording failed:", err);
+      setRecording(null);
       setLoading(false);
     }
   };
@@ -224,9 +196,7 @@ export default function AIChat() {
 
   const toggleSpeaker = () => {
     setSpeakerEnabled(!speakerEnabled);
-    if (!speakerEnabled) {
-      Speech.stop();
-    }
+    if (!speakerEnabled) Speech.stop();
   };
 
   const renderItem = ({ item }: { item: Message }) => (
@@ -256,200 +226,137 @@ export default function AIChat() {
     </View>
   );
 
-  const renderFloatingButton = () => (
-    <Animated.View
-      style={[
-        styles.floatingButtonContainer,
-        {
-          transform: [
-            { scale: Animated.multiply(scaleAnim, pulseAnim) }
-          ]
-        }
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={handleFloatingButtonPress}
-        activeOpacity={0.9}
-      >
-        <View style={styles.floatingButtonContent}>
-          <Ionicons name="medical" size={24} color="white" />
-          <View style={styles.notificationBadge}>
-            <Ionicons name="pulse" size={10} color="white" />
-          </View>
-        </View>
-      </TouchableOpacity>
-      <View style={styles.floatingButtonShadow} />
-    </Animated.View>
-  );
-
-  const renderExpandedChat = () => (
-    <Modal
-      visible={isExpanded}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => setIsExpanded(false)}
-    >
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#1E40AF" />
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => setIsExpanded(false)}
-            >
-              <Ionicons name="chevron-down" size={20} color="white" />
-            </TouchableOpacity>
-            <View style={styles.headerIconContainer}>
-              <Ionicons name="heart" size={20} color="white" />
-            </View>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>AI Medical Consultant</Text>
-              <Text style={styles.headerSubtitle}>
-                {messages.length > 0 
-                  ? `${messages.length} consultation${messages.length !== 1 ? 's' : ''} active` 
-                  : "Ready for medical consultation"
-                }
-              </Text>
-            </View>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={[styles.speakerButton, !speakerEnabled && styles.speakerDisabled]}
-              onPress={toggleSpeaker}
-            >
-              <Ionicons 
-                name={speakerEnabled ? "volume-high" : "volume-mute"} 
-                size={18} 
-                color="white" 
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Chat Messages */}
-        <View style={styles.chatWrapper}>
-          {messages.length === 0 ? (
-            <View style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="heart" size={48} color="#1E40AF" />
-            </View>
-              <Text style={styles.emptyTitle}>Professional Medical AI Assistant</Text>
-              <Text style={styles.emptyText}>
-                Describe your symptoms, medical concerns, or health questions. Our AI provides evidence-based guidance and preliminary assessments.
-              </Text>
-              <View style={styles.disclaimerContainer}>
-                <View style={styles.disclaimerIcon}>
-                  <Ionicons name="information-circle-outline" size={16} color="#1E40AF" />
-                </View>
-                <Text style={styles.disclaimerText}>
-                  This AI assistant provides general medical information only and should not replace professional medical advice, diagnosis, or treatment.
-                </Text>
-              </View>
-              <View style={styles.featuresContainer}>
-                <View style={styles.feature}>
-                  <Ionicons name="mic" size={20} color="#1E40AF" />
-                  <Text style={styles.featureTitle}>Voice Input</Text>
-                  <Text style={styles.featureText}>Speak your symptoms naturally</Text>
-                </View>
-                <View style={styles.feature}>
-                  <Ionicons name="volume-high" size={20} color="#1E40AF" />
-                  <Text style={styles.featureTitle}>Audio Response</Text>
-                  <Text style={styles.featureText}>Hear responses aloud</Text>
-                </View>
-                <View style={styles.feature}>
-                  <Ionicons name="shield-checkmark" size={20} color="#1E40AF" />
-                  <Text style={styles.featureTitle}>Medical AI</Text>
-                  <Text style={styles.featureText}>Evidence-based guidance</Text>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <FlatList
-              data={messages}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              contentContainerStyle={styles.chatContainer}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-          
-          {loading && (
-            <View style={styles.loadingContainer}>
-              <View style={styles.loadingCard}>
-                <View style={styles.aiAvatar}>
-                  <Ionicons name="medical" size={14} color="white" />
-                </View>
-                <View style={styles.loadingContent}>
-                  <Text style={styles.loadingLabel}>AI is analyzing...</Text>
-                  <View style={styles.loadingDots}>
-                    <Animated.View style={[styles.dot, styles.dot1]} />
-                    <Animated.View style={[styles.dot, styles.dot2]} />
-                    <Animated.View style={[styles.dot, styles.dot3]} />
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Input */}
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        >
-          <View style={styles.inputContainer}>
-            <View style={styles.inputCard}>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Describe your symptoms or medical concerns..."
-                  placeholderTextColor="#9CA3AF"
-                  value={input}
-                  onChangeText={setInput}
-                  editable={!loading}
-                  multiline
-                  maxLength={500}
-                />
-                <TouchableOpacity
-                  style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
-                  onPress={() => handleSubmit()}
-                  disabled={!input.trim() || loading}
-                >
-                  <Ionicons name="send" size={18} color="white" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.bottomRow}>
-                <Text style={styles.charCount}>
-                  {input.length}/500 characters
-                </Text>
-                <TouchableOpacity
-                  style={[styles.micButton, recording ? styles.micActive : styles.micInactive]}
-                  onPress={recording ? stopRecording : startRecording}
-                  disabled={loading}
-                >
-                  {recording ? (
-                    <View style={styles.recordingIndicator}>
-                      <Ionicons name="stop" size={20} color="white" />
-                    </View>
-                  ) : (
-                    <Ionicons name="mic" size={20} color="white" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
-  );
-
   return (
     <>
-      {renderFloatingButton()}
-      {renderExpandedChat()}
+      {/* Floating Button */}
+      <Animated.View
+        style={[
+          styles.floatingButtonContainer,
+          { transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }] },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={handleFloatingButtonPress}
+          activeOpacity={0.9}
+        >
+          <View style={styles.floatingButtonContent}>
+            <Ionicons name="medical" size={24} color="white" />
+            <View style={styles.notificationBadge}>
+              <Ionicons name="pulse" size={10} color="white" />
+            </View>
+          </View>
+        </TouchableOpacity>
+        <View style={styles.floatingButtonShadow} />
+      </Animated.View>
+
+      {/* Expanded Chat */}
+      <Modal
+        visible={isExpanded}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsExpanded(false)}
+      >
+        <SafeAreaView style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor="#1E40AF" />
+
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => setIsExpanded(false)}
+              >
+                <Ionicons name="chevron-down" size={20} color="white" />
+              </TouchableOpacity>
+              <View style={styles.headerIconContainer}>
+                <Ionicons name="heart" size={20} color="white" />
+              </View>
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.headerTitle}>AI Medical Consultant</Text>
+                <Text style={styles.headerSubtitle}>
+                  {messages.length > 0 
+                    ? `${messages.length} consultation${messages.length !== 1 ? 's' : ''} active` 
+                    : "Ready for medical consultation"
+                  }
+                </Text>
+              </View>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={[styles.speakerButton, !speakerEnabled && styles.speakerDisabled]}
+                onPress={toggleSpeaker}
+              >
+                <Ionicons 
+                  name={speakerEnabled ? "volume-high" : "volume-mute"} 
+                  size={18} 
+                  color="white" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Chat Messages */}
+          <View style={styles.chatWrapper}>
+            {messages.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="heart" size={48} color="#1E40AF" />
+                </View>
+                <Text style={styles.emptyTitle}>Professional Medical AI Assistant</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={messages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                contentContainerStyle={styles.chatContainer}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </View>
+
+          {/* Input */}
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+          >
+            <View style={styles.inputContainer}>
+              <View style={styles.inputCard}>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Describe your symptoms or medical concerns..."
+                    placeholderTextColor="#9CA3AF"
+                    value={input}
+                    onChangeText={setInput}
+                    editable={!loading}
+                    multiline
+                    maxLength={500}
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendButton, (!input.trim() || loading) && styles.sendButtonDisabled]}
+                    onPress={() => handleSubmit()}
+                    disabled={!input.trim() || loading}
+                  >
+                    <Ionicons name="send" size={18} color="white" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.bottomRow}>
+                  <Text style={styles.charCount}>{input.length}/500 characters</Text>
+                  <TouchableOpacity
+                    style={[styles.micButton, recording ? styles.micActive : styles.micInactive]}
+                    onPress={recording ? stopRecording : startRecording}
+                    disabled={loading}
+                  >
+                    <Ionicons name={recording ? "stop" : "mic"} size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </>
   );
 }

@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
-import { useTranslation } from "../../../components/TranslateProvider"; 
+import React, { useState, useRef, useEffect } from "react";
+import { StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, Animated } from "react-native";
+import { useTranslation } from "../../../components/TranslateProvider";
+import { Audio } from "expo-av";
+import axios from "axios";
 
 export type FamilyProfile = {
   _id?: string;
@@ -41,6 +43,67 @@ function GenderButton({
   );
 }
 
+// Speech Animation Component
+function SpeechAnimation({ isRecording }: { isRecording: boolean }) {
+  const animatedValues = useRef([
+    new Animated.Value(0.3),
+    new Animated.Value(0.5),
+    new Animated.Value(0.3),
+    new Animated.Value(0.7),
+    new Animated.Value(0.4),
+  ]).current;
+
+  useEffect(() => {
+    if (isRecording) {
+      const animations = animatedValues.map((animValue, index) => 
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(animValue, {
+              toValue: 1,
+              duration: 300 + (index * 100),
+              useNativeDriver: false,
+            }),
+            Animated.timing(animValue, {
+              toValue: 0.3 + (index * 0.1),
+              duration: 300 + (index * 100),
+              useNativeDriver: false,
+            }),
+          ])
+        )
+      );
+      
+      Animated.stagger(50, animations).start();
+    } else {
+      animatedValues.forEach(animValue => {
+        animValue.stopAnimation();
+        Animated.timing(animValue, {
+          toValue: 0.3,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      });
+    }
+  }, [isRecording, animatedValues]);
+
+  if (!isRecording) return null;
+
+  return (
+    <View style={styles.speechAnimation}>
+      {animatedValues.map((animValue, index) => (
+        <Animated.View
+          key={index}
+          style={[
+            styles.speechBar,
+            {
+              transform: [{ scaleY: animValue }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
 type Props = {
   expanded: boolean;
   onToggle: () => void;
@@ -70,7 +133,108 @@ export default function HealthProfileCard({
   onCreateNew,
   onRefreshSelected,
 }: Props) {
-  const { t } = useTranslation(); // ✅
+  const { t } = useTranslation();
+
+  // Speech-to-text state - now field-specific
+  const [recordingField, setRecordingField] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+
+  const startRecording = async (fieldKey: string) => {
+    try {
+      // Stop any existing recording first
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+        recordingRef.current = null;
+      }
+
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      
+      recordingRef.current = recording;
+      setRecordingField(fieldKey);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+    }
+  };
+
+  const stopRecording = async (fieldKey: string, isNewProfile: boolean) => {
+    if (!recordingRef.current || recordingField !== fieldKey) return;
+
+    try {
+      setIsProcessing(true);
+      
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      
+      // Clear recording state immediately
+      setRecordingField(null);
+      recordingRef.current = null;
+
+      if (!uri) {
+        setIsProcessing(false);
+        return;
+      }
+
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const reader = new FileReader();
+
+      reader.onloadend = async () => {
+        const base64Audio = reader.result?.toString().split(",")[1];
+
+        try {
+          const res = await axios.post(
+            "https://5aa83c1450d9.ngrok-free.app/api/speech/transcribe",
+            { audio: base64Audio }
+          );
+          const transcription = res.data.transcription;
+
+          if (transcription) {
+            if (isNewProfile) {
+              setNewProfileDraft({ ...newProfileDraft, [fieldKey]: transcription });
+            } else if (selectedFamily) {
+              // Update the selectedFamily object directly
+              Object.assign(selectedFamily, { [fieldKey]: transcription });
+            }
+          }
+        } catch (err) {
+          console.error('Transcription error:', err);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+      setRecordingField(null);
+      setIsProcessing(false);
+      recordingRef.current = null;
+    }
+  };
+
+  const handleMicPress = async (fieldKey: string, isNewProfile: boolean) => {
+    if (recordingField === fieldKey) {
+      // Currently recording this field, stop it
+      await stopRecording(fieldKey, isNewProfile);
+    } else if (recordingField) {
+      // Recording a different field, stop that first then start new one
+      const currentField = recordingField;
+      await stopRecording(currentField, isNewProfile);
+      setTimeout(() => startRecording(fieldKey), 100);
+    } else {
+      // Not recording anything, start recording
+      await startRecording(fieldKey);
+    }
+  };
 
   const profileFields = [
     { key: "name", label: "Full Name", icon: "person-outline", required: true },
@@ -93,6 +257,26 @@ export default function HealthProfileCard({
     if (profile.gender) parts.push(profile.gender);
     if (profile.bloodGroup) parts.push(`Type ${profile.bloodGroup}`);
     return parts.length > 0 ? parts.join(" • ") : "Health Profile";
+  };
+
+  const getMicButtonIcon = (fieldKey: string) => {
+    if (recordingField === fieldKey) {
+      return "stop-circle";
+    }
+    if (isProcessing && recordingField === null) {
+      return "hourglass-outline";
+    }
+    return "mic-outline";
+  };
+
+  const getMicButtonColor = (fieldKey: string) => {
+    if (recordingField === fieldKey) {
+      return "#DC2626";
+    }
+    if (isProcessing) {
+      return "#F59E0B";
+    }
+    return "#1E40AF";
   };
 
   return (
@@ -156,6 +340,27 @@ export default function HealthProfileCard({
                         {field.label}
                         {field.required && <Text style={styles.requiredStar}> *</Text>}
                       </Text>
+                      {/* Mic button with animation */}
+                      {field.key !== "gender" && (
+                        <View style={styles.micContainer}>
+                          {recordingField === field.key && (
+                            <SpeechAnimation isRecording={true} />
+                          )}
+                          <TouchableOpacity
+                            onPress={() => handleMicPress(field.key, true)}
+                            style={[
+                              styles.micButton,
+                              recordingField === field.key && styles.micButtonActive
+                            ]}
+                          >
+                            <Ionicons
+                              name={getMicButtonIcon(field.key)}
+                              size={18}
+                              color={getMicButtonColor(field.key)}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
 
                     {field.key === "gender" ? (
@@ -250,6 +455,27 @@ export default function HealthProfileCard({
                       </View>
                       <Text style={styles.fieldLabel}>{field.label}</Text>
                       {field.required && <Text style={styles.requiredIndicator}>Required</Text>}
+                      {/* Mic button with animation */}
+                      {editingProfile && field.key !== "gender" && (
+                        <View style={styles.micContainer}>
+                          {recordingField === field.key && (
+                            <SpeechAnimation isRecording={true} />
+                          )}
+                          <TouchableOpacity
+                            onPress={() => handleMicPress(field.key, false)}
+                            style={[
+                              styles.micButton,
+                              recordingField === field.key && styles.micButtonActive
+                            ]}
+                          >
+                            <Ionicons
+                              name={getMicButtonIcon(field.key)}
+                              size={18}
+                              color={getMicButtonColor(field.key)}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
 
                     {editingProfile ? (
@@ -442,6 +668,40 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+
+  // Mic Button and Animation Styles
+  micContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  micButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#1E40AF",
+  },
+  micButtonActive: {
+    backgroundColor: "#FEE2E2",
+    borderColor: "#DC2626",
+  },
+  speechAnimation: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    height: 20,
+  },
+  speechBar: {
+    width: 3,
+    height: 20,
+    backgroundColor: "#1E40AF",
+    borderRadius: 1.5,
+    opacity: 0.7,
   },
 
   // Form Container

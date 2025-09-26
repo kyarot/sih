@@ -18,7 +18,7 @@ export default function SearchPharma() {
   const [loading, setLoading] = useState(true);
   const [ordersMap, setOrdersMap] = useState<{ [key: string]: any }>({});
 
-  const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api";
+  const API_BASE = "http://localhost:5000/api";
   const patientId = "68cc3790a38afb070f20912d";
   const prescriptionId = "68c84b6413c049c87529b85c";
 

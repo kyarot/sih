@@ -12,12 +12,14 @@ import drugRoutes from "./routes/drugs.js";
 import router from "./routes/appointmentRoutes.js";
 import doctorRoutes from "./routes/doctors.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
-import prescriptionsRoute from "./routes/prescriptions.js";
-import prescriptionsFileRoute from "./routes/prescriptions-file.js";
+import prescriptionsRoutes from "./routes/prescriptions.js";
+
 import patientRoutes from "./routes/patients.js";
 import pharmacyRoutes from "./routes/pharmacies.js";
 import { diagnose } from "./diagnose.js";
 import videoRoutes from "./routes/videoRoutes.js";
+import trans from "./routes/translateRoutes.js";
+import speechRoutes from "./routes/speechRoutes.js"; // ✅ new
 //50b84d7c1002cb667b26ecb88edc69d27a7f1bd9
 dotenv.config();
 const app = express();
@@ -38,10 +40,10 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/pharmacies", pharmacyRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/appointments", appointmentRoutes);
-app.use("/api/prescriptions", prescriptionsRoute); // new
-app.use("/api/prescriptions", prescriptionsFileRoute); // /upload-file
+app.use("/api/prescriptions", prescriptionsRoutes); // new
+ // /upload-file
 app.use("/api/orders", orderRoutes);
-
+app.use("/api/translate", trans);
 // Health chek
 app.use("/api/appointments", router);
 // Health check route (optional, for debugging)
@@ -52,6 +54,8 @@ app.get("/", (req, res) => {
 app.get("/test-auth", verifyToken, (req, res) => {
   res.json({ msg: "auth ok", user: req.user });
 });
+// New Speech-to-Text Route
+app.use("/api/speech", speechRoutes);
 
 //aichat
 app.post("/diagnose", async (req, res) => {
@@ -68,6 +72,9 @@ app.use("/api/video", videoRoutes);
 
 //pharmacy routes
 app.use("/api/drugs", drugRoutes);
+console.log("API Key:", process.env.GOOGLE_API_KEY);
+
 // Start server
 const PORT = process.env.PORT || 8082;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
