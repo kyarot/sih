@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useRouter } from "expo-router";
@@ -14,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
-import { MaterialIcons } from '@expo/vector-icons';
 
 // ✅ Firebase compat (needed for Recaptcha)
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
@@ -72,7 +72,7 @@ export default function PatientAuth() {
     phone?: string;
   }) => {
     try {
-      await fetch("https://5aa83c1450d9.ngrok-free.app/api/patients/register-patient", {
+      await fetch("http://localhost:5000/api/patients/register-patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid, code, accountId, email, phone }),
@@ -165,7 +165,7 @@ export default function PatientAuth() {
     try {
       // Verify with backend
       const res = await fetch(
-        `https://5aa83c1450d9.ngrok-free.app/api/patients/${patientCode}`
+        `http://localhost:5000/api/patients/${patientCode}`
       );
       const data = await res.json();
 

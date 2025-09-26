@@ -1,4 +1,5 @@
 import Pharmacy from "../models/Pharmacy.js";
+import admin from "../config/firebase.js";
 
 // ---------------- Register Pharmacy ----------------
 export const registerPharmacy = async (req, res) => {
@@ -48,6 +49,7 @@ export const registerPharmacy = async (req, res) => {
     });
 
     await pharmacy.save();
+    await admin.auth().setCustomUserClaims(uid, { role: "pharmacy" });
     res.status(201).json({ success: true, pharmacy });
   } catch (err) {
     console.error("registerPharmacy error:", err);

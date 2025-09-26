@@ -1,6 +1,6 @@
+import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Prescription from "../models/Prescription.js";
-import mongoose from "mongoose";
 export const createOrder = async (req, res) => {
   try {
     const { patientId, pharmacyId, prescriptionId } = req.body;
@@ -62,7 +62,7 @@ export const getPendingOrdersByPharmacy = async (req, res) => {
     const orders = await Order.find({ pharmacyId, status: "pending" })
       .populate("patientId")
       .populate("prescriptionId");
-    res.json({ orders });
+    res.json(orders);
   } catch (err) {
     console.error("getPendingOrdersByPharmacy:", err);
     res.status(500).json({ message: "Server error" });
@@ -73,10 +73,10 @@ export const getPendingOrdersByPharmacy = async (req, res) => {
 export const getConfirmedOrdersByPharmacy = async (req, res) => {
   try {
     const { pharmacyId } = req.params;
-    const orders = await Order.find({ pharmacyId, status: "confirmed" })
+    const orders = await Order.find({ pharmacyId, status: { $in: ["confirmed", "ready"] } })
       .populate("patientId")
       .populate("prescriptionId");
-    res.json({ orders });
+    res.json(orders);
   } catch (err) {
     console.error("getConfirmedOrdersByPharmacy:", err);
     res.status(500).json({ message: "Server error" });

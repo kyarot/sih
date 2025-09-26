@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import React from "react";
-
+import { getAuth } from "firebase/auth";
+import api from "./apihandler";
 type Item = { 
   id: string; 
   name: string; 
@@ -18,7 +19,7 @@ type Item = {
 
 type SortOption = "name-asc" | "name-desc" | "stock-high" | "stock-low" | "price-asc" | "price-desc";
 
-const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api/drugs";
+const API_BASE = "http://localhost:5000/api/drugs";
 
 export default function InventoryPage() {
   const router = useRouter();
@@ -54,8 +55,19 @@ export default function InventoryPage() {
   const fetchDrugs = async () => {
     try {
       setRefreshing(true);
-      const res = await axios.get(`${API_BASE}/raw`);
+      // const auth = getAuth();
+      // const user= auth.currentUser;
+      //  if (!user) {
+      // throw new Error("No logged-in user");
+      // }
+      // const idToken = await user.getIdToken();
+      // const res = await axios.get(`${API_BASE}/raw`,{
+      //   headers: { Authorization: `Bearer ${idToken}` },
+      // });
+      const res = await api.get("/drugs/raw");
+
       const data = res.data.data || res.data;
+      console.log("data", data);
       const mapped: Item[] = (Array.isArray(data) ? data : []).map((d: any) => ({
         id: d._id ?? d.id ?? `${d.name}-${d.brand}`,
         name: d.name ?? d.title ?? "Unnamed",
@@ -116,7 +128,7 @@ export default function InventoryPage() {
     try {
       setItems(prev => prev.map(item => item.id === id ? { ...item, qty: quantity } : item));
       setAllItems(prev => prev.map(item => item.id === id ? { ...item, qty: quantity } : item));
-      const res = await axios.put(`${API_BASE}/${id}`, { quantity });
+      const res = await api.put(`/drugs/${id}`, { quantity });
       const updated = res.data.data || res.data;
       const mapped = {
         id: updated._id ?? updated.id ?? id,
@@ -148,7 +160,7 @@ export default function InventoryPage() {
     setAllItems(prev => prev.map(item => item.id === id ? { ...item, qty: newQty } : item));
 
     try {
-      const res = await axios.put(`${API_BASE}/${id}`, { quantity: newQty });
+      const res = await api.put(`/drugs/${id}`, { quantity: newQty });
       const updated = res.data.data || res.data;
       const mapped = {
         id: updated._id ?? updated.id ?? id,
@@ -196,11 +208,11 @@ export default function InventoryPage() {
       }
 
       if (id.match(/^[0-9a-fA-F]{24}$/)) {
-        await axios.delete(`${API_BASE}/${id}`);
+        await api.delete(`/drugs/${id}`);
       } else {
         const encodedName = encodeURIComponent(item.name);
         const encodedBrand = item.brand ? encodeURIComponent(item.brand) : 'undefined';
-        await axios.delete(`${API_BASE}/by-name/${encodedName}/${encodedBrand}`);
+        await api.delete(`/drugs/by-name/${encodedName}/${encodedBrand}`);
       }
       
       setItems(prev => prev.filter(item => item.id !== id));
@@ -219,7 +231,8 @@ export default function InventoryPage() {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/`, {
+      const res = await api.post(`/drugs`, 
+        {
         name: newMedicine.name,
         brand: newMedicine.brand,
         category: newMedicine.category,

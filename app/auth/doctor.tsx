@@ -26,7 +26,7 @@ export default function DoctorAuth() {
 
     try {
       setLoading(true);
-      const res = await fetch("https://5aa83c1450d9.ngrok-free.app/api/doctors/login", {
+      const res = await fetch("http://localhost:5000/api/doctors/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uniqueKey }),

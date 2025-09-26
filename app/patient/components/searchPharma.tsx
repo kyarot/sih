@@ -12,15 +12,15 @@ import {
 import { useTranslation } from "../../../components/TranslateProvider"; 
 const { width } = Dimensions.get("window");
 
-export default function SearchPharma() {
+export default function SearchPharma({patientId, prescriptionId}: {patientId: string, prescriptionId?: string}) {
   const { t } = useTranslation(); // ✅
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersMap, setOrdersMap] = useState<{ [key: string]: any }>({});
 
-  const API_BASE = "https://5aa83c1450d9.ngrok-free.app/api";
-  const patientId = "68cc3790a38afb070f20912d";
-  const prescriptionId = "68c84b6413c049c87529b85c";
+  const API_BASE = "http://localhost:5000/api";
+  // const patientId = "68cc3790a38afb070f20912d";
+  // const prescriptionId = "68c84b6413c049c87529b85c";
 
   /** Extract pharmacyId string from any order shape */
   const extractPharmacyId = (order: any): string => {
@@ -38,7 +38,7 @@ export default function SearchPharma() {
     try {
       const res = await fetch(`${API_BASE}/pharmacies/nearby/${patientId}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || t("failed_fetch_pharmacies"));
+      if (!res.ok) throw new Error(data.message || t("Failed Fetch Pharmacies"));
       setPharmacies(data.pharmacies || []);
     } catch (err: any) {
       console.warn("fetchNearbyPharmacies:", err.message);
@@ -99,7 +99,7 @@ export default function SearchPharma() {
       const createdOrder = data.order;
       const key = extractPharmacyId(createdOrder) || pharmacyId;
       setOrdersMap((prev) => ({ ...prev, [key]: createdOrder }));
-      Alert.alert(t("success"), t("order_sent"));
+      Alert.alert(t("Success"), t("Order Sent"));
     } catch (err: any) {
       Alert.alert(t("error"), err.message);
     }
@@ -125,7 +125,7 @@ export default function SearchPharma() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1E40AF" />
-        <Text style={styles.loadingText}>{t("finding_nearby_pharmacies")}</Text>
+        <Text style={styles.loadingText}>{t("Finding Nearby Pharmacies...")}</Text>
       </View>
     );
   }
@@ -186,7 +186,7 @@ export default function SearchPharma() {
         <View style={styles.cardHeader}>
           <View style={styles.pharmacyInfo}>
             <Text style={styles.pharmacyName}>{item.name}</Text>
-            <Text style={styles.pharmacyAddress}>{item.address || t("address_not_available")}</Text>
+            <Text style={styles.pharmacyAddress}>{item.address || t("Address Not Available")}</Text>
           </View>
           <View style={styles.onlineIndicator}>
             <View style={styles.onlineDot} />
@@ -202,7 +202,7 @@ export default function SearchPharma() {
           style={[styles.orderButton, isActive && styles.orderButtonDisabled]}
         >
           <Text style={[styles.orderButtonText, isActive && styles.orderButtonTextDisabled]}>
-            {existingOrder ? t("order_sent") : t("send_order")}
+            {existingOrder ? t("Order Sent") : t("Send Order")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -212,7 +212,7 @@ export default function SearchPharma() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("nearby_pharmacies")}</Text>
+        <Text style={styles.title}>{t("Nearby Pharmacies")}</Text>
         <Text style={styles.subtitle}>
           {pharmacies.length}{" "}
           {pharmacies.length === 1 ? t("pharmacy") : t("pharmacies")} {t("available")}
@@ -222,8 +222,8 @@ export default function SearchPharma() {
       {pharmacies.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyStateIcon}>🏥</Text>
-          <Text style={styles.emptyStateTitle}>{t("no_pharmacies_found")}</Text>
-          <Text style={styles.emptyStateText}>{t("no_pharmacies_message")}</Text>
+          <Text style={styles.emptyStateTitle}>{t("No Pharmacies Found")}</Text>
+          <Text style={styles.emptyStateText}>{t("No Pharmacies Message")}</Text>
         </View>
       ) : (
         <FlatList

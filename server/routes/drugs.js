@@ -6,7 +6,7 @@ const router = express.Router();
 // Protected routes (only logged-in pharmacy)
 router.post("/",verifyToken,addDrug);
 router.get("/", verifyToken, getAggregatedStock); // Use aggregated stock by default
-router.get("/raw", verifyToken, getDrugs); // Raw individual drugs
+router.get("/raw", verifyToken , getDrugs); // Raw individual drugs
 router.get("/search", verifyToken, searchDrugs);
 router.put("/:id", verifyToken, updateDrug);
 router.delete("/:id", verifyToken, deleteDrug);

@@ -1,7 +1,7 @@
 import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { Item, Notification } from "./types";
-
+import React from "react";
 interface Props {
   notifications: Notification[];
   items: Item[];
@@ -11,7 +11,88 @@ interface Props {
 }
 
 export default function NotificationsSection({ notifications, items, getTimeAgo, acceptOrder, rejectOrder }: Props) {
-  const styles = StyleSheet.create({
+
+  return (
+    <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
+      <Text style={styles.sectionHeader}>Order Notifications</Text>
+
+      {notifications.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="notifications-outline" size={48} color="#9CA3AF" style={styles.emptyStateIcon} />
+          <Text style={styles.emptyStateTitle}>No New Requests</Text>
+          <Text style={styles.emptyStateText}>New order requests from patients will appear here</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(n) => n.id}
+          scrollEnabled={false}
+          renderItem={({ item }) => (
+            <View style={styles.notificationCard}>
+              <View style={styles.notificationHeader}>
+                <View style={styles.patientInfo}>
+                  <Text style={styles.notificationPatientName}>{item.patientName}</Text>
+                  <Text style={styles.notificationPhone}>{item.patientPhone}</Text>
+                  <Text style={styles.notificationTime}>{getTimeAgo(item.timestamp)}</Text>
+                </View>
+                <View style={styles.urgentBadge}>
+                  <Text style={styles.urgentText}>NEW</Text>
+                </View>
+              </View>
+
+              <View style={styles.notificationDetails}>
+                <Text style={styles.notificationDelivery}>
+                  {item.pickup === "delivery" ? "🚚 Home Delivery" : "🏪 Self Pickup"}
+                </Text>
+
+                {item.address && (
+                  <View style={styles.addressContainer}>
+                    <Ionicons name="location-outline" size={16} color="#6B7280" style={styles.addressIcon} />
+                    <Text style={styles.notificationAddress}>{item.address}</Text>
+                  </View>
+                )}
+
+                <Text style={styles.notificationItemsTitle}>Requested Items:</Text>
+                {item.items.map((orderItem, index) => {
+                  const inventoryItem = items.find((invItem) =>
+                    invItem.name.toLowerCase().includes(orderItem.name.toLowerCase())
+                  );
+                  const required = (orderItem as any).quantity ?? orderItem.qty;
+                  const hasStock = inventoryItem && inventoryItem.qty >= (required ?? 0);
+
+                  return (
+                    <Text key={index} style={[styles.notificationItem, !hasStock && styles.notificationItemOutOfStock]}>
+                      • {orderItem.name} × {required}
+                    </Text>
+                  );
+                })}
+              </View>
+
+              <View style={styles.notificationActions}>
+                <TouchableOpacity 
+                  style={[styles.notificationBtn, styles.rejectBtn]} 
+                  onPress={() => rejectOrder(item.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.rejectBtnText}>Reject</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.notificationBtn, styles.acceptBtn]} 
+                  onPress={() => acceptOrder(item.id)}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.acceptBtnText}>Accept Order</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        />
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
     contentArea: {
       flex: 1,
       backgroundColor: '#F8FAFC',
@@ -221,83 +302,3 @@ export default function NotificationsSection({ notifications, items, getTimeAgo,
       letterSpacing: 0.3,
     },
   });
-
-  return (
-    <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
-      <Text style={styles.sectionHeader}>Order Notifications</Text>
-
-      {notifications.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="notifications-outline" size={48} color="#9CA3AF" style={styles.emptyStateIcon} />
-          <Text style={styles.emptyStateTitle}>No New Requests</Text>
-          <Text style={styles.emptyStateText}>New order requests from patients will appear here</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={(n) => n.id}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.notificationCard}>
-              <View style={styles.notificationHeader}>
-                <View style={styles.patientInfo}>
-                  <Text style={styles.notificationPatientName}>{item.patientName}</Text>
-                  <Text style={styles.notificationPhone}>{item.patientPhone}</Text>
-                  <Text style={styles.notificationTime}>{getTimeAgo(item.timestamp)}</Text>
-                </View>
-                <View style={styles.urgentBadge}>
-                  <Text style={styles.urgentText}>NEW</Text>
-                </View>
-              </View>
-
-              <View style={styles.notificationDetails}>
-                <Text style={styles.notificationDelivery}>
-                  {item.pickup === "delivery" ? "🚚 Home Delivery" : "🏪 Self Pickup"}
-                </Text>
-
-                {item.address && (
-                  <View style={styles.addressContainer}>
-                    <Ionicons name="location-outline" size={16} color="#6B7280" style={styles.addressIcon} />
-                    <Text style={styles.notificationAddress}>{item.address}</Text>
-                  </View>
-                )}
-
-                <Text style={styles.notificationItemsTitle}>Requested Items:</Text>
-                {item.items.map((orderItem, index) => {
-                  const inventoryItem = items.find((invItem) =>
-                    invItem.name.toLowerCase().includes(orderItem.name.toLowerCase())
-                  );
-                  const required = (orderItem as any).quantity ?? orderItem.qty;
-                  const hasStock = inventoryItem && inventoryItem.qty >= (required ?? 0);
-
-                  return (
-                    <Text key={index} style={[styles.notificationItem, !hasStock && styles.notificationItemOutOfStock]}>
-                      • {orderItem.name} × {required}
-                    </Text>
-                  );
-                })}
-              </View>
-
-              <View style={styles.notificationActions}>
-                <TouchableOpacity 
-                  style={[styles.notificationBtn, styles.rejectBtn]} 
-                  onPress={() => rejectOrder(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.rejectBtnText}>Reject</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.notificationBtn, styles.acceptBtn]} 
-                  onPress={() => acceptOrder(item.id)}
-                  activeOpacity={0.9}
-                >
-                  <Text style={styles.acceptBtnText}>Accept Order</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
-      )}
-    </ScrollView>
-  );
-}

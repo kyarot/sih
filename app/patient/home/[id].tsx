@@ -26,7 +26,7 @@ import PatientHeader from "../components/PatientHeader";
 import PrescriptionsList from "../components/PrescriptionsList";
 import SOSButton from "../components/SOSButton";
 import PatientLocation from "../components/loc";
-const API_BASE = "https://5aa83c1450d9.ngrok-free.app"; // change if needed
+const API_BASE = "http://localhost:5000"; // change if needed
 const { width } = Dimensions.get("window");
 
 /* ============================
@@ -139,10 +139,11 @@ export default function PatientHome(): JSX.Element {
   const [addingNewProfile, setAddingNewProfile] = useState<boolean>(false);
   const [newProfileDraft, setNewProfileDraft] = useState<Partial<FamilyProfile>>({});
 
-  const [expanded, setExpanded] = useState<Record<"profile" | "appointments" | "records", boolean>>({
+  const [expanded, setExpanded] = useState<Record<"profile" | "appointments" | "records" | "prescriptions" , boolean>>({
     profile: false,
     appointments: false,
     records: false,
+    prescriptions: false,
   });
 
   const [chat, setChat] = useState<{ type: "user" | "bot"; message: string }[]>([]);
@@ -376,7 +377,7 @@ if (data.length > 0 && !selectedFamily) {
     }
   };
 
-  function toggleSection(section: "profile" | "appointments" | "records") {
+  function toggleSection(section: "profile" | "appointments" | "records" | "prescriptions") {
     setExpanded((prev) => ({
       ...prev,
       [section]: !prev[section],
@@ -444,8 +445,19 @@ if (data.length > 0 && !selectedFamily) {
         />
 
         {/* insert prescriptions tab directly below Appointments */}
-        <PrescriptionsList patientUid="68c817a736d9cf859ee67c62" />
-
+        <View style={styles.card}>
+  <TouchableOpacity style={styles.cardHeader} onPress={() => toggleSection("prescriptions")}>
+    <Text style={styles.cardTitle}>Prescriptions</Text>
+    <Text style={{ marginLeft: "auto", color: "#1565C0", fontWeight: "bold" }}>
+      {expanded.prescriptions ? "▲" : "▼"}
+    </Text>
+  </TouchableOpacity>
+  {expanded.prescriptions && (
+    <View style={styles.expandedContent}>
+      <PrescriptionsList patientUid={selectedFamily?._id || ""} />
+    </View>
+  )}
+</View>
 
         {/* Health Tips */}
         <HealthTipsCard />

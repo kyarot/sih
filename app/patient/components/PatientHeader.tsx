@@ -15,7 +15,7 @@ export default function PatientHeader({ name }: PatientHeaderProps) {
     <LinearGradient colors={["#1E40AF", "#1E40AF"]} style={styles.header}>
       <View style={styles.headerContent}>
         <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>{t("welcome_back")}</Text>
+          <Text style={styles.welcomeText}>{t("Welcome Back")}</Text>
           <View style={styles.nameContainer}>
             <Text style={styles.nameText}>{name ?? t("loading")}</Text>
             

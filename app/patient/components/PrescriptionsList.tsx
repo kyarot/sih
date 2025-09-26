@@ -18,7 +18,7 @@ import * as Sharing from "expo-sharing";
 import SearchPharma from "./searchPharma";
 import { useTranslation } from "../../../components/TranslateProvider"; 
 
-const API_BASE = "https://5aa83c1450d9.ngrok-free.app";
+const API_BASE = "http://localhost:5000";
 
 type Medicine = {
   name?: string;
@@ -46,6 +46,8 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [expandedPrescription, setExpandedPrescription] = useState<string | null>(null);
+  const [CurrPrescriptionId, setCurrPrescriptionId] = useState<string | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -236,9 +238,10 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                 <View key={pres._id} style={[styles.presCard, index === 0 && styles.firstCard]}>
                   <TouchableOpacity
                     style={styles.presHeader}
-                    onPress={() =>
-                      setExpandedPrescription((cur) => (cur === pres._id ? null : pres._id))
-                    }
+                    onPress={() => {
+                      setExpandedPrescription((cur) => (cur === pres._id ? null : pres._id));
+                      setCurrPrescriptionId(pres._id);
+                    }}
                     activeOpacity={0.8}
                   >
                     <View style={styles.presHeaderLeft}>
@@ -331,7 +334,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                       <View style={styles.actions}>
                         <TouchableOpacity
                           style={styles.downloadBtn}
-                          onPress={() => generateAndDownloadPdf(pres)}
+                          onPress={() => downloadPdfForPrescription(pres)}
                           activeOpacity={0.8}
                         >
                           <Ionicons name="download-outline" size={18} color="white" />
@@ -349,7 +352,7 @@ export default function PrescriptionsList({ patientUid }: { patientUid?: string 
                       </View>
 
                       <View style={styles.searchPharmaContainer}>
-                        <SearchPharma />
+                      <SearchPharma patientId={patientUid ?? ""} prescriptionId={CurrPrescriptionId ?? ""}/>
                       </View>
                     </View>
                   )}

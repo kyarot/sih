@@ -12,7 +12,7 @@ import OrdersSection from "./OrdersSection";
 import PharmacyHeader from "./PharmacyHeader";
 import ProfileModal from "./ProfileModal";
 import SidebarNav from "./SidebarNav";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActiveSection, Item, Notification, Order, Profile } from "./types";
 import React from "react";
 
@@ -60,6 +60,7 @@ export default function PharmacyHome() {
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  
 
   const addItem = () => {
     if (!name || !qty) return alert("Enter medicine name and quantity");
@@ -97,9 +98,23 @@ export default function PharmacyHome() {
       inventoryValue: totalValue,
     };
   }, [items]);
-
+  
+  //fetch pharmacy id from async storage
+  const [CurrPharmacyId, setCurrPharmacyId] = useState("");
+    const fetchPharmacyId = async () => {
+      try {
+        const id = await AsyncStorage.getItem("pharmacyId");
+        console.log("Fetched pharmacy ID from storage:", id);
+        if (id) {
+          setCurrPharmacyId(id);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch pharmacy ID from storage", err);
+      }
+    };
+    
   // ===== Orders & Notifications State (fetched from backend) =====
-  const PHARMACY_ID = "68c7e45c7e560baf62e8d973";
+  const PHARMACY_ID = CurrPharmacyId ; 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
@@ -110,8 +125,8 @@ export default function PharmacyHome() {
     try {
       const pending: any = await fetchPendingOrders(PHARMACY_ID);
       setNotifications(
-        Array.isArray(pending['orders'])
-          ? pending['orders'].map((p: any) => ({
+        Array.isArray(pending)
+          ? pending.map((p: any) => ({
               id: p._id,
               patientName: p.patientId.name ?? p.patientName ?? p.patient_name ?? "Unknown",
               patientPhone: p.patientId.phone ?? p.patientPhone ?? p.patient_phone ?? "",
@@ -125,8 +140,8 @@ export default function PharmacyHome() {
 
       const confirmed: any = await fetchConfirmedOrders(PHARMACY_ID);
       setOrders(
-        Array.isArray(confirmed['orders'])
-          ? confirmed['orders'].map((o: any) => ({
+        Array.isArray(confirmed)
+          ? confirmed.map((o: any) => ({
               id: o._id,
               patientName: o.patientId.name ?? o.patient_name ?? "Unknown",
               items: o.medicines ?? [],
@@ -143,8 +158,18 @@ export default function PharmacyHome() {
   };
 
   useEffect(() => {
+  const init = async () => {
+    await fetchPharmacyId(); // sets CurrPharmacyId
+  };
+  init();
+}, []);
+
+
+  useEffect(() => {
+     if (CurrPharmacyId) {
     reloadData();
-  }, []);
+  }
+  }, [CurrPharmacyId]);
 
   // ===== Stock Status Helper =====
   const getStockStatus = (qty: number) => {
