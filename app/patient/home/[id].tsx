@@ -52,8 +52,8 @@ export default function PatientHome() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  const [sheetY] = useState(new Animated.Value(height * 0.6)); // Start at 60% for better spacing
-  const [currentY, setCurrentY] = useState(height * 0.6);
+  const [sheetY] = useState(new Animated.Value(height * 0.55));
+  const [currentY, setCurrentY] = useState(height * 0.55);
 const [patientId, setpatientId] = useState<string | null>(null);
   const [patientUid, setpatientUid] = useState<string| null>(null);
 
@@ -106,7 +106,7 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
   const selectProfile = async (profile: any) => {
     setSelectedFamily(profile);
     await AsyncStorage.setItem(`family-${accountId}`, JSON.stringify(profile));
-    toggleSwitcher(); // close switcher
+    toggleSwitcher();
   };
 
     useEffect(() => {
@@ -131,15 +131,24 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
     if (accountId) loadFamily();
   }, [accountId]);
   const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+    onStartShouldSetPanResponder: (evt, gestureState) => {
+      // Only respond to gestures on the handle bar area
+      const touchY = evt.nativeEvent.pageY;
+      const handleBarY = currentY + 15; // Handle bar position
+      return Math.abs(touchY - handleBarY) < 30; // Only handle bar area
+    },
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      const touchY = evt.nativeEvent.pageY;
+      const handleBarY = currentY + 15;
+      return Math.abs(touchY - handleBarY) < 30 && Math.abs(gestureState.dy) > 8;
+    },
     onPanResponderGrant: () => {
       sheetY.setOffset(currentY);
       sheetY.setValue(0);
     },
     onPanResponderMove: (_, gestureState) => {
-      const minY = height * 0.6; // Increased minimum to provide more space for chat
-      const maxY = height * 0.85; // Fixed maximum height
+      const minY = height * 0.55;
+      const maxY = height * 0.88;
       const newY = Math.max(minY, Math.min(maxY, gestureState.dy + currentY));
       sheetY.setValue(newY - currentY);
     },
@@ -149,14 +158,18 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
       const velocity = gestureState.vy;
       let targetY;
       
-      // Fixed snap positions with better spacing
-      if (velocity > 0.5) targetY = height * 0.85;
-      else if (velocity < -0.5) targetY = height * 0.6;
-      else if (finalY < height * 0.725) targetY = height * 0.6;
-      else targetY = height * 0.85;
+      if (velocity > 0.8) targetY = height * 0.88;
+      else if (velocity < -0.8) targetY = height * 0.55;
+      else if (finalY < height * 0.715) targetY = height * 0.55;
+      else targetY = height * 0.88;
       
       setCurrentY(targetY);
-      Animated.spring(sheetY, { toValue: targetY, useNativeDriver: false, tension: 100, friction: 8 }).start();
+      Animated.spring(sheetY, { 
+        toValue: targetY, 
+        useNativeDriver: false, 
+        tension: 80, 
+        friction: 12 
+      }).start();
     },
   });
 
@@ -251,42 +264,78 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1E3A8A" />
-      <LinearGradient colors={["#1E3A8A", "#3B82F6", "#8dc2ffff"]} style={styles.fullBackground}>
-        
-        {/* Header */}
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.floatingButton}>
-            <Ionicons name="person" size={24} color="white" />
+      
+      {/* Background Gradient */}
+      <LinearGradient 
+        colors={["#1E3A8A", "#3B82F6", "#60A5FA"]} 
+        style={StyleSheet.absoluteFillObject} 
+      />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.8}>
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+              style={styles.headerButtonGradient}
+            >
+              <Ionicons name="person" size={22} color="white" />
+            </LinearGradient>
           </TouchableOpacity>
-         <TouchableOpacity
-            style={styles.floatingButton}
+          
+          <TouchableOpacity
+            style={styles.headerButton}
             onPress={handleSaveLocation}
             disabled={locationLoading}
+            activeOpacity={0.8}
           >
-            {locationLoading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Ionicons name="location" size={24} color="white" />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.languageButton}>
-            <Text style={styles.languageText}>English</Text>
-            <Ionicons name="language" size={16} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.floatingButton}>
-            <Ionicons name="notifications" size={24} color="white" />
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+              style={styles.headerButtonGradient}
+            >
+              {locationLoading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Ionicons name="location" size={22} color="white" />
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
 
-      {/* Chat Area - Positioned with proper constraints to avoid overlap */}
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>MediConnect</Text>
+          <Text style={styles.headerSubtitle}>Your Health Assistant</Text>
+        </View>
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.languageButton} activeOpacity={0.8}>
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+              style={styles.languageButtonGradient}
+            >
+              <Text style={styles.languageText}>EN</Text>
+              <Ionicons name="language" size={14} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.8}>
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+              style={styles.headerButtonGradient}
+            >
+              <Ionicons name="notifications" size={22} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Chat Area */}
       <Animated.View style={[
         styles.chatContainer,
         {
-          maxHeight: Animated.subtract(sheetY, new Animated.Value(200)).interpolate({
-            inputRange: [height * 0.35, height * 0.85],
-            outputRange: [height * 0.2, height * 0.35],
+          maxHeight: Animated.subtract(sheetY, new Animated.Value(180)).interpolate({
+            inputRange: [height * 0.3, height * 0.88],
+            outputRange: [height * 0.15, height * 0.4],
             extrapolate: 'clamp'
           })
         }
@@ -300,19 +349,22 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           style={styles.chatList}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
         />
         {loading && (
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>AI is thinking...</Text>
+            <Text style={styles.loadingText}>AI is analyzing...</Text>
           </View>
         )}
       </Animated.View>
 
-      {/* Mic Button - Above text input, properly spaced from chat */}
+      {/* Mic Button */}
       <Animated.View style={[
         styles.micButtonContainer,
         { 
-          top: Animated.subtract(sheetY, new Animated.Value(120))
+          top: Animated.subtract(sheetY, new Animated.Value(110))
         }
       ]}>
         <TouchableOpacity
@@ -322,115 +374,246 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
           ]}
           onPress={recording ? stopRecording : startRecording}
           disabled={loading}
+          activeOpacity={0.8}
         >
-          <Ionicons 
-            name={recording ? "stop" : "mic"} 
-            size={28} 
-            color="white" 
-          />
+          <LinearGradient
+            colors={recording 
+              ? ['rgba(220, 38, 38, 0.9)', 'rgba(239, 68, 68, 0.8)'] 
+              : ['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.2)']
+            }
+            style={styles.micButtonGradient}
+          >
+            <Ionicons 
+              name={recording ? "stop" : "mic"} 
+              size={28} 
+              color="white" 
+            />
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Text Input - Below mic button with proper spacing */}
+      {/* Text Input */}
       <Animated.View style={[
         styles.inputWrapper, 
         { 
-          top: Animated.subtract(sheetY, new Animated.Value(60))
+          top: Animated.subtract(sheetY, new Animated.Value(50))
         }
       ]}>
         <View style={styles.textInputContainer}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="text here"
-            placeholderTextColor="rgba(255,255,255,0.6)"
-            value={textInput}
-            onChangeText={setTextInput}
-            editable={!loading}
-            multiline={false}
-            onSubmitEditing={() => handleSubmit()}
-          />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={() => handleSubmit()}
-            disabled={!textInput.trim() || loading}
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+            style={styles.textInputGradient}
           >
-            <Ionicons name="arrow-forward" size={18} color="white" />
-          </TouchableOpacity>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Describe your symptoms..."
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              value={textInput}
+              onChangeText={setTextInput}
+              editable={!loading}
+              multiline={false}
+              onSubmitEditing={() => handleSubmit()}
+            />
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={() => handleSubmit()}
+              disabled={!textInput.trim() || loading}
+            >
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.2)']}
+                style={styles.sendButtonGradient}
+              >
+                <Ionicons name="arrow-forward" size={18} color="white" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
 
-        <TouchableOpacity style={styles.speakerButton} onPress={toggleSpeaker}>
-          <Ionicons name={speakerEnabled ? "volume-high" : "volume-mute"} size={20} color="white" />
+        <TouchableOpacity 
+          style={styles.speakerButton} 
+          onPress={toggleSpeaker}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+            style={styles.speakerButtonGradient}
+          >
+            <Ionicons name={speakerEnabled ? "volume-high" : "volume-mute"} size={20} color="white" />
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Bottom Sheet - Fixed height, scrollable content only */}
-      <Animated.View style={[styles.bottomContainer, { top: sheetY }]} {...panResponder.panHandlers}>
-        <View style={styles.handleBar} />
+      {/* Bottom Sheet */}
+      <Animated.View style={[styles.bottomContainer, { top: sheetY }]}>
+        <View style={styles.handleBar} {...panResponder.panHandlers} />
 
-        {/* Fixed Height Scrollable Content */}
         <View style={styles.scrollableWrapper}>
           <ScrollView 
             style={styles.scrollableContent} 
             contentContainerStyle={styles.scrollableContentContainer}
             showsVerticalScrollIndicator={false} 
             bounces={true}
+            nestedScrollEnabled={true}
+            scrollEventThrottle={16}
           >
-          {/* First Row Icons */}
-          <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconButton} onPress={()=>router.push('/patient/screens/AppointementsScreen')}>
-              <Ionicons name="calendar-outline" size={32} color="white" />
-              <Text style={styles.iconLabel}>Appointments</Text>
+            {/* Service Grid */}
+            <View style={styles.servicesGrid}>
+              {/* Row 1 */}
+              <TouchableOpacity 
+                style={styles.serviceCard} 
+                onPress={() => router.push('/patient/screens/AppointementsScreen')}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="calendar-outline" size={28} color="white" />
+                  </View>
+                  <Text style={styles.serviceTitle}>Appointments</Text>
+                  <Text style={styles.serviceSubtitle}>Book & manage</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.serviceCard}
+                onPress={() =>
+                  router.push({
+                    pathname: "/patient/screens/PrescriptionScreen",
+                    params: { patientUid: patientId },
+                  })
+                }
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="document-text-outline" size={28} color="white" />
+                  </View>
+                  <Text style={styles.serviceTitle}>Prescriptions</Text>
+                  <Text style={styles.serviceSubtitle}>View & download</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.serviceCard} 
+                onPress={() => router.push('/patient/screens/history')}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="time-outline" size={28} color="white" />
+                  </View>
+                  <Text style={styles.serviceTitle}>History</Text>
+                  <Text style={styles.serviceSubtitle}>Medical records</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Row 2 */}
+              <TouchableOpacity 
+                style={styles.serviceCard} 
+                onPress={routetoSearch}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="medical-outline" size={28} color="white" />
+                  </View>
+                  <Text style={styles.serviceTitle}>Pharmacy</Text>
+                  <Text style={styles.serviceSubtitle}>Find medicines</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.serviceCard}
+                onPress={() => router.push(`/patient/screens/Family?id=${accountId}`)}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="people-outline" size={28} color="white" />
+                  </View>
+                  <Text style={styles.serviceTitle}>Family</Text>
+                  <Text style={styles.serviceSubtitle}>Manage profiles</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.serviceCard} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="fitness-outline" size={28} color="white" />
+                  </View>
+                  <Text style={styles.serviceTitle}>Health Tips</Text>
+                  <Text style={styles.serviceSubtitle}>Stay healthy</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            {/* Emergency SOS Button */}
+            <TouchableOpacity style={styles.emergencyButton} activeOpacity={0.8}>
+              <LinearGradient 
+                colors={["#DC2626", "#EF4444"]} 
+                style={styles.emergencyGradient}
+              >
+                <View style={styles.emergencyContent}>
+                  <Ionicons name="medical" size={24} color="white" />
+                  <Text style={styles.emergencyText}>Emergency SOS</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}
-             onPress={() =>
-    router.push({
-      pathname: "/patient/screens/PrescriptionScreen",
-      params: { patientUid:patientId }, // pass patient id if needed
-    })
-  }
- >
-              <Ionicons name="document-text-outline" size={32} color="white" />
-              <Text style={styles.iconLabel}>Prescriptions</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={()=>router.push('/patient/screens/history')}>
-              <Ionicons name="time-outline" size={32} color="white" />
-              <Text style={styles.iconLabel}>History</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Additional Services */}
+            <View style={styles.additionalServices}>
+              <Text style={styles.sectionTitle}>More Services</Text>
+              <View style={styles.additionalGrid}>
+                <TouchableOpacity style={styles.additionalService} activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                    style={styles.additionalServiceGradient}
+                  >
+                    <Ionicons name="heart-outline" size={20} color="white" />
+                    <Text style={styles.additionalServiceText}>Health Monitoring</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
 
-          
+                <TouchableOpacity style={styles.additionalService} activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                    style={styles.additionalServiceGradient}
+                  >
+                    <Ionicons name="chatbubble-outline" size={20} color="white" />
+                    <Text style={styles.additionalServiceText}>Telemedicine</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
 
-          {/* Second Row Icons */}
-          <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconButton} onPress={routetoSearch}>
-              <Ionicons name="medical-outline" size={32} color="white" />
-              <Text style={styles.iconLabel}>Search Pharma</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => router.push(`/patient/screens/Family?id=${accountId}`)}
-            >
-              <Ionicons name="people-outline" size={32} color="white" />
-              <Text style={styles.iconLabel}>Family</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="bulb-outline" size={32} color="white" />
-              <Text style={styles.iconLabel}>Health Tips</Text>
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity style={styles.additionalService} activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                    style={styles.additionalServiceGradient}
+                  >
+                    <Ionicons name="settings-outline" size={20} color="white" />
+                    <Text style={styles.additionalServiceText}>Settings</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {/* Emergency SOS Button */}
-          <TouchableOpacity style={styles.emergencyButton}>
-            <LinearGradient colors={["#DC2626", "#EF4444"]} style={styles.emergencyGradient}>
-              <Text style={styles.emergencyText}>Emergency SOS</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.extraContent}>
-            <Text style={styles.extraText}>Scroll for more options</Text>
-            <View style={styles.spacer} />
-          </View>
+            <View style={styles.bottomPadding} />
           </ScrollView>
         </View>
       </Animated.View>
@@ -441,48 +624,78 @@ const switcherAnim = useRef(new Animated.Value(-width)).current;
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#1E3A8A" 
   },
-  fullBackground: { 
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerCenter: {
+    alignItems: "center",
     flex: 1,
-    paddingTop: 50 
   },
-  headerButtons: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    paddingHorizontal: 20, 
-    marginBottom: 20 
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  floatingButton: { 
-    width: 50, 
-    height: 50, 
-    borderRadius: 25, 
-    backgroundColor: "rgba(255,255,255,0.2)", 
-    alignItems: "center", 
-    justifyContent: "center" 
+  headerButton: {
+    width: 40,
+    height: 40,
   },
-  languageButton: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    backgroundColor: "rgba(255,255,255,0.2)", 
-    paddingHorizontal: 15, 
-    paddingVertical: 10, 
-    borderRadius: 20, 
-    gap: 5 
+  headerButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  languageText: { 
-    color: "white", 
-    fontSize: 14, 
-    fontWeight: "500" 
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "white",
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  languageButton: {
+    height: 40,
+  },
+  languageButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  languageText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
   },
   chatContainer: { 
     position: 'absolute',
     left: 20,
     right: 20,
-    top: 140,
+    top: 130,
     zIndex: 5,
-    // maxHeight will be controlled by animation to prevent overlap
   },
   chatList: {
     flex: 1,
@@ -496,76 +709,75 @@ const styles = StyleSheet.create({
     marginVertical: 4 
   },
   messageBubble: { 
-    padding: 14, 
+    padding: 16, 
     borderRadius: 20, 
     maxWidth: "85%",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   userMessage: { 
     backgroundColor: "rgba(255,255,255,0.95)", 
     alignSelf: "flex-end", 
-    borderBottomRightRadius: 6 
+    borderBottomRightRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   aiMessage: { 
     backgroundColor: "rgba(30, 58, 138, 0.9)", 
     alignSelf: "flex-start", 
     borderBottomLeftRadius: 6,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderWidth: 1
+    borderColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
   },
   messageText: { 
     fontSize: 15,
-    lineHeight: 20
+    lineHeight: 22,
+    fontWeight: "500",
   },
   userMessageText: { 
-    color: "#1F2937" 
+    color: "#1E3A8A" 
   },
   aiMessageText: { 
     color: "white" 
   },
   loadingContainer: { 
     alignItems: "center", 
-    paddingVertical: 10 
+    paddingVertical: 12 
   },
   loadingText: { 
     color: "rgba(255,255,255,0.8)", 
     fontSize: 14, 
-    fontStyle: "italic" 
+    fontWeight: "500",
   },
   micButtonContainer: {
     position: 'absolute',
-    left: width / 2 - 30,
+    left: width / 2 - 32,
     zIndex: 15,
     alignItems: 'center',
   },
   micButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    width: 64,
+    height: 64,
+  },
+  micButtonGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    shadowRadius: 12,
+    elevation: 12,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)"
+    borderColor: "rgba(255,255,255,0.3)",
   },
   micButtonRecording: {
-    backgroundColor: "rgba(220, 38, 38, 0.8)",
-    borderColor: "rgba(220, 38, 38, 0.5)"
+    // This style is handled by the gradient colors in the component
   },
   inputWrapper: { 
     position: "absolute", 
@@ -578,46 +790,59 @@ const styles = StyleSheet.create({
   },
   textInputContainer: { 
     flex: 1, 
+  },
+  textInputGradient: {
     flexDirection: "row", 
     alignItems: "center", 
-    backgroundColor: "rgba(255,255,255,0.25)", 
     borderRadius: 25, 
-    paddingHorizontal: 18, 
-    paddingVertical: 8,
+    paddingHorizontal: 20, 
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)"
+    borderColor: "rgba(255,255,255,0.2)",
   },
   textInput: { 
     flex: 1, 
     color: "white", 
     fontSize: 15, 
-    paddingVertical: 10
+    paddingVertical: 12,
+    fontWeight: "500",
   },
   sendButton: { 
-    padding: 8,
-    marginLeft: 5
+    marginLeft: 8,
+  },
+  sendButtonGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   speakerButton: { 
-    width: 45, 
-    height: 45, 
-    borderRadius: 22.5, 
-    backgroundColor: "rgba(255,255,255,0.2)", 
+    width: 48, 
+    height: 48, 
+  },
+  speakerButtonGradient: {
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
     alignItems: "center", 
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)"
+    borderColor: "rgba(255,255,255,0.2)",
   },
   bottomContainer: { 
     position: "absolute", 
     left: 0, 
     right: 0, 
-    height: height * 0.5, // Fixed height instead of full height
+    height: height * 0.55,
     backgroundColor: "rgba(255,255,255,0.15)", 
     borderTopLeftRadius: 25, 
     borderTopRightRadius: 25, 
-    paddingTop: 15,
+    paddingTop: 25,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)"
+    borderTopColor: "rgba(255,255,255,0.2)",
   },
   handleBar: { 
     width: 60, 
@@ -625,7 +850,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.5)", 
     borderRadius: 3, 
     alignSelf: "center", 
-    marginBottom: 25 
+    marginBottom: 20,
+    paddingVertical: 15, // Increase touch area
+    marginTop: -10, // Adjust positioning
   },
   scrollableWrapper: {
     flex: 1,
@@ -634,58 +861,116 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollableContentContainer: {
-    paddingHorizontal: 30,
-    paddingBottom: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  iconRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    marginBottom: 25 
+  servicesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 24,
   },
-  iconButton: { 
-    width: 70, 
-    height: 70, 
-    borderRadius: 20, 
-    backgroundColor: "rgba(255,255,255,0.2)", 
-    alignItems: "center", 
+  serviceCard: {
+    width: (width - 60) / 3,
+    marginBottom: 16,
+  },
+  serviceCardGradient: {
+    borderRadius: 20,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  serviceIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  serviceTitle: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  serviceSubtitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  emergencyButton: {
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  emergencyGradient: {
+    paddingVertical: 16,
+    alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)"
+    borderColor: "rgba(255,255,255,0.2)",
   },
-  iconLabel: { 
-    marginTop: 8, 
-    color: "white", 
-    fontSize: 12, 
-    textAlign: "center", 
-    fontWeight: "500" 
+  emergencyContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  emergencyButton: { 
-    marginTop: 20, 
-    marginBottom: 30, 
-    borderRadius: 15, 
-    overflow: "hidden" 
+  emergencyText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
-  emergencyGradient: { 
-    paddingVertical: 15, 
-    alignItems: "center", 
-    justifyContent: "center" 
+  additionalServices: {
+    marginBottom: 16,
   },
-  emergencyText: { 
-    color: "white", 
-    fontSize: 18, 
-    fontWeight: "700", 
-    letterSpacing: 1 
+  sectionTitle: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 16,
+    letterSpacing: 0.5,
   },
-  extraContent: { 
-    paddingVertical: 40, 
-    alignItems: "center" 
+  additionalGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  extraText: { 
-    color: "rgba(255,255,255,0.7)", 
-    fontSize: 14, 
-    fontStyle: "italic" 
+  additionalService: {
+    flex: 1,
+    marginHorizontal: 4,
   },
-  spacer: {
-    height: 100,
+  additionalServiceGradient: {
+    borderRadius: 16,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  additionalServiceText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  bottomPadding: {
+    height: 20,
   },
 });

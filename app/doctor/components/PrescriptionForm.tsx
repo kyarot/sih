@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 import axios from "axios";
 
 interface Medicine {
@@ -105,213 +107,439 @@ const PrescriptionForm = ({
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Prescription</Text>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Medicine Cards */}
-        {medicines.map((med, index) => (
-          <View key={index} style={styles.medicineCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Medicine {index + 1}</Text>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeMedicine(index)}
+    <LinearGradient
+      colors={['#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD']}
+      style={styles.container}
+    >
+      <View style={styles.formContainer}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerIcon}>
+                <Ionicons name="medical" size={24} color="#1E40AF" />
+              </View>
+              <Text style={styles.title}>Create Prescription</Text>
+            </View>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.closeButtonGradient}
               >
-                <Text style={styles.removeButtonText}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Medicine Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter medicine name"
-                placeholderTextColor="#94a3b8"
-                value={med.name}
-                onChangeText={(text) => updateMedicine(index, "name", text)}
-              />
-            </View>
-
-            <View style={styles.rowInputs}>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Quantity *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="10"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="numeric"
-                  value={med.quantity}
-                  onChangeText={(text) =>
-                    updateMedicine(index, "quantity", text.replace(/[^0-9]/g, ""))
-                  }
-                />
-              </View>
-              <View style={styles.halfInput}>
-                <Text style={styles.inputLabel}>Dosage *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="500mg"
-                  placeholderTextColor="#94a3b8"
-                  value={med.dosage}
-                  onChangeText={(text) =>
-                    updateMedicine(index, "dosage", text)
-                  }
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Duration (days) *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="7"
-                placeholderTextColor="#94a3b8"
-                keyboardType="numeric"
-                value={med.duration}
-                onChangeText={(text) =>
-                  updateMedicine(index, "duration", text.replace(/[^0-9]/g, ""))
-                }
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Special Instructions</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Take after meals..."
-                placeholderTextColor="#94a3b8"
-                multiline
-                numberOfLines={2}
-                value={med.instructions}
-                onChangeText={(text) =>
-                  updateMedicine(index, "instructions", text)
-                }
-              />
-            </View>
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-        ))}
 
-        {/* Add Medicine Button */}
-        <TouchableOpacity style={styles.addButton} onPress={addMedicine}>
-          <Text style={styles.addButtonText}>+ Add Medicine</Text>
-        </TouchableOpacity>
+          {medicines.length === 0 && (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="medical-outline" size={48} color="rgba(255, 255, 255, 0.6)" />
+              </View>
+              <Text style={styles.emptyTitle}>No Medicines Added</Text>
+              <Text style={styles.emptyText}>Add medicines to create a prescription</Text>
+            </View>
+          )}
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[
-              styles.generateButton,
-              !canGenerate && styles.generateButtonDisabled,
-            ]}
-            onPress={generatePrescription}
-            disabled={!canGenerate}
-          >
-            <Text
-              style={[
-                styles.generateButtonText,
-                !canGenerate && styles.generateButtonTextDisabled,
-              ]}
+          {/* Medicine Cards */}
+          {medicines.map((med, index) => (
+            <View key={index} style={styles.medicineCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardTitleContainer}>
+                  <View style={styles.medicineNumber}>
+                    <Text style={styles.medicineNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Medicine {index + 1}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeMedicine(index)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#FF6B6B', '#E55353']}
+                    style={styles.removeButtonGradient}
+                  >
+                    <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  <Ionicons name="medical" size={14} color="#1E40AF" /> Medicine Name *
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter medicine name"
+                  placeholderTextColor="rgba(30, 64, 175, 0.5)"
+                  value={med.name}
+                  onChangeText={(text) => updateMedicine(index, "name", text)}
+                />
+              </View>
+
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>
+                    <Ionicons name="apps" size={14} color="#1E40AF" /> Quantity *
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="10"
+                    placeholderTextColor="rgba(30, 64, 175, 0.5)"
+                    keyboardType="numeric"
+                    value={med.quantity}
+                    onChangeText={(text) =>
+                      updateMedicine(index, "quantity", text.replace(/[^0-9]/g, ""))
+                    }
+                  />
+                </View>
+                <View style={styles.halfInput}>
+                  <Text style={styles.inputLabel}>
+                    <Ionicons name="scale" size={14} color="#1E40AF" /> Dosage *
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="500mg"
+                    placeholderTextColor="rgba(30, 64, 175, 0.5)"
+                    value={med.dosage}
+                    onChangeText={(text) =>
+                      updateMedicine(index, "dosage", text)
+                    }
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  <Ionicons name="calendar" size={14} color="#1E40AF" /> Duration (days) *
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="7"
+                  placeholderTextColor="rgba(30, 64, 175, 0.5)"
+                  keyboardType="numeric"
+                  value={med.duration}
+                  onChangeText={(text) =>
+                    updateMedicine(index, "duration", text.replace(/[^0-9]/g, ""))
+                  }
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  <Ionicons name="document-text" size={14} color="#1E40AF" /> Special Instructions
+                </Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Take after meals, with water..."
+                  placeholderTextColor="rgba(30, 64, 175, 0.5)"
+                  multiline
+                  numberOfLines={3}
+                  value={med.instructions}
+                  onChangeText={(text) =>
+                    updateMedicine(index, "instructions", text)
+                  }
+                />
+              </View>
+            </View>
+          ))}
+
+          {/* Add Medicine Button */}
+          <TouchableOpacity style={styles.addButton} onPress={addMedicine} activeOpacity={0.8}>
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
+              style={styles.addButtonGradient}
             >
-              Generate Prescription
-            </Text>
+              <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Add Medicine</Text>
+            </LinearGradient>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[
+                styles.generateButton,
+                !canGenerate && styles.generateButtonDisabled,
+              ]}
+              onPress={generatePrescription}
+              disabled={!canGenerate}
+              activeOpacity={canGenerate ? 0.8 : 1}
+            >
+              <LinearGradient
+                colors={canGenerate ? ['#FFFFFF', '#F8FAFF'] : ['#8DA4CC', '#7A92B8']}
+                style={styles.generateButtonGradient}
+              >
+                <Ionicons 
+                  name="document-text" 
+                  size={20} 
+                  color={canGenerate ? "#1E40AF" : "#FFFFFF"} 
+                />
+                <Text
+                  style={[
+                    styles.generateButtonText,
+                    { color: canGenerate ? "#1E40AF" : "#FFFFFF" }
+                  ]}
+                >
+                  Generate Prescription
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    </LinearGradient>
   );
 };
 
 export default PrescriptionForm;
 
-// your styles remain unchanged
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white", borderRadius: 16 },
+  container: {
+    flex: 1,
+  },
+  formContainer: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    margin: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: 'blur(10px)',
+    shadowColor: "rgba(0, 0, 0, 0.1)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#1E40AF",
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.2)",
   },
-  title: { fontSize: 18, fontWeight: "700", color: "white" },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    shadowColor: "rgba(0, 0, 0, 0.1)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  closeButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
-  closeButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+  },
+
   medicineCard: {
-    backgroundColor: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     marginHorizontal: 20,
     marginTop: 16,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    shadowColor: "rgba(0, 0, 0, 0.08)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 12,
+    marginBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: "rgba(30, 64, 175, 0.1)",
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: "#1E40AF" },
+  cardTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  medicineNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#1E40AF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  medicineNumberText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
   removeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#ef4444",
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  removeButtonText: { color: "#ef4444", fontSize: 12, fontWeight: "600" },
-  inputGroup: { marginBottom: 16 },
-  inputLabel: { fontSize: 14, fontWeight: "500", color: "#1E40AF", marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
+  removeButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
+  },
+  removeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
     fontSize: 14,
-    color: "#374151",
-    backgroundColor: "#fefefe",
+    fontWeight: "600",
+    color: "#1E40AF",
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  textArea: { height: 60, textAlignVertical: "top" },
-  rowInputs: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  halfInput: { flex: 1 },
+  input: {
+    borderWidth: 2,
+    borderColor: "rgba(30, 64, 175, 0.2)",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#1E40AF",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: "top",
+    paddingTop: 12,
+  },
+  rowInputs: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
+  },
+
   addButton: {
     marginHorizontal: 20,
     marginTop: 20,
-    paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
     borderWidth: 2,
-    borderColor: "#1E40AF",
+    borderColor: "rgba(255, 255, 255, 0.3)",
     borderStyle: "dashed",
-    alignItems: "center",
   },
-  addButtonText: { color: "#1E40AF", fontSize: 16, fontWeight: "600" },
-  actionButtons: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 30 },
-  generateButton: {
-    backgroundColor: "#1E40AF",
+  addButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
   },
-  generateButtonDisabled: { backgroundColor: "#94a3b8" },
-  generateButtonText: { color: "white", fontSize: 16, fontWeight: "700" },
-  generateButtonTextDisabled: { color: "#f8fafc" },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
+
+  actionButtons: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 30,
+  },
+  generateButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: "rgba(0, 0, 0, 0.1)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  generateButtonDisabled: {
+    opacity: 0.7,
+  },
+  generateButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+  },
+  generateButtonText: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
 });

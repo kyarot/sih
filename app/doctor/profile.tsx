@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface Doctor {
   name: string;
@@ -83,459 +84,612 @@ export default function DoctorProfile() {
 
   if (!doctor) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading Profile...</Text>
-        </View>
-      </SafeAreaView>
+      <LinearGradient 
+        colors={['#1e3a8a', '#3b82f6', '#60a5fa']} 
+        style={styles.gradientContainer}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingCard}>
+              <Ionicons name="medical" size={40} color="#60a5fa" />
+              <Text style={styles.loadingText}>Loading Profile...</Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Doctor Profile</Text>
-        <Text style={styles.headerSubtitle}>
-          {isEditing ? "Edit your professional information" : "Your professional information"}
-        </Text>
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Profile Summary Card */}
-        <View style={styles.profileSummary}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={50} color="#1E40AF" />
-          </View>
-          <View style={styles.summaryInfo}>
-            <Text style={styles.doctorName}>{doctor.name}</Text>
-            <Text style={styles.doctorSpec}>{doctor.specialization}</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="star" size={16} color="#F59E0B" />
-                <Text style={styles.statText}>{doctor.rating}/5</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="people" size={16} color="#1E40AF" />
-                <Text style={styles.statText}>{doctor.patients} patients</Text>
-              </View>
-            </View>
-          </View>
-          <View style={[styles.availabilityBadge, doctor.availability === "online" && styles.onlineBadge]}>
-            <Text style={[styles.availabilityText, doctor.availability === "online" && styles.onlineText]}>
-              {doctor.availability === "online" ? "Online" : "Offline"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Basic Information */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="person-outline" size={20} color="#1E40AF" />
-            <Text style={styles.sectionTitle}>Basic Information</Text>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name *</Text>
-            <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
-              value={doctor.name}
-              editable={isEditing}
-              onChangeText={(text) => setDoctor({ ...doctor, name: text })}
-              placeholder="Enter your full name"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Specialization *</Text>
-            <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
-              value={doctor.specialization}
-              editable={isEditing}
-              onChangeText={(text) => setDoctor({ ...doctor, specialization: text })}
-              placeholder="e.g., Cardiologist, Neurologist"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Experience *</Text>
-            <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
-              value={doctor.experience}
-              editable={isEditing}
-              onChangeText={(text) => setDoctor({ ...doctor, experience: text })}
-              placeholder="e.g., 5 years"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-        </View>
-
-        {/* Professional Bio */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="document-text-outline" size={20} color="#1E40AF" />
-            <Text style={styles.sectionTitle}>Professional Bio</Text>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>About You</Text>
-            <TextInput
-              style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]}
-              value={doctor.bio}
-              editable={isEditing}
-              onChangeText={(text) => setDoctor({ ...doctor, bio: text })}
-              placeholder="Tell patients about your background and approach to healthcare..."
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-        </View>
-
-        {/* Certifications */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="ribbon-outline" size={20} color="#1E40AF" />
-            <Text style={styles.sectionTitle}>Certifications & Qualifications</Text>
-          </View>
-          {doctor.certifications.map((cert, idx) => (
-            <View key={idx} style={styles.certificationRow}>
-              <TextInput
-                style={[styles.input, styles.certInput, !isEditing && styles.inputDisabled]}
-                value={cert}
-                editable={isEditing}
-                onChangeText={(text) => {
-                  const newCerts = [...doctor.certifications];
-                  newCerts[idx] = text;
-                  setDoctor({ ...doctor, certifications: newCerts });
-                }}
-                placeholder="e.g., Board Certified in Cardiology"
-                placeholderTextColor="#94A3B8"
-              />
-              {isEditing && (
-                <TouchableOpacity 
-                  onPress={() => removeCertification(idx)} 
-                  style={styles.removeBtn}
-                >
-                  <Ionicons name="close" size={16} color="#EF4444" />
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
-          {isEditing && (
-            <TouchableOpacity onPress={addCertification} style={styles.addBtn}>
-              <Ionicons name="add" size={16} color="#1E40AF" />
-              <Text style={styles.addBtnText}>Add Certification</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Contact Information */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="call-outline" size={20} color="#1E40AF" />
-            <Text style={styles.sectionTitle}>Contact Information</Text>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Phone *</Text>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={doctor.phone}
-                editable={isEditing}
-                keyboardType="phone-pad"
-                onChangeText={(text) => setDoctor({ ...doctor, phone: text })}
-                placeholder="+1 234 567 8900"
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Email *</Text>
-              <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
-                value={doctor.email}
-                editable={isEditing}
-                keyboardType="email-address"
-                onChangeText={(text) => setDoctor({ ...doctor, email: text })}
-                placeholder="doctor@example.com"
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Address</Text>
-            <TextInput
-              style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]}
-              value={doctor.address}
-              editable={isEditing}
-              multiline
-              numberOfLines={2}
-              onChangeText={(text) => setDoctor({ ...doctor, address: text })}
-              placeholder="Clinic/Hospital address"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-        </View>
-
-        {/* Professional Details */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="business-outline" size={20} color="#1E40AF" />
-            <Text style={styles.sectionTitle}>Professional Details</Text>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hospital/Clinic *</Text>
-            <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
-              value={doctor.hospital}
-              editable={isEditing}
-              onChangeText={(text) => setDoctor({ ...doctor, hospital: text })}
-              placeholder="Primary workplace"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Medical License *</Text>
-            <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
-              value={doctor.license}
-              editable={isEditing}
-              onChangeText={(text) => setDoctor({ ...doctor, license: text })}
-              placeholder="License number"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Languages Spoken</Text>
-            <TextInput
-              style={[styles.input, !isEditing && styles.inputDisabled]}
-              value={doctor.languages.join(", ")}
-              editable={isEditing}
-              onChangeText={(text) =>
-                setDoctor({ ...doctor, languages: text.split(",").map((l) => l.trim()) })
-              }
-              placeholder="English, Spanish, French"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-        </View>
-
-        {/* Availability */}
-        <View style={styles.section}>
-          <View style={styles.availabilityHeader}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="time-outline" size={20} color="#1E40AF" />
-              <Text style={styles.sectionTitle}>Availability Status</Text>
-            </View>
-            <Switch
-              value={doctor.availability === "online"}
-              onValueChange={(val) => setDoctor({ ...doctor, availability: val ? "online" : "offline" })}
-              disabled={!isEditing}
-              trackColor={{ false: "#E2E8F0", true: "#1E40AF" }}
-              thumbColor={doctor.availability === "online" ? "white" : "#94A3B8"}
-            />
-          </View>
-          <Text style={styles.availabilityDesc}>
-            {doctor.availability === "online" 
-              ? "You are currently available for consultations" 
-              : "You are currently offline for consultations"}
+    <LinearGradient 
+      colors={['#1e3a8a', '#3b82f6', '#60a5fa']} 
+      style={styles.gradientContainer}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        {/* Enhanced Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Doctor Profile</Text>
+          <Text style={styles.headerSubtitle}>
+            {isEditing ? "Edit your professional information" : "Your professional information"}
           </Text>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionSection}>
-          {isEditing ? (
-            <View style={styles.editingButtons}>
-              <TouchableOpacity 
-                style={styles.cancelBtn} 
-                onPress={() => {
-                  setIsEditing(false);
-                  fetchDoctor(); // Reset changes
-                }}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Ionicons name="checkmark" size={18} color="white" />
-                <Text style={styles.saveBtnText}>Save Changes</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
-              <Ionicons name="create-outline" size={18} color="white" />
-              <Text style={styles.editBtnText}>Edit Profile</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Enhanced Profile Summary Card */}
+          <View style={styles.profileSummary}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.8)']}
+              style={styles.profileGradient}
+            >
+              <View style={styles.avatarContainer}>
+                <LinearGradient
+                  colors={['#60a5fa', '#3b82f6']}
+                  style={styles.avatarGradient}
+                >
+                  <Ionicons name="person" size={50} color="white" />
+                </LinearGradient>
+              </View>
+              <View style={styles.summaryInfo}>
+                <Text style={styles.doctorName}>{doctor.name}</Text>
+                <Text style={styles.doctorSpec}>{doctor.specialization}</Text>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="star" size={16} color="#f59e0b" />
+                    <Text style={styles.statText}>{doctor.rating}/5</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Ionicons name="people" size={16} color="#3b82f6" />
+                    <Text style={styles.statText}>{doctor.patients} patients</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={[styles.availabilityBadge, doctor.availability === "online" && styles.onlineBadge]}>
+                <Text style={[styles.availabilityText, doctor.availability === "online" && styles.onlineText]}>
+                  {doctor.availability === "online" ? "Online" : "Offline"}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
 
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-    </SafeAreaView>
+          {/* Basic Information */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.sectionGradient}
+            >
+              <View style={styles.sectionHeader}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="person-outline" size={20} color="white" />
+                </View>
+                <Text style={styles.sectionTitle}>Basic Information</Text>
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name *</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={doctor.name}
+                    editable={isEditing}
+                    onChangeText={(text) => setDoctor({ ...doctor, name: text })}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Specialization *</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={doctor.specialization}
+                    editable={isEditing}
+                    onChangeText={(text) => setDoctor({ ...doctor, specialization: text })}
+                    placeholder="e.g., Cardiologist, Neurologist"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Experience *</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={doctor.experience}
+                    editable={isEditing}
+                    onChangeText={(text) => setDoctor({ ...doctor, experience: text })}
+                    placeholder="e.g., 5 years"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* Professional Bio */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.sectionGradient}
+            >
+              <View style={styles.sectionHeader}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="document-text-outline" size={20} color="white" />
+                </View>
+                <Text style={styles.sectionTitle}>Professional Bio</Text>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>About You</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]}
+                    value={doctor.bio}
+                    editable={isEditing}
+                    onChangeText={(text) => setDoctor({ ...doctor, bio: text })}
+                    placeholder="Tell patients about your background and approach to healthcare..."
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* Certifications */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.sectionGradient}
+            >
+              <View style={styles.sectionHeader}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="ribbon-outline" size={20} color="white" />
+                </View>
+                <Text style={styles.sectionTitle}>Certifications & Qualifications</Text>
+              </View>
+              {doctor.certifications.map((cert, idx) => (
+                <View key={idx} style={styles.certificationRow}>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={[styles.input, !isEditing && styles.inputDisabled]}
+                      value={cert}
+                      editable={isEditing}
+                      onChangeText={(text) => {
+                        const newCerts = [...doctor.certifications];
+                        newCerts[idx] = text;
+                        setDoctor({ ...doctor, certifications: newCerts });
+                      }}
+                      placeholder="e.g., Board Certified in Cardiology"
+                      placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                    />
+                  </View>
+                  {isEditing && (
+                    <TouchableOpacity 
+                      onPress={() => removeCertification(idx)} 
+                      style={styles.removeBtn}
+                    >
+                      <Ionicons name="close" size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+              {isEditing && (
+                <TouchableOpacity onPress={addCertification} style={styles.addBtn}>
+                  <Ionicons name="add" size={16} color="#3b82f6" />
+                  <Text style={styles.addBtnText}>Add Certification</Text>
+                </TouchableOpacity>
+              )}
+            </LinearGradient>
+          </View>
+
+          {/* Contact Information */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.sectionGradient}
+            >
+              <View style={styles.sectionHeader}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="call-outline" size={20} color="white" />
+                </View>
+                <Text style={styles.sectionTitle}>Contact Information</Text>
+              </View>
+              <View style={styles.row}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.label}>Phone *</Text>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[styles.input, !isEditing && styles.inputDisabled]}
+                      value={doctor.phone}
+                      editable={isEditing}
+                      keyboardType="phone-pad"
+                      onChangeText={(text) => setDoctor({ ...doctor, phone: text })}
+                      placeholder="+1 234 567 8900"
+                      placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                    />
+                  </View>
+                </View>
+                <View style={styles.halfInput}>
+                  <Text style={styles.label}>Email *</Text>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[styles.input, !isEditing && styles.inputDisabled]}
+                      value={doctor.email}
+                      editable={isEditing}
+                      keyboardType="email-address"
+                      onChangeText={(text) => setDoctor({ ...doctor, email: text })}
+                      placeholder="doctor@example.com"
+                      placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                    />
+                  </View>
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Address</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]}
+                    value={doctor.address}
+                    editable={isEditing}
+                    multiline
+                    numberOfLines={2}
+                    onChangeText={(text) => setDoctor({ ...doctor, address: text })}
+                    placeholder="Clinic/Hospital address"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* Professional Details */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.sectionGradient}
+            >
+              <View style={styles.sectionHeader}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="business-outline" size={20} color="white" />
+                </View>
+                <Text style={styles.sectionTitle}>Professional Details</Text>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Hospital/Clinic *</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={doctor.hospital}
+                    editable={isEditing}
+                    onChangeText={(text) => setDoctor({ ...doctor, hospital: text })}
+                    placeholder="Primary workplace"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Medical License *</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={doctor.license}
+                    editable={isEditing}
+                    onChangeText={(text) => setDoctor({ ...doctor, license: text })}
+                    placeholder="License number"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Languages Spoken</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={doctor.languages.join(", ")}
+                    editable={isEditing}
+                    onChangeText={(text) =>
+                      setDoctor({ ...doctor, languages: text.split(",").map((l) => l.trim()) })
+                    }
+                    placeholder="English, Spanish, French"
+                    placeholderTextColor="rgba(96, 165, 250, 0.5)"
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* Availability */}
+          <View style={styles.section}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+              style={styles.sectionGradient}
+            >
+              <View style={styles.availabilityHeader}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="time-outline" size={20} color="white" />
+                  </View>
+                  <Text style={styles.sectionTitle}>Availability Status</Text>
+                </View>
+                <Switch
+                  value={doctor.availability === "online"}
+                  onValueChange={(val) => setDoctor({ ...doctor, availability: val ? "online" : "offline" })}
+                  disabled={!isEditing}
+                  trackColor={{ false: "rgba(255,255,255,0.3)", true: "#3b82f6" }}
+                  thumbColor={doctor.availability === "online" ? "white" : "rgba(255,255,255,0.8)"}
+                />
+              </View>
+              <Text style={styles.availabilityDesc}>
+                {doctor.availability === "online" 
+                  ? "You are currently available for consultations" 
+                  : "You are currently offline for consultations"}
+              </Text>
+            </LinearGradient>
+          </View>
+
+          {/* Enhanced Action Buttons */}
+          <View style={styles.actionSection}>
+            {isEditing ? (
+              <View style={styles.editingButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelBtn} 
+                  onPress={() => {
+                    setIsEditing(false);
+                    fetchDoctor();
+                  }}
+                >
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+                    style={styles.buttonGradient}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                  <LinearGradient
+                    colors={['#ffffff', '#f8fafc']}
+                    style={styles.buttonGradient}
+                  >
+                    <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                    <Text style={styles.saveBtnText}>Save Changes</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
+                <LinearGradient
+                  colors={['#ffffff', '#f8fafc']}
+                  style={styles.buttonGradient}
+                >
+                  <Ionicons name="create-outline" size={18} color="#3b82f6" />
+                  <Text style={styles.editBtnText}>Edit Profile</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradientContainer: {
+    flex: 1,
+  },
   safeArea: { 
-    flex: 1, 
-    backgroundColor: "#1E40AF" 
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  loadingCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   loadingText: {
     fontSize: 16,
-    color: "#64748B",
+    color: "#1e3a8a",
+    marginTop: 12,
+    fontWeight: '600',
   },
   header: {
-    backgroundColor: "#1E40AF",
     paddingVertical: 24,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingTop: 40,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
     color: "white",
     textAlign: "center",
     marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    fontSize: 16,
+    color: "rgba(255,255,255,0.9)",
     textAlign: "center",
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
   },
 
-  // Profile Summary
+  // Enhanced Profile Summary
   profileSummary: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    elevation: 3,
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    marginBottom: 20,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  profileGradient: {
+    borderRadius: 20,
+    padding: 24,
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarContainer: {
+    marginRight: 16,
+  },
+  avatarGradient: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: "#1E40AF",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   summaryInfo: {
     flex: 1,
   },
   doctorName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: "#1e3a8a",
     marginBottom: 4,
   },
   doctorSpec: {
-    fontSize: 14,
-    color: "#64748B",
-    marginBottom: 8,
+    fontSize: 15,
+    color: "#3b82f6",
+    marginBottom: 12,
+    fontWeight: '500',
   },
   statsRow: {
     flexDirection: "row",
-    gap: 16,
+    gap: 20,
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   statText: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "500",
+    fontSize: 13,
+    color: "#64748b",
+    fontWeight: "600",
   },
   availabilityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(251, 191, 36, 0.2)",
     borderWidth: 1,
-    borderColor: "#F59E0B",
+    borderColor: "#f59e0b",
   },
   onlineBadge: {
-    backgroundColor: "#D1FAE5",
-    borderColor: "#10B981",
+    backgroundColor: "rgba(34, 197, 94, 0.2)",
+    borderColor: "#22c55e",
   },
   availabilityText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#D97706",
+    fontWeight: "700",
+    color: "#d97706",
   },
   onlineText: {
     color: "#059669",
   },
 
-  // Sections
+  // Enhanced Sections
   section: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    borderRadius: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sectionGradient: {
+    borderRadius: 18,
+    padding: 20,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 20,
+    gap: 12,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1E40AF",
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1e3a8a",
   },
 
-  // Inputs
+  // Enhanced Inputs
   inputGroup: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1E40AF",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1e3a8a",
     marginBottom: 8,
   },
+  inputContainer: {
+    borderRadius: 12,
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   input: {
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
-    color: "#1E293B",
-    backgroundColor: "white",
+    color: "#1e3a8a",
   },
   inputDisabled: {
-    backgroundColor: "#F8FAFC",
-    color: "#64748B",
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    color: "#64748b",
   },
   textArea: {
     minHeight: 80,
@@ -549,58 +703,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Certifications
+  // Enhanced Certifications
   certificationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
     marginBottom: 12,
   },
-  certInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
   removeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEE2E2",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#1E40AF",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3b82f6',
     borderStyle: "dashed",
-    backgroundColor: "white",
+    backgroundColor: 'rgba(255,255,255,0.8)',
     gap: 8,
     alignSelf: "flex-start",
   },
   addBtnText: {
-    color: "#1E40AF",
-    fontSize: 14,
-    fontWeight: "600",
+    color: "#3b82f6",
+    fontSize: 15,
+    fontWeight: "700",
   },
 
-  // Availability
+  // Enhanced Availability
   availabilityHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   availabilityDesc: {
     fontSize: 14,
-    color: "#64748B",
+    color: "#64748b",
     fontStyle: "italic",
+    fontWeight: '500',
   },
 
-  // Actions
+  // Enhanced Action Buttons
   actionSection: {
     marginBottom: 16,
   },
@@ -610,49 +763,57 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: "white",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   cancelBtnText: {
-    color: "#64748B",
+    color: "#64748b",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   saveBtn: {
     flex: 1,
-    backgroundColor: "#1E40AF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   saveBtnText: {
-    color: "white",
+    color: "#3b82f6",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   editBtn: {
-    backgroundColor: "#1E40AF",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  editBtnText: {
+    color: "#3b82f6",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  buttonGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     gap: 8,
-  },
-  editBtnText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
 
   bottomSpacing: {
-    height: 20,
+    height: 30,
   },
 });
