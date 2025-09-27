@@ -4,6 +4,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import React from "react";
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function VideoCallScreen() {
   const { videoLink } = useLocalSearchParams();
@@ -11,143 +12,275 @@ export default function VideoCallScreen() {
 
   if (!videoLink) {
     return (
-      <View style={styles.container}>
+      <LinearGradient
+        colors={['#1e3a8a', '#3b82f6']}
+        style={styles.container}
+      >
         <View style={styles.errorContainer}>
-          <View style={styles.errorIconContainer}>
-            <Ionicons name="videocam-off" size={48} color="#1E40AF" />
-          </View>
-          <Text style={styles.errorTitle}>No Video Link Available</Text>
-          <Text style={styles.errorSubtitle}>
-            Please check your connection and try again
-          </Text>
-          <TouchableOpacity style={styles.retryButton}>
-            <Ionicons name="refresh" size={20} color="#FFFFFF" />
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+            style={styles.errorCard}
+          >
+            <View style={styles.errorIconContainer}>
+              <Ionicons name="videocam-off" size={56} color="rgba(255, 255, 255, 0.9)" />
+            </View>
+            <Text style={styles.errorTitle}>No Video Link Available</Text>
+            <Text style={styles.errorSubtitle}>
+              Please check your connection and try again
+            </Text>
+            <TouchableOpacity style={styles.retryButton}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.retryButtonGradient}
+              >
+                <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                <Text style={styles.retryText}>Retry</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
   // ✅ On Web, use iframe
   if (Platform.OS === "web") {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <LinearGradient
+        colors={['#1e3a8a', '#3b82f6']}
+        style={styles.container}
+      >
+        {/* Enhanced Header */}
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+          style={styles.header}
+        >
           <View style={styles.headerLeft}>
             <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
+              <LinearGradient
+                colors={['#ef4444', '#dc2626']}
+                style={styles.liveIndicatorGradient}
+              >
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </LinearGradient>
             </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="settings" size={20} color="#1E40AF" />
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+                style={styles.headerButtonGradient}
+              >
+                <Ionicons name="settings" size={20} color="white" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
         
+        {/* Enhanced Video Container */}
         <View style={styles.videoContainer}>
-          {isLoading && (
-            <View style={styles.loadingOverlay}>
-              <View style={styles.loadingContainer}>
-                <View style={styles.loadingSpinner} />
-                <Text style={styles.loadingText}>Connecting to video call...</Text>
-              </View>
-            </View>
-          )}
-          <iframe
-            src={String(videoLink)}
-            style={{ width: "100%", height: "100%", border: "none" }}
-            allow="camera; microphone; fullscreen; display-capture"
-            onLoad={() => setIsLoading(false)}
-          />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+            style={styles.videoFrame}
+          >
+            {isLoading && (
+              <LinearGradient
+                colors={['rgba(30, 58, 138, 0.95)', 'rgba(59, 130, 246, 0.85)']}
+                style={styles.loadingOverlay}
+              >
+                <View style={styles.loadingContainer}>
+                  <View style={styles.loadingSpinner} />
+                  <Text style={styles.loadingText}>Connecting to video call...</Text>
+                  <Text style={styles.loadingSubtext}>Please wait while we establish the connection</Text>
+                </View>
+              </LinearGradient>
+            )}
+            <iframe
+              src={String(videoLink)}
+              style={{ width: "100%", height: "100%", border: "none", borderRadius: 16 }}
+              allow="camera; microphone; fullscreen; display-capture"
+              onLoad={() => setIsLoading(false)}
+            />
+          </LinearGradient>
         </View>
 
-        <View style={styles.controls}>
+        {/* Enhanced Controls */}
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+          style={styles.controls}
+        >
           <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="mic" size={24} color="#1E40AF" />
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+              style={styles.controlButtonGradient}
+            >
+              <Ionicons name="mic" size={24} color="white" />
+            </LinearGradient>
           </TouchableOpacity>
+          
           <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="videocam" size={24} color="#1E40AF" />
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+              style={styles.controlButtonGradient}
+            >
+              <Ionicons name="videocam" size={24} color="white" />
+            </LinearGradient>
           </TouchableOpacity>
+          
           <TouchableOpacity style={[styles.controlButton, styles.endCallButton]}>
-            <Ionicons name="call" size={24} color="#FFFFFF" />
+            <LinearGradient
+              colors={['#ef4444', '#dc2626']}
+              style={styles.controlButtonGradient}
+            >
+              <Ionicons name="call" size={24} color="#FFFFFF" />
+            </LinearGradient>
           </TouchableOpacity>
+          
           <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="chatbubble" size={24} color="#1E40AF" />
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+              style={styles.controlButtonGradient}
+            >
+              <Ionicons name="chatbubble" size={24} color="white" />
+            </LinearGradient>
           </TouchableOpacity>
+          
           <TouchableOpacity style={styles.controlButton}>
-            <Ionicons name="people" size={24} color="#1E40AF" />
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+              style={styles.controlButtonGradient}
+            >
+              <Ionicons name="people" size={24} color="white" />
+            </LinearGradient>
           </TouchableOpacity>
-        </View>
-      </View>
+        </LinearGradient>
+      </LinearGradient>
     );
   }
 
   // ✅ On Android/iOS, use WebView
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <LinearGradient
+      colors={['#1e3a8a', '#3b82f6']}
+      style={styles.container}
+    >
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+        style={styles.header}
+      >
         <View style={styles.headerLeft}>
           <View style={styles.liveIndicator}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+            <LinearGradient
+              colors={['#ef4444', '#dc2626']}
+              style={styles.liveIndicatorGradient}
+            >
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </LinearGradient>
           </View>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="settings" size={20} color="#1E40AF" />
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
+              style={styles.headerButtonGradient}
+            >
+              <Ionicons name="settings" size={20} color="white" />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
 
+      {/* Enhanced Video Container */}
       <View style={styles.videoContainer}>
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <View style={styles.loadingContainer}>
-              <View style={styles.loadingSpinner} />
-              <Text style={styles.loadingText}>Connecting to video call...</Text>
-            </View>
-          </View>
-        )}
-        <WebView
-          source={{ uri: String(videoLink) }}
-          style={styles.webview}
-          javaScriptEnabled
-          domStorageEnabled
-          allowsFullscreenVideo
-          mediaPlaybackRequiresUserAction={false}
-          onLoadStart={() => setIsLoading(true)}
-          onLoadEnd={() => setIsLoading(false)}
-        />
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+          style={styles.videoFrame}
+        >
+          {isLoading && (
+            <LinearGradient
+              colors={['rgba(30, 58, 138, 0.95)', 'rgba(59, 130, 246, 0.85)']}
+              style={styles.loadingOverlay}
+            >
+              <View style={styles.loadingContainer}>
+                <View style={styles.loadingSpinner} />
+                <Text style={styles.loadingText}>Connecting to video call...</Text>
+                <Text style={styles.loadingSubtext}>Please wait while we establish the connection</Text>
+              </View>
+            </LinearGradient>
+          )}
+          <WebView
+            source={{ uri: String(videoLink) }}
+            style={styles.webview}
+            javaScriptEnabled
+            domStorageEnabled
+            allowsFullscreenVideo
+            mediaPlaybackRequiresUserAction={false}
+            onLoadStart={() => setIsLoading(true)}
+            onLoadEnd={() => setIsLoading(false)}
+          />
+        </LinearGradient>
       </View>
 
-      <View style={styles.controls}>
+      {/* Enhanced Controls */}
+      <LinearGradient
+        colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+        style={styles.controls}
+      >
         <TouchableOpacity style={styles.controlButton}>
-          <Ionicons name="mic" size={24} color="#1E40AF" />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+            style={styles.controlButtonGradient}
+          >
+            <Ionicons name="mic" size={24} color="white" />
+          </LinearGradient>
         </TouchableOpacity>
+        
         <TouchableOpacity style={styles.controlButton}>
-          <Ionicons name="videocam" size={24} color="#1E40AF" />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+            style={styles.controlButtonGradient}
+          >
+            <Ionicons name="videocam" size={24} color="white" />
+          </LinearGradient>
         </TouchableOpacity>
+        
         <TouchableOpacity style={[styles.controlButton, styles.endCallButton]}>
-          <Ionicons name="call" size={24} color="#FFFFFF" />
+          <LinearGradient
+            colors={['#ef4444', '#dc2626']}
+            style={styles.controlButtonGradient}
+          >
+            <Ionicons name="call" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
+        
         <TouchableOpacity style={styles.controlButton}>
-          <Ionicons name="chatbubble" size={24} color="#1E40AF" />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+            style={styles.controlButtonGradient}
+          >
+            <Ionicons name="chatbubble" size={24} color="white" />
+          </LinearGradient>
         </TouchableOpacity>
+        
         <TouchableOpacity style={styles.controlButton}>
-          <Ionicons name="people" size={24} color="#1E40AF" />
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.08)']}
+            style={styles.controlButtonGradient}
+          >
+            <Ionicons name="people" size={24} color="white" />
+          </LinearGradient>
         </TouchableOpacity>
-      </View>
-    </View>
+      </LinearGradient>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: { 
-    flex: 1, 
-    backgroundColor: "#FFFFFF" 
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -155,10 +288,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: Platform.OS === "ios" ? 50 : 20,
     paddingHorizontal: 20,
-    paddingBottom: 15,
-    backgroundColor: "#FFFFFF",
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   headerLeft: {
     flex: 1,
@@ -168,146 +300,209 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   liveIndicator: {
+    alignSelf: "flex-start",
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  liveIndicatorGradient: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF2F2",
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: "flex-start",
+    paddingVertical: 8,
   },
   liveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#EF4444",
-    marginRight: 6,
+    backgroundColor: "#FFFFFF",
+    marginRight: 8,
+    shadowColor: "#FFFFFF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 3,
   },
   liveText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#DC2626",
-    letterSpacing: 0.5,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1,
   },
   headerButton: {
-    width: 40,
-    height: 40,
     borderRadius: 20,
-    backgroundColor: "#EFF6FF",
+    overflow: 'hidden',
+  },
+  headerButtonGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   videoContainer: {
     flex: 1,
-    position: "relative",
-    backgroundColor: "#000000",
-    margin: 20,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  videoFrame: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+    overflow: 'hidden',
   },
   webview: { 
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 18,
+    backgroundColor: '#000',
   },
   loadingOverlay: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#FFFFFF",
+    top: 2,
+    left: 2,
+    right: 2,
+    bottom: 2,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
-    borderRadius: 16,
+    borderRadius: 18,
   },
   loadingContainer: {
     alignItems: "center",
+    paddingHorizontal: 40,
   },
   loadingSpinner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: "#E5E7EB",
-    borderTopColor: "#1E40AF",
-    marginBottom: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 4,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderTopColor: "#FFFFFF",
+    marginBottom: 20,
   },
   loadingText: {
-    fontSize: 16,
-    color: "#6B7280",
-    fontWeight: "500",
+    fontSize: 18,
+    color: "white",
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: 'center',
+    lineHeight: 20,
   },
   controls: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: 25,
     paddingHorizontal: 20,
-    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    gap: 20,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    gap: 15,
   },
   controlButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#EFF6FF",
+    borderRadius: 30,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  controlButtonGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   endCallButton: {
-    backgroundColor: "#1E40AF",
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 40,
-    backgroundColor: "#FFFFFF",
+  },
+  errorCard: {
+    width: '100%',
+    maxWidth: 350,
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   errorIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#EFF6FF",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   errorTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 8,
+    color: "white",
+    marginBottom: 12,
     textAlign: "center",
   },
   errorSubtitle: {
     fontSize: 16,
-    color: "#6B7280",
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
   },
   retryButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  retryButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1E40AF",
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
     gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   retryText: {
     fontSize: 16,

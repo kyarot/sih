@@ -15,6 +15,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
   
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -46,9 +47,10 @@ const ActivityScreen: React.FC = () => {
 
   // Scheduling
   const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
   const [pendingDecisionId, setPendingDecisionId] = useState<string | null>(null);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
   const [showPrescriptionFor, setShowPrescriptionFor] = useState<string | null>(null);
 
@@ -94,7 +96,9 @@ const ActivityScreen: React.FC = () => {
     try {
       if (decision === "accepted") {
         setPendingDecisionId(id);
-        setShowDatePicker(true);
+        setPickerMode('date');
+        setScheduleDate(new Date());
+        setShowDateModal(true);
         return;
       }
 
@@ -110,6 +114,39 @@ const ActivityScreen: React.FC = () => {
       console.error("Decision error:", err);
       Alert.alert("Error", "Failed to update decision.");
     }
+  };
+
+  const handleDateConfirm = () => {
+    setShowDateModal(false);
+    setPickerMode('time');
+    setShowTimeModal(true);
+  };
+
+  const handleTimeConfirm = async () => {
+    setShowTimeModal(false);
+    
+    if (pendingDecisionId) {
+      try {
+        await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/${pendingDecisionId}/decision`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision: "accepted", scheduledDateTime: scheduleDate }),
+        });
+        await refresh();
+        Alert.alert("Scheduled", `Meeting set for ${scheduleDate.toLocaleString()}`);
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Error", "Failed to schedule appointment.");
+      } finally {
+        setPendingDecisionId(null);
+      }
+    }
+  };
+
+  const handleModalCancel = () => {
+    setShowDateModal(false);
+    setShowTimeModal(false);
+    setPendingDecisionId(null);
   };
 
   const isJoinEnabled = (appt: Appointment) => {
@@ -161,6 +198,23 @@ const ActivityScreen: React.FC = () => {
       default:
         return "help-circle-outline";
     }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
   return (
@@ -362,56 +416,141 @@ const ActivityScreen: React.FC = () => {
           </View>
         </ScrollView>
 
-        {/* Pickers */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={scheduleDate}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowDatePicker(false);
-              if (date) {
-                setScheduleDate(date);
-                setShowTimePicker(true);
-              } else {
-                setPendingDecisionId(null);
-              }
-            }}
-          />
-        )}
-        {showTimePicker && (
-          <DateTimePicker
-            value={scheduleDate}
-            mode="time"
-            display="default"
-            onChange={async (_, date) => {
-              setShowTimePicker(false);
-              if (date && pendingDecisionId) {
-                const finalDate = new Date(
-                  scheduleDate.getFullYear(),
-                  scheduleDate.getMonth(),
-                  scheduleDate.getDate(),
-                  date.getHours(),
-                  date.getMinutes()
-                );
-                try {
-                  await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/${pendingDecisionId}/decision`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ decision: "accepted", scheduledDateTime: finalDate }),
-                  });
-                  await refresh();
-                  Alert.alert("Scheduled", `Meeting set for ${finalDate.toLocaleString()}`);
-                } catch (err) {
-                  console.error(err);
-                  Alert.alert("Error", "Failed to schedule appointment.");
-                } finally {
-                  setPendingDecisionId(null);
-                }
-              }
-            }}
-          />
-        )}
+        {/* Custom Date Modal */}
+        <Modal
+          visible={showDateModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={handleModalCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <LinearGradient
+                colors={['#1E40AF', '#3B82F6']}
+                style={styles.modalGradient}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Date</Text>
+                  <Text style={styles.modalSubtitle}>Choose appointment date</Text>
+                </View>
+
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={scheduleDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(_, date) => {
+                      if (date) {
+                        setScheduleDate(date);
+                      }
+                    }}
+                    minimumDate={new Date()}
+                    style={styles.picker}
+                    textColor="#FFFFFF"
+                    themeVariant="dark"
+                  />
+                </View>
+
+                <View style={styles.selectedDateContainer}>
+                  <Text style={styles.selectedDateLabel}>Selected Date:</Text>
+                  <Text style={styles.selectedDateText}>{formatDate(scheduleDate)}</Text>
+                </View>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={styles.modalCancelButton}
+                    onPress={handleModalCancel}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.modalCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.modalConfirmButton}
+                    onPress={handleDateConfirm}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['#FFFFFF', '#F8FAFF']}
+                      style={styles.confirmGradient}
+                    >
+                      <Text style={styles.modalConfirmText}>Next</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Custom Time Modal */}
+        <Modal
+          visible={showTimeModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={handleModalCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <LinearGradient
+                colors={['#1E40AF', '#3B82F6']}
+                style={styles.modalGradient}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Time</Text>
+                  <Text style={styles.modalSubtitle}>Choose appointment time</Text>
+                </View>
+
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={scheduleDate}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(_, date) => {
+                      if (date) {
+                        const newDate = new Date(scheduleDate);
+                        newDate.setHours(date.getHours());
+                        newDate.setMinutes(date.getMinutes());
+                        setScheduleDate(newDate);
+                      }
+                    }}
+                    style={styles.picker}
+                    textColor="#FFFFFF"
+                    themeVariant="dark"
+                  />
+                </View>
+
+                <View style={styles.selectedDateContainer}>
+                  <Text style={styles.selectedDateLabel}>Selected Time:</Text>
+                  <Text style={styles.selectedDateText}>{formatTime(scheduleDate)}</Text>
+                </View>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={styles.modalCancelButton}
+                    onPress={handleModalCancel}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.modalCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.modalConfirmButton}
+                    onPress={handleTimeConfirm}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['#00D4AA', '#00B894']}
+                      style={styles.confirmGradient}
+                    >
+                      <Text style={[styles.modalConfirmText, { color: '#FFFFFF' }]}>Confirm</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -683,5 +822,121 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     marginLeft: 10,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  modalContainer: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+
+  modalGradient: {
+    padding: 0,
+  },
+
+  modalHeader: {
+    padding: 24,
+    paddingBottom: 20,
+    alignItems: 'center',
+  },
+
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+
+  modalSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: 'center',
+  },
+
+  pickerContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 10,
+    marginBottom: 20,
+  },
+
+  picker: {
+    backgroundColor: 'transparent',
+  },
+
+  selectedDateContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+
+  selectedDateLabel: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 4,
+  },
+
+  selectedDateText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: 'center',
+  },
+
+  modalButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    gap: 12,
+  },
+
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: 'center',
+  },
+
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+
+  modalConfirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+
+  confirmGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+
+  modalConfirmText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E40AF",
   },
 });

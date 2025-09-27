@@ -42,7 +42,11 @@ export const createAppointment = async (req, res) => {
       message: `${appointment.patientName} has requested a consultation.`,
       type: "appointment",
     });
-
+await Notification.create({
+  userId: patient._id,  // patient gets a notification too
+  message: `Your appointment request has been submitted successfully.`,
+  type: "appointment",
+});
     res.status(201).json(appointment);
   } catch (err) {
     console.error("Error creating appointment:", err);
@@ -99,7 +103,12 @@ export const updateAppointmentDecision = async (req, res) => {
       appointment.scheduledDateTime = new Date(scheduledDateTime);
       appointment.videoLink = `https://meet.jit.si/${appointment._id}`;
     }
-
+ // ✅ Notify patient about status change
+await Notification.create({
+  userId: appointment.patientId._id,   // <-- Mongo ID
+  message: `Your appointment has been ${decision}`,
+  type: "appointment", // keep consistent with others
+});
     if (decision === "completed") {
       appointment.status = "completed";
     }

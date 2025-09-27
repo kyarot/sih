@@ -13,7 +13,7 @@ import router from "./routes/appointmentRoutes.js";
 import doctorRoutes from "./routes/doctors.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import prescriptionsRoutes from "./routes/prescriptions.js";
-
+import notificationRoutes from "./routes/notificationRoutes.js";
 import patientRoutes from "./routes/patients.js";
 import pharmacyRoutes from "./routes/pharmacies.js";
 import { diagnose } from "./diagnose.js";
@@ -36,7 +36,7 @@ mongoose
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
 // Routes
-
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/pharmacies", pharmacyRoutes);
 app.use("/api/doctors", doctorRoutes);

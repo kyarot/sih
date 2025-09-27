@@ -1,3 +1,4 @@
+//PrescriptionScreen.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -19,6 +20,10 @@ import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useTranslation } from "../../../components/TranslateProvider";
+import { extractPharmacyId,
+  fetchOrdersForPatientPrescription,
+  placeOrderForPatientPrescription,
+  mapOrdersByPharmacy, } from "../utils/orderService";
 
 const API_BASE = "https://7300c4c894de.ngrok-free.app";
 
@@ -60,7 +65,8 @@ export default function PrescriptionsScreen() {
   const [expandedPrescription, setExpandedPrescription] = useState<string | null>(null);
   const [pharmacyResults, setPharmacyResults] = useState<{ [key: string]: Pharmacy[] }>({});
   const [pharmacyLoading, setPharmacyLoading] = useState<{ [key: string]: boolean }>({});
-
+const [ordersByPrescription, setOrdersByPrescription] = useState<{ [presId: string]: { [pharmId: string]: any } }>({});
+const [ordersLoading, setOrdersLoading] = useState<{ [presId: string]: boolean }>({});
   // Fetch prescriptions for this patient
   useEffect(() => {
     if (patientUid && typeof patientUid === 'string' && patientUid.trim().length === 24) {
@@ -69,6 +75,22 @@ export default function PrescriptionsScreen() {
       console.warn("⚠️ Invalid patientUid passed to PrescriptionsScreen:", patientUid);
     }
   }, [patientUid]);
+
+//orders helper
+async function loadOrdersForPrescription(presId: string) {
+  if (!patientUid || !presId) return;
+  try {
+    setOrdersLoading((prev) => ({ ...prev, [presId]: true }));
+    const orders = await fetchOrdersForPatientPrescription(String(patientUid), presId);
+    const map = mapOrdersByPharmacy(orders);
+    setOrdersByPrescription((prev) => ({ ...prev, [presId]: map }));
+  } catch (err) {
+    console.error("loadOrdersForPrescription error:", err);
+  } finally {
+    setOrdersLoading((prev) => ({ ...prev, [presId]: false }));
+  }
+}
+
 
   async function fetchPrescriptions(uid: string) {
     try {
@@ -92,6 +114,7 @@ export default function PrescriptionsScreen() {
         `${API_BASE}/api/pharmacies/nearby/${patientUid}?prescriptionId=${pres._id}&fullMatch=false`
       );
       setPharmacyResults((prev) => ({ ...prev, [pres._id]: res.data.pharmacies || [] }));
+      loadOrdersForPrescription(pres._id)
     } catch (err) {
       console.error("❌ fetchPharmacies error:", err);
       Alert.alert("Error", "Failed to fetch pharmacies");
@@ -99,6 +122,20 @@ export default function PrescriptionsScreen() {
       setPharmacyLoading((prev) => ({ ...prev, [pres._id]: false }));
     }
   }
+
+  //order useeffect
+  useEffect(() => {
+  if (!expandedPrescription) return;
+
+  // initial load + periodic refresh
+  loadOrdersForPrescription(expandedPrescription);
+  const interval = setInterval(() => {
+    loadOrdersForPrescription(expandedPrescription);
+  }, 15000);
+
+  return () => clearInterval(interval);
+}, [expandedPrescription, patientUid]);
+
 
   function formatWhen(m: Medicine) {
     const parts: string[] = [];
@@ -215,28 +252,107 @@ export default function PrescriptionsScreen() {
     return date.toLocaleDateString();
   };
 
+  //order handler
+  async function handlePlaceOrder(presId: string, pharmacyId: string) {
+  if (!patientUid) {
+    Alert.alert(t("error"), t("no_patient_id"));
+    return;
+  }
+
+  // optimistic UI
+  setOrdersByPrescription((prev) => ({
+    ...prev,
+    [presId]: { ...(prev[presId] || {}), [pharmacyId]: { status: "pending", _temp: true } },
+  }));
+
+  try {
+    const res = await placeOrderForPatientPrescription(String(patientUid), pharmacyId, presId);
+    const order = res.order;
+    const key = extractPharmacyId(order) || pharmacyId;
+    setOrdersByPrescription((prev) => ({
+      ...prev,
+      [presId]: { ...(prev[presId] || {}), [key]: order },
+    }));
+
+    if (res.conflict) {
+      Alert.alert(t("info"), res.message || t("order_exists"));
+    } else {
+      Alert.alert(t("Success"), t("Order Sent"));
+    }
+  } catch (err: any) {
+    console.error("handlePlaceOrder error:", err);
+    Alert.alert(t("error"), err?.message || t("failed_place_order"));
+
+    // rollback optimistic entry
+    setOrdersByPrescription((prev) => {
+      const copy = { ...(prev[presId] || {}) };
+      delete copy[pharmacyId];
+      return { ...prev, [presId]: copy };
+    });
+  }
+}
+
   // Pharmacy list renderer
   function renderPharmacies(presId: string) {
-    const pharmacies = pharmacyResults[presId] || [];
-    const isLoading = pharmacyLoading[presId];
+  const pharmacies = pharmacyResults[presId] || [];
+  const isLoading = (pharmacyLoading[presId] || ordersLoading[presId]) ?? false;
 
-    if (isLoading) {
-      return (
-        <View style={styles.loadingPharma}>
-          <ActivityIndicator size="small" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Finding pharmacies...</Text>
-        </View>
-      );
-    }
+  if (isLoading) {
+    return (
+      <View style={styles.loadingPharma}>
+        <ActivityIndicator size="small" color="#FFFFFF" />
+        <Text style={styles.loadingText}>Finding pharmacies...</Text>
+      </View>
+    );
+  }
 
-    if (!pharmacies.length) {
-      return null;
+  if (!pharmacies.length) {
+    return null;
+  }
+
+  const ordersMapForPres = ordersByPrescription[presId] || {};
+
+  const renderStatusBadge = (order: any) => {
+    if (!order) return null;
+    const status = order.status;
+    let text = t("unknown");
+    let bg = "#E5E7EB";
+    let textColor = "#6B7280";
+    let icon = "●";
+
+    switch (status) {
+      case "pending":
+        text = t("order_sent"); bg = "#FEF3C7"; textColor = "#D97706"; icon = "⏱"; break;
+      case "confirmed":
+        text = t("confirmed"); bg = "#D1FAE5"; textColor = "#059669"; icon = "✓"; break;
+      case "rejected":
+        text = t("rejected"); bg = "#FEE2E2"; textColor = "#DC2626"; icon = "✗"; break;
+      case "ready":
+        text = t("ready_for_pickup"); bg = "#DBEAFE"; textColor = "#1E40AF"; icon = "✓"; break;
+      case "completed":
+        text = t("completed"); bg = "#D1FAE5"; textColor = "#059669"; icon = "✓"; break;
+      default:
+        break;
     }
 
     return (
-      <View style={styles.pharmacySection}>
-        <Text style={styles.pharmacySectionTitle}>Available Pharmacies</Text>
-        {pharmacies.slice(0, 2).map((pharm) => (
+      <View style={[styles.statusBadge, { backgroundColor: bg }]}>
+        <Text style={[styles.statusIcon, { color: textColor }]}>{icon}</Text>
+        <Text style={[styles.statusText, { color: textColor }]}>{text}</Text>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.pharmacySection}>
+      <Text style={styles.pharmacySectionTitle}>Available Pharmacies</Text>
+      {pharmacies.slice(0, 2).map((pharm: any) => {
+        const pid = String(pharm._id);
+        const existingOrder = ordersMapForPres[pid];
+        const existingStatus = existingOrder?.status;
+        const isActive = existingStatus && ["pending", "confirmed", "ready"].includes(existingStatus);
+
+        return (
           <View key={pharm._id} style={styles.pharmacyCard}>
             <View style={styles.pharmacyHeader}>
               <View style={styles.pharmacyInfo}>
@@ -248,21 +364,34 @@ export default function PrescriptionsScreen() {
                   <Text style={styles.pharmacyDistance}>1.2km away</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.orderButton}>
-                <Text style={styles.orderButtonText}>ORDER</Text>
+
+              <TouchableOpacity
+                onPress={() => handlePlaceOrder(presId, pid)}
+                disabled={!!isActive}
+                style={[styles.orderButton, isActive && styles.orderButtonDisabled]}
+              >
+                <Text style={[styles.orderButtonText, isActive && styles.orderButtonTextDisabled]}>
+                  {existingOrder ? t("Order Sent") : "ORDER"}
+                </Text>
               </TouchableOpacity>
             </View>
+
             <View style={styles.pharmacyStatus}>
-              <View style={[styles.statusDot, { backgroundColor: pharm.hasAllMedicines ? '#10B981' : '#F59E0B' }]} />
+              <View style={[styles.statusDot, { backgroundColor: pharm.hasAllMedicines ? "#10B981" : "#F59E0B" }]} />
               <Text style={styles.statusText}>
-                {pharm.hasAllMedicines ? 'All medicines available' : 'Some medicines available'}
+                {pharm.hasAllMedicines ? "All medicines available" : "Some medicines available"}
               </Text>
             </View>
+
+            {/* Order status badge */}
+            {renderStatusBadge(existingOrder)}
           </View>
-        ))}
-      </View>
-    );
-  }
+        );
+      })}
+    </View>
+  );
+}
+
 
   return (
     <LinearGradient
@@ -887,5 +1016,24 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 12,
     fontWeight: "500",
+  },
+    statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginTop: 6,
+  },
+  statusIcon: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  orderButtonDisabled: {
+    backgroundColor: "#9CA3AF",
+  },
+  orderButtonTextDisabled: {
+    color: "#E5E7EB",
   },
 });

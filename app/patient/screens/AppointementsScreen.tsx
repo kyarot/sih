@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -87,6 +86,14 @@ export default function AppointmentsScreen() {
   const [symptomsDescription, setSymptomsDescription] = useState("");
   const [symptomDuration, setSymptomDuration] = useState("");
   const [symptomSeverity, setSymptomSeverity] = useState<"Mild" | "Moderate" | "Severe">("Mild");
+  const [showSeverityDropdown, setShowSeverityDropdown] = useState(false);
+
+  // Severity options
+  const severityOptions = [
+    { label: "Mild", value: "Mild", color: "#22C55E" },
+    { label: "Moderate", value: "Moderate", color: "#F59E0B" },
+    { label: "Severe", value: "Severe", color: "#EF4444" },
+  ];
 
   // Load initial data
   useEffect(() => {
@@ -187,6 +194,7 @@ export default function AppointmentsScreen() {
       setSymptomsDescription("");
       setSymptomDuration("");
       setSymptomSeverity("Mild");
+      setShowSeverityDropdown(false);
       
       // Refresh appointments
       if (patientProfile?.uid) {
@@ -222,6 +230,11 @@ export default function AppointmentsScreen() {
     }
   };
 
+  const handleSeveritySelect = (severity: "Mild" | "Moderate" | "Severe") => {
+    setSymptomSeverity(severity);
+    setShowSeverityDropdown(false);
+  };
+
   const renderAppointmentCard = ({ item: appointment }: { item: Appointment }) => (
     <View style={styles.appointmentCard}>
       <View style={styles.cardContent}>
@@ -232,7 +245,7 @@ export default function AppointmentsScreen() {
             </View>
             <View style={styles.doctorDetails}>
               <Text style={styles.doctorName}>
-                Dr. {(appointment.doctorId as any)?.name || "Unknown"}
+                {(appointment.doctorId as any)?.name || "Unknown"}
               </Text>
               <Text style={styles.specialization}>
                 {(appointment.doctorId as any)?.specialization || "General"}
@@ -298,7 +311,7 @@ export default function AppointmentsScreen() {
             <Ionicons name="person" size={24} color="white" />
           </View>
           <View style={styles.doctorCardDetails}>
-            <Text style={styles.doctorNameText}>Dr. {doctor.name}</Text>
+            <Text style={styles.doctorNameText}>{doctor.name}</Text>
             <Text style={styles.doctorSpecText}>{doctor.specialization}</Text>
             {doctor.experience && (
               <Text style={styles.doctorExpText}>{doctor.experience}</Text>
@@ -460,7 +473,7 @@ export default function AppointmentsScreen() {
               <Ionicons name="close" size={24} color="white" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              Book with Dr. {selectedDoctor?.name}
+              Book with {selectedDoctor?.name}
             </Text>
           </View>
           
@@ -491,17 +504,49 @@ export default function AppointmentsScreen() {
 
             <View style={styles.formSection}>
               <Text style={styles.formLabel}>Severity</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={symptomSeverity}
-                  onValueChange={(itemValue) => setSymptomSeverity(itemValue as any)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Mild" value="Mild" />
-                  <Picker.Item label="Moderate" value="Moderate" />
-                  <Picker.Item label="Severe" value="Severe" />
-                </Picker>
-              </View>
+              <TouchableOpacity 
+                style={styles.severitySelector}
+                onPress={() => setShowSeverityDropdown(!showSeverityDropdown)}
+              >
+                <View style={styles.severityDisplay}>
+                  <View style={[
+                    styles.severityIndicator, 
+                    { backgroundColor: severityOptions.find(opt => opt.value === symptomSeverity)?.color }
+                  ]} />
+                  <Text style={styles.severityText}>{symptomSeverity}</Text>
+                </View>
+                <Ionicons 
+                  name={showSeverityDropdown ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color="#1E3A8A" 
+                />
+              </TouchableOpacity>
+              
+              {showSeverityDropdown && (
+                <View style={styles.severityDropdown}>
+                  {severityOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.severityOption,
+                        symptomSeverity === option.value && styles.selectedSeverityOption
+                      ]}
+                      onPress={() => handleSeveritySelect(option.value as "Mild" | "Moderate" | "Severe")}
+                    >
+                      <View style={[styles.severityIndicator, { backgroundColor: option.color }]} />
+                      <Text style={[
+                        styles.severityOptionText,
+                        symptomSeverity === option.value && styles.selectedSeverityOptionText
+                      ]}>
+                        {option.label}
+                      </Text>
+                      {symptomSeverity === option.value && (
+                        <Ionicons name="checkmark" size={16} color="#1E3A8A" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.formActions}>
@@ -661,10 +706,68 @@ const styles = StyleSheet.create({
     padding: 14, fontSize: 16, backgroundColor: "white", minHeight: 100,
     textAlignVertical: "top", color: "#1E3A8A"
   },
-  pickerContainer: {
-    borderWidth: 1, borderColor: "rgba(30, 58, 138, 0.2)", borderRadius: 12, backgroundColor: "white"
+  
+  // Custom Severity Selector Styles
+  severitySelector: {
+    borderWidth: 1,
+    borderColor: "rgba(30, 58, 138, 0.2)",
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 50,
   },
-  picker: { height: 50 },
+  severityDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  severityIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  severityText: {
+    fontSize: 16,
+    color: "#1E3A8A",
+    fontWeight: "500",
+  },
+  severityDropdown: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(30, 58, 138, 0.2)",
+    borderRadius: 12,
+    marginTop: 8,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  severityOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(30, 58, 138, 0.1)",
+  },
+  selectedSeverityOption: {
+    backgroundColor: "rgba(30, 58, 138, 0.05)",
+  },
+  severityOptionText: {
+    fontSize: 16,
+    color: "#1E3A8A",
+    flex: 1,
+    marginLeft: 10,
+  },
+  selectedSeverityOptionText: {
+    fontWeight: "600",
+  },
+  
   formActions: { padding: 20, gap: 12 },
   confirmButton: {
     backgroundColor: "#1E3A8A", paddingVertical: 16, borderRadius: 12,
