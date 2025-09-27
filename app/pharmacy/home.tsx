@@ -261,20 +261,19 @@ export default function PharmacyHome() {
     router.push("/pharmacy/inventory");
   };
 
-  // ===== Enhanced Sidebar Navigation Items with Vector Icons =====
-  const navItems: { 
+  // ===== Enhanced Floating Navigation Items =====
+  const floatingNavItems: { 
     id: string; 
-    label: string; 
     icon: keyof typeof MaterialIcons.glyphMap; 
-    count: number | null 
+    count: number | null;
+    isCenter?: boolean;
   }[] = [
-    { id: "dashboard", label: "Dashboard", icon: "dashboard", count: null },
-    { id: "notifications", label: "Notifications", icon: "notifications", count: notifications.length },
-    { id: "inventory", label: "Inventory", icon: "inventory", count: dashboardMetrics.totalInventory },
+    { id: "notifications", icon: "notifications-active", count: notifications.length },
+    { id: "dashboard", icon: "home", count: null, isCenter: true },
+    { id: "inventory", icon: "local-pharmacy", count: null },
     {
       id: "orders",
-      label: "Orders",
-      icon: "receipt-long",
+      icon: "shopping-cart",
       count: orders.filter((o: Order) => o.status === "pending" || o.status === "ready").length,
     },
   ];
@@ -363,20 +362,30 @@ export default function PharmacyHome() {
         />
       </View>
 
-      {/* Main Content with Optimized Layout */}
-      <View style={[styles.mainContent, isMobile && styles.mobileMainContent]}>
-        {/* Enhanced Sidebar with Vector Icons */}
+      {/* Main Content - Full Screen Layout */}
+      <View style={styles.mainContent}>
+        {/* Desktop Sidebar - Keep for desktop */}
         {!isMobile && (
           <View style={styles.sidebarContainer}>
             <SidebarNav 
               activeSection={activeSection} 
               setActiveSection={setActiveSection} 
-              navItems={navItems} 
+              navItems={[
+                { id: "dashboard", label: "Dashboard", icon: "dashboard", count: null },
+                { id: "notifications", label: "Notifications", icon: "notifications", count: notifications.length },
+                { id: "inventory", label: "Inventory", icon: "inventory", count: dashboardMetrics.totalInventory },
+                {
+                  id: "orders",
+                  label: "Orders",
+                  icon: "receipt-long",
+                  count: orders.filter((o: Order) => o.status === "pending" || o.status === "ready").length,
+                },
+              ]} 
             />
           </View>
         )}
 
-        {/* Optimized Content Area */}
+        {/* Content Area */}
         <View style={[styles.contentContainer, isMobile && styles.mobileContentContainer]}>
           <View style={[styles.contentWrapper, isMobile && styles.mobileContentWrapper]}>
             {renderContent()}
@@ -384,39 +393,38 @@ export default function PharmacyHome() {
         </View>
       </View>
 
-      {/* Enhanced Mobile Navigation Bar with Vector Icons */}
+      {/* Floating Navigation Bar - Mobile Only */}
       {isMobile && (
-        <View style={[styles.mobileNavBar, { paddingBottom: Math.max(8, 8 + insets.bottom - 4) }]}>
-          {navItems.map((item) => (
-            <View key={item.id} style={styles.mobileNavItem}>
+        <View style={[styles.floatingNavContainer, { bottom: Math.max(25, 25 + insets.bottom) }]}>
+          <View style={styles.floatingNavBar}>
+            {floatingNavItems.map((item, index) => (
               <View 
+                key={item.id} 
                 style={[
-                  styles.mobileNavButton, 
-                  activeSection === item.id && styles.activeMobileNavButton
+                  styles.floatingNavButton,
+                  item.isCenter && styles.centerNavButton,
+                  activeSection === item.id && !item.isCenter && styles.activeNavButton
                 ]}
                 onTouchEnd={() => setActiveSection(item.id as ActiveSection)}
               >
                 <MaterialIcons
                   name={item.icon}
-                  size={20}
-                  color={activeSection === item.id ? '#FFFFFF' : '#64748B'}
+                  size={item.isCenter ? 28 : 24}
+                  color={
+                    item.isCenter ? '#FFFFFF' :
+                    activeSection === item.id ? '#1E40AF' : '#64748B'
+                  }
                 />
                 {item.count !== null && item.count > 0 && (
-                  <View style={styles.mobileBadge}>
-                    <Text style={styles.mobileBadgeText}>
+                  <View style={styles.floatingBadge}>
+                    <Text style={styles.floatingBadgeText}>
                       {item.count > 99 ? '99+' : item.count}
                     </Text>
                   </View>
                 )}
               </View>
-              <Text style={[
-                styles.mobileNavLabel,
-                activeSection === item.id && styles.activeMobileNavLabel
-              ]}>
-                {item.label}
-              </Text>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
       )}
 
@@ -455,17 +463,14 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   
-  // Optimized Main Content Layout
+  // Main Content Layout
   mainContent: {
     flex: 1,
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
   },
-  mobileMainContent: {
-    flexDirection: 'column',
-  },
   
-  // Enhanced Compact Sidebar
+  // Desktop Sidebar
   sidebarContainer: {
     width: 240,
     backgroundColor: '#FFFFFF',
@@ -479,110 +484,118 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   
-  // Optimized Content Container
+  // Content Container
   contentContainer: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    padding: 16,
+    backgroundColor: '#F8FAFC',
+    padding: 0,
   },
   mobileContentContainer: {
     flex: 1,
-    padding: 12,
-    paddingBottom: 72, // Space for mobile nav
+    backgroundColor: '#F8FAFC',
+    paddingBottom: 100, // Space for floating nav
   },
   
   contentWrapper: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
     overflow: 'hidden',
   },
   mobileContentWrapper: {
-    borderRadius: 10,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   
-  // Enhanced Mobile Navigation Bar
-  mobileNavBar: {
+  // Floating Navigation Styles
+  floatingNavContainer: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    alignItems: 'center',
+    zIndex: 1000,
+    paddingHorizontal: 20,
+  },
+  
+  floatingNavBar: {
     flexDirection: 'row',
-    paddingHorizontal: 4,
-    paddingTop: 6,
-    paddingBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(25px)',
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    width: 320,
+    height: 72,
   },
   
-  mobileNavItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  mobileNavButton: {
+  floatingNavButton: {
     position: 'relative',
-    width: 40,
-    height: 40,
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    marginBottom: 2,
+    borderRadius: 28,
     backgroundColor: 'transparent',
   },
   
-  activeMobileNavButton: {
-    backgroundColor: '#1E40AF',
+  centerNavButton: {
+    backgroundColor: '#3B82F6',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
     transform: [{ scale: 1.05 }],
   },
   
-  mobileNavLabel: {
-    fontSize: 9,
-    fontWeight: '500',
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 12,
+  activeNavButton: {
+    backgroundColor: 'rgba(30, 64, 175, 0.1)',
+    borderWidth: 2,
+    borderColor: '#1E40AF',
+    transform: [{ scale: 1.0 }],
   },
   
-  activeMobileNavLabel: {
-    color: '#1E40AF',
-    fontWeight: '600',
-  },
-  
-  mobileBadge: {
+  floatingBadge: {
     position: 'absolute',
-    top: -1,
-    right: -1,
+    top: 2,
+    right: 2,
     backgroundColor: '#EF4444',
-    borderRadius: 8,
-    minWidth: 14,
-    height: 14,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1,
+    paddingHorizontal: 4,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   
-  mobileBadgeText: {
+  floatingBadgeText: {
     color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '700',
-    lineHeight: 10,
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
   },
 });

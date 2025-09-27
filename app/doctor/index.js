@@ -1,4 +1,4 @@
-import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -169,51 +169,28 @@ export default function DoctorLanding() {
           </View>
         </View>
 
-        {/* Feature Cards Grid */}
-        <View style={styles.grid}>
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={() => router.push("/doctor/activity")}
-          >
-            <View style={styles.iconContainer}>
-              <MaterialIcons name="timeline" size={28} color="#1E40AF" />
-            </View>
-            <Text style={styles.featureTitle}>Activity</Text>
-            <Text style={styles.featureSubtitle}>View your activity logs</Text>
-          </TouchableOpacity>
+        {/* Welcome Message */}
+        <View style={styles.welcomeCard}>
+          <Text style={styles.welcomeTitle}>Welcome to your Dashboard</Text>
+          <Text style={styles.welcomeMessage}>
+            Use the navigation tabs below to access Patients, Appointments, Activity logs, and Video calls.
+          </Text>
+        </View>
 
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={() => router.push("/doctor/appointments")}
-          >
-            <View style={styles.iconContainer}>
-              <FontAwesome5 name="calendar-check" size={24} color="#1E40AF" />
-            </View>
-            <Text style={styles.featureTitle}>Appointments</Text>
-            <Text style={styles.featureSubtitle}>Manage your schedule</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={() => router.push("/doctor/patient-details")}
-          >
-            <View style={styles.iconContainer}>
-              <Ionicons name="people-circle" size={28} color="#1E40AF" />
-            </View>
-            <Text style={styles.featureTitle}>Patients</Text>
-            <Text style={styles.featureSubtitle}>Patient information</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={() => router.push("/doctor/video-call")}
-          >
-            <View style={styles.iconContainer}>
-              <Ionicons name="videocam" size={28} color="#1E40AF" />
-            </View>
-            <Text style={styles.featureTitle}>Video Call</Text>
-            <Text style={styles.featureSubtitle}>Start consultation</Text>
-          </TouchableOpacity>
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>
+              {weeklyData.reduce((sum, count) => sum + count, 0)}
+            </Text>
+            <Text style={styles.statLabel}>This Week</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>
+              {Math.max(...weeklyData)}
+            </Text>
+            <Text style={styles.statLabel}>Peak Day</Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -221,7 +198,11 @@ export default function DoctorLanding() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#F8FAFC",
+    paddingBottom: 100, // Add padding for floating navbar
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -248,18 +229,80 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 30 },
-  statusCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, marginBottom: 20, shadowColor: "#1E40AF", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 },
+  statusCard: { 
+    backgroundColor: "#FFFFFF", 
+    borderRadius: 16, 
+    padding: 20, 
+    marginBottom: 20, 
+    shadowColor: "#1E40AF", 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.08, 
+    shadowRadius: 8, 
+    elevation: 4 
+  },
   statusHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   statusIndicator: { flexDirection: "row", alignItems: "center" },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
   statusText: { fontSize: 16, fontWeight: "600", color: "#1F2937" },
-  chartCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, marginBottom: 20, shadowColor: "#1E40AF", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 },
+  chartCard: { 
+    backgroundColor: "#FFFFFF", 
+    borderRadius: 16, 
+    padding: 20, 
+    marginBottom: 20, 
+    shadowColor: "#1E40AF", 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.08, 
+    shadowRadius: 8, 
+    elevation: 4 
+  },
   cardTitle: { fontSize: 18, fontWeight: "600", color: "#1F2937", marginBottom: 16 },
   chartWrapper: { alignItems: "center", overflow: "hidden" },
   chart: { marginVertical: 8, borderRadius: 12 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 16 },
-  featureCard: { width: (width - 56) / 2, backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, alignItems: "center", justifyContent: "center", minHeight: 140, shadowColor: "#1E40AF", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 },
-  iconContainer: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#EFF6FF", justifyContent: "center", alignItems: "center", marginBottom: 12 },
-  featureTitle: { fontSize: 16, fontWeight: "600", color: "#1F2937", marginBottom: 4, textAlign: "center" },
-  featureSubtitle: { fontSize: 12, color: "#6B7280", textAlign: "center", lineHeight: 16 },
+  welcomeCard: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: "#1E40AF",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E40AF",
+    marginBottom: 8,
+  },
+  welcomeMessage: {
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1E40AF",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+  },
 });
