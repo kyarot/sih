@@ -1,6 +1,7 @@
 import React from "react";
 import { FlatList, ScrollView, Text, TouchableOpacity, View, StyleSheet, Dimensions } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Order } from "./types";
 
 const { width } = Dimensions.get('window');
@@ -26,11 +27,18 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['#1E3A8A', '#3B82F6', '#60A5FA']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
       <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <View style={styles.headerIconContainer}>
-            <Ionicons name="cube-outline" size={24} color="#1E40AF" style={styles.headerIcon} />
+            <View style={styles.iconGlow}>
+              <Ionicons name="cube-outline" size={28} color="white" />
+            </View>
           </View>
           <Text style={styles.sectionHeader}>Active Orders</Text>
           <Text style={styles.sectionSubtitle}>Manage your pharmacy orders efficiently</Text>
@@ -43,98 +51,101 @@ export default function OrdersSection({ orders, changeStatus, getStatusColor }: 
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <View style={styles.orderCard}>
-              <View style={styles.orderCardHeader}>
-                <View style={styles.orderInfo}>
-                  <View style={styles.patientSection}>
-                    <View style={styles.patientIcon}>
-                      <Ionicons name="person-outline" size={20} color="#6B7280" style={styles.patientIconText} />
-                    </View>
-                    <View style={styles.patientDetails}>
-                      <Text style={styles.patientName}>{item.patientName}</Text>
-                      <Text style={styles.orderId}>Order #{item.id.slice(-6).toUpperCase()}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                    <Ionicons name={getStatusIcon(item.status) as any} size={16} color="white" style={styles.statusIcon} />
-                    <Text style={styles.statusText}>{String(item.status).toUpperCase()}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.orderDetails}>
-                <View style={styles.deliverySection}>
-                  <View style={styles.deliveryInfo}>
-                    <Text style={styles.deliveryIcon}>
-                      {item.pickup === "delivery" ? "🚚" : "🏪"}
-                    </Text>
-                    <Text style={styles.deliveryType}>
-                      {item.pickup === "delivery" ? "Home Delivery" : "Store Pickup"}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.itemsSection}>
-                  <View style={styles.itemsHeader}>
-                    <Text style={styles.itemsLabel}>Items ({getItemCount(item.items)})</Text>
-                  </View>
-                  <View style={styles.itemsList}>
-                    {item.items.slice(0, 3).map((it: any, index: number) => (
-                      <View key={index} style={styles.itemRow}>
-                        <Text style={styles.itemName}>{it.name}</Text>
-                        <Text style={styles.itemQuantity}>×{it.quantity || it.qty}</Text>
+              <View style={styles.orderCardContent}>
+                <View style={styles.orderCardHeader}>
+                  <View style={styles.orderInfo}>
+                    <View style={styles.patientSection}>
+                      <View style={styles.patientIcon}>
+                        <Ionicons name="person-outline" size={22} color="white" />
                       </View>
-                    ))}
-                    {item.items.length > 3 && (
-                      <Text style={styles.moreItems}>+{item.items.length - 3} more items</Text>
+                      <View style={styles.patientDetails}>
+                        <Text style={styles.patientName}>{item.patientName}</Text>
+                        <Text style={styles.orderId}>Order #{item.id.slice(-6).toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                      <Ionicons name={getStatusIcon(item.status) as any} size={16} color="white" />
+                      <Text style={styles.statusText}>{String(item.status).toUpperCase()}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.orderDetails}>
+                  <View style={styles.deliverySection}>
+                    <View style={styles.deliveryInfo}>
+                      <Text style={styles.deliveryIcon}>
+                        {item.pickup === "delivery" ? "🚚" : "🏪"}
+                      </Text>
+                      <Text style={styles.deliveryType}>
+                        {item.pickup === "delivery" ? "Home Delivery" : "Store Pickup"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.itemsSection}>
+                    <View style={styles.itemsHeader}>
+                      <Text style={styles.itemsLabel}>Items ({getItemCount(item.items)})</Text>
+                    </View>
+                    <View style={styles.itemsList}>
+                      {item.items.slice(0, 3).map((it: any, index: number) => (
+                        <View key={index} style={styles.itemRow}>
+                          <Text style={styles.itemName}>{it.name}</Text>
+                          <Text style={styles.itemQuantity}>×{it.quantity || it.qty}</Text>
+                        </View>
+                      ))}
+                      {item.items.length > 3 && (
+                        <Text style={styles.moreItems}>+{item.items.length - 3} more items</Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+
+                {item.status !== "completed" && (
+                  <View style={styles.orderActions}>
+                    {item.status === "confirmed" && (
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.readyButton]} 
+                        onPress={() => changeStatus(item.id, "ready")}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={20} color="#1E3A8A" />
+                        <Text style={styles.actionButtonText}>Mark Ready</Text>
+                      </TouchableOpacity>
+                    )}
+                    {item.status === "ready" && (
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.completeButton]} 
+                        onPress={() => changeStatus(item.id, "completed")}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="checkmark-done-outline" size={20} color="#4F46E5" />
+                        <Text style={styles.actionButtonText}>Complete Order</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
-                </View>
+                )}
               </View>
-
-              {item.status !== "completed" && (
-                <View style={styles.orderActions}>
-                  {item.status === "confirmed" && (
-                    <TouchableOpacity 
-                      style={[styles.actionButton, styles.readyButton]} 
-                      onPress={() => changeStatus(item.id, "ready")}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="checkmark-circle-outline" size={20} color="white" style={styles.actionButtonIcon} />
-                      <Text style={styles.actionButtonText}>Mark Ready</Text>
-                    </TouchableOpacity>
-                  )}
-                  {item.status === "ready" && (
-                    <TouchableOpacity 
-                      style={[styles.actionButton, styles.completeButton]} 
-                      onPress={() => changeStatus(item.id, "completed")}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="checkmark-done-outline" size={20} color="white" style={styles.actionButtonIcon} />
-                      <Text style={styles.actionButtonText}>Complete Order</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
             </View>
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Ionicons name="cube-outline" size={48} color="#9CA3AF" style={styles.emptyIcon} />
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="cube-outline" size={48} color="rgba(255,255,255,0.6)" />
+              </View>
               <Text style={styles.emptyTitle}>No Active Orders</Text>
               <Text style={styles.emptySubtitle}>New orders will appear here</Text>
             </View>
           )}
         />
       </ScrollView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   contentArea: {
     flex: 1,
@@ -142,54 +153,71 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     alignItems: 'center',
-    paddingVertical: 30,
-    paddingBottom: 20,
+    paddingVertical: 40,
+    paddingBottom: 30,
   },
   headerIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  iconGlow: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#1E40AF',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#1E40AF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  headerIcon: {
-    color: 'white',
   },
   sectionHeader: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#1E40AF',
+    color: 'white',
     marginBottom: 8,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     lineHeight: 24,
   },
   orderCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
     marginVertical: 8,
-    shadowColor: '#1E40AF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
     overflow: 'hidden',
+  },
+  orderCardContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    margin: 1,
+    borderRadius: 19,
   },
   orderCardHeader: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: 'rgba(30, 58, 138, 0.1)',
   },
   orderInfo: {
     flexDirection: 'row',
@@ -202,15 +230,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   patientIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: 'rgba(30, 58, 138, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  patientIconText: {
+    borderWidth: 1,
+    borderColor: 'rgba(30, 58, 138, 0.2)',
   },
   patientDetails: {
     flex: 1,
@@ -218,24 +246,29 @@ const styles = StyleSheet.create({
   patientName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: '#1E3A8A',
     marginBottom: 4,
   },
   orderId: {
     fontSize: 14,
-    color: '#64748b',
+    color: 'rgba(30, 58, 138, 0.6)',
     fontFamily: 'monospace',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
     marginLeft: 12,
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statusIcon: {
-    marginRight: 4,
+    marginRight: 6,
   },
   statusText: {
     fontSize: 12,
@@ -251,26 +284,28 @@ const styles = StyleSheet.create({
   deliveryInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(30, 58, 138, 0.05)',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(30, 58, 138, 0.1)',
   },
   deliveryIcon: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: 18,
+    marginRight: 10,
   },
   deliveryType: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1E40AF',
+    color: '#1E3A8A',
   },
   itemsSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    backgroundColor: 'rgba(30, 58, 138, 0.02)',
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(30, 58, 138, 0.1)',
   },
   itemsHeader: {
     marginBottom: 12,
@@ -278,19 +313,26 @@ const styles = StyleSheet.create({
   itemsLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: '#1E3A8A',
   },
   itemsList: {
-    gap: 8,
+    gap: 10,
   },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(30, 58, 138, 0.08)',
+    shadowColor: 'rgba(30, 58, 138, 0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
   },
   itemName: {
     fontSize: 14,
@@ -300,12 +342,12 @@ const styles = StyleSheet.create({
   itemQuantity: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: '#1E3A8A',
     fontFamily: 'monospace',
   },
   moreItems: {
     fontSize: 14,
-    color: '#64748b',
+    color: 'rgba(30, 58, 138, 0.6)',
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 4,
@@ -318,20 +360,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    shadowColor: '#1E40AF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: 'rgba(30, 58, 138, 0.2)',
+    shadowColor: 'rgba(30, 58, 138, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   readyButton: {
-    backgroundColor: '#1E40AF',
+    marginRight: 8,
   },
   completeButton: {
-    backgroundColor: '#1E40AF',
+    marginLeft: 8,
   },
   actionButtonIcon: {
     marginRight: 8,
@@ -339,28 +384,38 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#1E3A8A',
   },
   separator: {
-    height: 8,
+    height: 12,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
   },
-  emptyIcon: {
-    marginBottom: 16,
-    opacity: 0.5,
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: 'white',
     marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
   },
 });

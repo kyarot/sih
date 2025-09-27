@@ -4,6 +4,8 @@ import {
   getAppointmentsByDoctor,
   getAppointmentsByPatient,
   updateAppointmentDecision,
+   getCompletedAppointmentsByPatient,
+  getPrescriptionByAppointment
 } from "../controllers/appointmentController.js";
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.get("/doctor/:doctorId", getAppointmentsByDoctor);
 
 // Doctor decision
 router.put("/:id/decision", updateAppointmentDecision);
+router.get('/patient/:uid/completed', getCompletedAppointmentsByPatient);
+router.get('/prescriptions/:appointmentId', getPrescriptionByAppointment);
 
 export default router;

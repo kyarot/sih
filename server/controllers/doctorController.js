@@ -56,3 +56,24 @@ export const updateDoctorProfile = async (req, res) => {
   }
 };
 
+// Toggle doctor online/offline
+export const updateDoctorStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_online } = req.body;
+ console.log("Updating status:", id, is_online);  
+    const doctor = await Doctor.findByIdAndUpdate(
+      id,
+      { is_online },
+      { new: true }
+    );
+
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+    }
+
+    res.json({ success: true, doctor });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

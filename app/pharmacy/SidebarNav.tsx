@@ -2,6 +2,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
 import { ActiveSection } from "./types";
 import React from "react";
+import { router } from "expo-router"; // ← import router
 
 interface NavItem {
   id: string;
@@ -24,7 +25,6 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
       paddingHorizontal: 16,
       borderRightWidth: 1,
       borderRightColor: '#E5E7EB',
-      // minHeight removed; rely on parent layout
       shadowColor: '#000',
       shadowOffset: { width: 2, height: 0 },
       shadowOpacity: 0.05,
@@ -45,7 +45,6 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
       overflow: 'hidden',
       position: 'relative',
       backgroundColor: 'transparent',
-      // transition not supported in React Native
     },
     activeNavItem: {
       backgroundColor: '#1E40AF',
@@ -107,15 +106,6 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
       backgroundColor: 'white',
       color: '#EF4444',
     },
-    rippleEffect: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(30, 64, 175, 0.1)',
-      opacity: 0,
-    },
   });
 
   return (
@@ -125,7 +115,7 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
         const isActive = activeSection === (item.id as ActiveSection);
         const isNotification = item.id === "notifications";
         const hasCount = item.count !== null && item.count > 0;
-        
+
         return (
           <TouchableOpacity
             key={item.id}
@@ -133,7 +123,14 @@ export default function SidebarNav({ activeSection, setActiveSection, navItems }
               styles.navItem,
               isActive && styles.activeNavItem
             ]}
-            onPress={() => setActiveSection(item.id as ActiveSection)}
+            onPress={() => {
+              if (item.id === "inventory") {
+                // Navigate to inventory screen
+                router.push("/pharmacy/inventory");
+              } else {
+                setActiveSection(item.id as ActiveSection);
+              }
+            }}
             activeOpacity={0.8}
           >
             <View style={styles.navItemContent}>

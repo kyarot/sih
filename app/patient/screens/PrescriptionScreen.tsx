@@ -14,6 +14,7 @@ import {
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from 'expo-linear-gradient';
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -222,7 +223,7 @@ export default function PrescriptionsScreen() {
     if (isLoading) {
       return (
         <View style={styles.loadingPharma}>
-          <ActivityIndicator size="small" color="#1E40AF" />
+          <ActivityIndicator size="small" color="#FFFFFF" />
           <Text style={styles.loadingText}>Finding pharmacies...</Text>
         </View>
       );
@@ -234,341 +235,657 @@ export default function PrescriptionsScreen() {
 
     return (
       <View style={styles.pharmacySection}>
+        <Text style={styles.pharmacySectionTitle}>Available Pharmacies</Text>
         {pharmacies.slice(0, 2).map((pharm) => (
-          <TouchableOpacity key={pharm._id} style={styles.pharmacyCard}>
+          <View key={pharm._id} style={styles.pharmacyCard}>
             <View style={styles.pharmacyHeader}>
-              <Text style={styles.pharmacyName}>{pharm.name}</Text>
+              <View style={styles.pharmacyInfo}>
+                <View style={styles.pharmacyIconContainer}>
+                  <Ionicons name="medical" size={20} color="rgba(255,255,255,0.9)" />
+                </View>
+                <View>
+                  <Text style={styles.pharmacyName}>{pharm.name}</Text>
+                  <Text style={styles.pharmacyDistance}>1.2km away</Text>
+                </View>
+              </View>
               <TouchableOpacity style={styles.orderButton}>
                 <Text style={styles.orderButtonText}>ORDER</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.pharmacyDistance}>1.2km</Text>
-          </TouchableOpacity>
+            <View style={styles.pharmacyStatus}>
+              <View style={[styles.statusDot, { backgroundColor: pharm.hasAllMedicines ? '#10B981' : '#F59E0B' }]} />
+              <Text style={styles.statusText}>
+                {pharm.hasAllMedicines ? 'All medicines available' : 'Some medicines available'}
+              </Text>
+            </View>
+          </View>
         ))}
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E40AF" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="white" />
-        </TouchableOpacity>
+    <LinearGradient
+      colors={['#1E3A8A', '#3B82F6', '#60A5FA']}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>PRESCRIPTIONS</Text>
-          <Ionicons name="medical" size={24} color="white" />
-        </View>
-        
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="person-outline" size={24} color="white" />
+        {/* Enhanced Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="location-outline" size={24} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Text style={styles.languageButton}>English</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="notifications-outline" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Current Prescriptions!</Text>
-        
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1E40AF" />
-            <Text style={styles.loadingText}>{t("loading_medical_records")}</Text>
+          
+          <View style={styles.headerCenter}>
+            <View style={styles.headerIconContainer}>
+              <Ionicons name="medical" size={24} color="white" />
+            </View>
+            <Text style={styles.headerTitle}>PRESCRIPTIONS</Text>
           </View>
-        ) : prescriptions.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>{t("no_prescriptions_found")}</Text>
-            <Text style={styles.emptyText}>{t("prescription_history_info")}</Text>
+          
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="person-outline" size={20} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="location-outline" size={20} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.languageButton}>
+              <Text style={styles.languageButtonText}>EN</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="notifications-outline" size={20} color="white" />
+            </TouchableOpacity>
           </View>
-        ) : (
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {prescriptions.map((pres, index) => (
-              <View key={pres._id} style={styles.prescriptionCard}>
-                {/* Prescription Header */}
-                <View style={styles.prescriptionHeader}>
-                  <Text style={styles.prescriptionTitle}>Prescription {index + 1}</Text>
-                  <TouchableOpacity 
-                    style={styles.viewButton}
-                    onPress={() => setExpandedPrescription(expandedPrescription === pres._id ? null : pres._id)}
-                  >
-                    <Text style={styles.viewButtonText}>VIEW</Text>
-                    <Ionicons 
-                      name={expandedPrescription === pres._id ? "chevron-up" : "chevron-down"} 
-                      size={16} 
-                      color="#333" 
-                    />
-                  </TouchableOpacity>
-                </View>
-                
-                <Text style={styles.doctorName}>
-                  Dr. {(pres.doctorId as any)?.name || "Healthcare Provider"}
-                </Text>
+        </View>
 
-                {/* Download Button */}
-                <TouchableOpacity 
-                  style={styles.downloadButton}
-                  onPress={() => generateAndDownloadPdf(pres)}
-                >
-                  <Ionicons name="cloud-download-outline" size={20} color="#1E40AF" />
-                  <Text style={styles.downloadButtonText}>Download Prescription</Text>
-                </TouchableOpacity>
-
-                {/* Expanded Content */}
-                {expandedPrescription === pres._id && (
-                  <View style={styles.expandedContent}>
-                    {/* Medicine Details */}
-                    {pres.medicines && pres.medicines.length > 0 && (
-                      <View style={styles.medicineDetails}>
-                        {pres.medicines.slice(0, 1).map((medicine, i) => (
-                          <View key={i} style={styles.medicineRow}>
-                            <Text style={styles.medicineName}>{medicine.name}</Text>
-                            <Text style={styles.medicineQuantity}>{medicine.quantity}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-
-                    {/* Search Pharmacies Button */}
-                    <TouchableOpacity 
-                      style={styles.searchButton}
-                      onPress={() => fetchPharmaciesForPrescription(pres)}
-                    >
-                      <Text style={styles.searchButtonText}>Search in nearby Pharmacies</Text>
-                    </TouchableOpacity>
-
-                    {/* Pharmacy Results */}
-                    {renderPharmacies(pres._id)}
-                  </View>
-                )}
+        {/* Content */}
+        <View style={styles.content}>
+          <View style={styles.titleSection}>
+            <Text style={styles.sectionTitle}>Current Prescriptions</Text>
+            <Text style={styles.sectionSubtitle}>Manage your medical prescriptions</Text>
+          </View>
+          
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <View style={styles.loadingIconContainer}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
               </View>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-    </SafeAreaView>
+              <Text style={styles.loadingTitle}>Loading Medical Records</Text>
+              <Text style={styles.loadingSubtitle}>Please wait while we fetch your prescriptions</Text>
+            </View>
+          ) : prescriptions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.7)" />
+              </View>
+              <Text style={styles.emptyTitle}>No Prescriptions Found</Text>
+              <Text style={styles.emptyText}>Your prescription history will appear here once you visit a doctor</Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+              {prescriptions.map((pres, index) => (
+                <View key={pres._id} style={styles.prescriptionCard}>
+                  {/* Prescription Header */}
+                  <View style={styles.prescriptionHeader}>
+                    <View style={styles.prescriptionTitleSection}>
+                      <View style={styles.prescriptionIconContainer}>
+                        <Ionicons name="document-text" size={24} color="rgba(255,255,255,0.9)" />
+                      </View>
+                      <View>
+                        <Text style={styles.prescriptionTitle}>Prescription #{index + 1}</Text>
+                        <Text style={styles.prescriptionDate}>{formatDate(pres.createdAt)}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.viewButton}
+                      onPress={() => setExpandedPrescription(expandedPrescription === pres._id ? null : pres._id)}
+                    >
+                      <Text style={styles.viewButtonText}>VIEW</Text>
+                      <Ionicons 
+                        name={expandedPrescription === pres._id ? "chevron-up" : "chevron-down"} 
+                        size={16} 
+                        color="#1E3A8A" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.doctorSection}>
+                    <View style={styles.doctorIconContainer}>
+                      <Ionicons name="person" size={16} color="rgba(255,255,255,0.8)" />
+                    </View>
+                    <Text style={styles.doctorName}>
+                      Dr. {(pres.doctorId as any)?.name || "Healthcare Provider"}
+                    </Text>
+                    {(pres.doctorId as any)?.specialization && (
+                      <Text style={styles.doctorSpecialization}>
+                        {(pres.doctorId as any).specialization}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Download Button */}
+                  <TouchableOpacity 
+                    style={styles.downloadButton}
+                    onPress={() => generateAndDownloadPdf(pres)}
+                  >
+                    <Ionicons name="cloud-download-outline" size={20} color="#1E3A8A" />
+                    <Text style={styles.downloadButtonText}>Download Prescription</Text>
+                  </TouchableOpacity>
+
+                  {/* Expanded Content */}
+                  {expandedPrescription === pres._id && (
+                    <View style={styles.expandedContent}>
+                      {/* Medicine Details */}
+                      {pres.medicines && pres.medicines.length > 0 && (
+                        <View style={styles.medicineDetails}>
+                          <Text style={styles.medicineDetailsTitle}>Prescribed Medicines</Text>
+                          {pres.medicines.map((medicine, i) => (
+                            <View key={i} style={styles.medicineRow}>
+                              <View style={styles.medicineIconDot} />
+                              <View style={styles.medicineInfo}>
+                                <Text style={styles.medicineName}>{medicine.name}</Text>
+                                <Text style={styles.medicineQuantity}>Qty: {medicine.quantity}</Text>
+                                {medicine.dosage && (
+                                  <Text style={styles.medicineDosage}>Dosage: {medicine.dosage}</Text>
+                                )}
+                                <Text style={styles.medicineInstructions}>
+                                  {formatWhen(medicine)}
+                                </Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      {/* Search Pharmacies Button */}
+                      <TouchableOpacity 
+                        style={styles.searchButton}
+                        onPress={() => fetchPharmaciesForPrescription(pres)}
+                      >
+                        <Ionicons name="search" size={18} color="#1E3A8A" />
+                        <Text style={styles.searchButtonText}>Search Nearby Pharmacies</Text>
+                      </TouchableOpacity>
+
+                      {/* Pharmacy Results */}
+                      {renderPharmacies(pres._id)}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1E40AF",
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#1E40AF",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginHorizontal: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerCenter: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  headerIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
   headerTitle: {
     color: "white",
-    fontSize: 18,
-    fontWeight: "600",
-    marginRight: 8,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
   },
-  headerIcon: {
-    marginLeft: 12,
-    padding: 4,
+  headerIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   languageButton: {
-    color: "white",
-    fontSize: 12,
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    minWidth: 32,
+    alignItems: "center",
+  },
+  languageButtonText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "600",
   },
   content: {
     flex: 1,
-    backgroundColor: "#1E40AF",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+  },
+  titleSection: {
+    paddingVertical: 32,
+    alignItems: "center",
   },
   sectionTitle: {
     color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
-    marginVertical: 20,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  sectionSubtitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 16,
+    textAlign: "center",
+    fontWeight: "500",
   },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 60,
   },
-  loadingText: {
-    marginTop: 8,
+  loadingIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  loadingTitle: {
     color: "white",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  loadingSubtitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 40,
   },
   emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 24,
+    fontWeight: "700",
     color: "white",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   emptyText: {
     color: "rgba(255,255,255,0.8)",
     textAlign: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 40,
+    lineHeight: 24,
+    fontSize: 16,
   },
   scrollView: {
     flex: 1,
   },
   prescriptionCard: {
     backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 16,
-    backdropFilter: "blur(10px)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
   },
   prescriptionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  prescriptionTitleSection: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    flex: 1,
+  },
+  prescriptionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
   },
   prescriptionTitle: {
     color: "white",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  prescriptionDate: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "500",
   },
   viewButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   viewButtonText: {
-    color: "#333",
-    fontWeight: "600",
+    color: "#1E3A8A",
+    fontWeight: "700",
     marginRight: 4,
     fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  doctorSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  doctorIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
   },
   doctorName: {
     color: "rgba(255,255,255,0.9)",
     fontSize: 16,
-    marginBottom: 16,
+    fontWeight: "600",
+    marginRight: 8,
+  },
+  doctorSpecialization: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   downloadButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 25,
     alignSelf: "stretch",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   downloadButtonText: {
-    color: "#1E40AF",
-    fontWeight: "600",
+    color: "#1E3A8A",
+    fontWeight: "700",
     marginLeft: 8,
+    fontSize: 15,
   },
   expandedContent: {
-    marginTop: 16,
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.2)",
   },
   medicineDetails: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  medicineDetailsTitle: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   medicineRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  medicineIconDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+    marginTop: 6,
+    marginRight: 12,
+  },
+  medicineInfo: {
+    flex: 1,
   },
   medicineName: {
     color: "white",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
+    marginBottom: 4,
   },
   medicineQuantity: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  medicineDosage: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  medicineInstructions: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontStyle: "italic",
   },
   searchButton: {
-    backgroundColor: "white",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 25,
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    justifyContent: "center",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchButtonText: {
-    color: "#1E40AF",
-    fontWeight: "600",
+    color: "#1E3A8A",
+    fontWeight: "700",
+    marginLeft: 8,
+    fontSize: 15,
   },
   loadingPharma: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
+    padding: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  loadingText: {
+    marginLeft: 12,
+    color: "white",
+    fontWeight: "500",
   },
   pharmacySection: {
     marginTop: 8,
   },
+  pharmacySectionTitle: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   pharmacyCard: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   pharmacyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  pharmacyInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  pharmacyIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   pharmacyName: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
-  },
-  orderButton: {
-    backgroundColor: "white",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  orderButtonText: {
-    color: "#1E40AF",
-    fontWeight: "600",
-    fontSize: 12,
+    marginBottom: 2,
   },
   pharmacyDistance: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  orderButton: {
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  orderButtonText: {
+    color: "#1E3A8A",
+    fontWeight: "700",
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  pharmacyStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusText: {
     color: "rgba(255,255,255,0.8)",
     fontSize: 12,
+    fontWeight: "500",
   },
 });

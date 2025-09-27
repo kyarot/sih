@@ -1,6 +1,6 @@
 // [id].tsx
-import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "expo-router";
+import React, { JSX,useState, useRef, useEffect } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import {
   Animated,
@@ -19,8 +19,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Alert, ActivityIndicator } from "react-native";
 import * as Speech from "expo-speech";
 import { Audio } from "expo-av";
+import { updatePatientLocation } from "../utils/patientHelper";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 const router = useRouter();
@@ -34,6 +36,13 @@ interface Message {
 }
 
 export default function PatientHome() {
+
+  const { id } = useLocalSearchParams();
+  const accountId: string = (id as string) || "";
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [selectedFamily, setSelectedFamily] = useState<{ uid: string; name: string } | null>(null);
+  const [familyProfiles, setFamilyProfiles] = useState<any[]>([]);
+  const [showSwitcher, setShowSwitcher] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,6 +66,70 @@ const [patientId, setpatientId] = useState<string | null>(null);
       };
       loadDoctor();
     }, []);
+
+    //handle location
+  const handleSaveLocation = async () => {
+    setLocationLoading(true);
+    console.log("Patient UID:", patientUid);
+    if (patientUid === null) {
+      setLocationLoading(false);
+      Alert.alert("Error", "Patient UID is missing. Try logging in again.");
+      return;
+    }
+    const result = await updatePatientLocation(
+      patientUid,
+      "https://7300c4c894de.ngrok-free.app/api"
+    );
+    setLocationLoading(false);
+
+    if (result.success) {
+      Alert.alert("Location Saved Successfully", result.message);
+    } else {
+      Alert.alert("Error", result.message);
+    }
+  };
+
+
+const switcherAnim = useRef(new Animated.Value(-width)).current;
+
+  const toggleSwitcher = () => {
+    if (showSwitcher) {
+      Animated.timing(switcherAnim, { toValue: -width, duration: 300, useNativeDriver: false }).start(() =>
+        setShowSwitcher(false)
+      );
+    } else {
+      setShowSwitcher(true);
+      Animated.timing(switcherAnim, { toValue: 0, duration: 300, useNativeDriver: false }).start();
+    }
+  };
+
+  const selectProfile = async (profile: any) => {
+    setSelectedFamily(profile);
+    await AsyncStorage.setItem(`family-${accountId}`, JSON.stringify(profile));
+    toggleSwitcher(); // close switcher
+  };
+
+    useEffect(() => {
+    async function loadFamily() {
+      try {
+        const storedFamily = await AsyncStorage.getItem(`family-${accountId}`);
+        if (storedFamily) {
+          setSelectedFamily(JSON.parse(storedFamily));
+        }
+
+        // Fetch family profiles from API
+        if (accountId) {
+          const res = await fetch(`https://7300c4c894de.ngrok-free.app/api/patients/family/${accountId}`);
+          const data = await res.json();
+          setFamilyProfiles(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to load family data:", error);
+      }
+    }
+
+    if (accountId) loadFamily();
+  }, [accountId]);
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
@@ -86,6 +159,10 @@ const [patientId, setpatientId] = useState<string | null>(null);
       Animated.spring(sheetY, { toValue: targetY, useNativeDriver: false, tension: 100, friction: 8 }).start();
     },
   });
+
+  const routetoSearch=()=>{
+    router.push('/patient/screens/searchpharma')
+  }
 
   const startRecording = async () => {
     try {
@@ -181,9 +258,18 @@ const [patientId, setpatientId] = useState<string | null>(null);
           <TouchableOpacity style={styles.floatingButton}>
             <Ionicons name="person" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.floatingButton}>
-            <Ionicons name="location" size={24} color="white" />
+         <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={handleSaveLocation}
+            disabled={locationLoading}
+          >
+            {locationLoading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Ionicons name="location" size={24} color="white" />
+            )}
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.languageButton}>
             <Text style={styles.languageText}>English</Text>
             <Ionicons name="language" size={16} color="white" />
@@ -291,10 +377,11 @@ const [patientId, setpatientId] = useState<string | null>(null);
           >
           {/* First Row Icons */}
           <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={()=>router.push('/patient/screens/AppointementsScreen')}>
               <Ionicons name="calendar-outline" size={32} color="white" />
               <Text style={styles.iconLabel}>Appointments</Text>
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.iconButton}
              onPress={() =>
     router.push({
@@ -306,19 +393,24 @@ const [patientId, setpatientId] = useState<string | null>(null);
               <Ionicons name="document-text-outline" size={32} color="white" />
               <Text style={styles.iconLabel}>Prescriptions</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={()=>router.push('/patient/screens/history')}>
               <Ionicons name="time-outline" size={32} color="white" />
               <Text style={styles.iconLabel}>History</Text>
             </TouchableOpacity>
           </View>
 
+          
+
           {/* Second Row Icons */}
           <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={routetoSearch}>
               <Ionicons name="medical-outline" size={32} color="white" />
               <Text style={styles.iconLabel}>Search Pharma</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push(`/patient/screens/Family?id=${accountId}`)}
+            >
               <Ionicons name="people-outline" size={32} color="white" />
               <Text style={styles.iconLabel}>Family</Text>
             </TouchableOpacity>

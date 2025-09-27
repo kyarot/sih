@@ -6,26 +6,27 @@ interface Props {
   profile: Profile;
   isOnline: boolean;
   setIsOnline: (v: boolean) => void;
+   toggleSwitch: () => void;
   onOpenProfile: () => void;
 }
 
-export default function PharmacyHeader({ profile, isOnline, setIsOnline, onOpenProfile }: Props) {
+export default function PharmacyHeader({ profile, isOnline, setIsOnline, toggleSwitch,onOpenProfile }: Props) {
   const styles = StyleSheet.create({
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: 'white',
+      backgroundColor: 'transparent',
       paddingHorizontal: 16,
       paddingVertical: 12,
       paddingTop: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.04,
-      shadowRadius: 6,
-      elevation: 2,
+      shadowColor: 'transparent',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      elevation: 0,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
       minHeight: 56,
     },
     headerLeft: {
@@ -34,18 +35,21 @@ export default function PharmacyHeader({ profile, isOnline, setIsOnline, onOpenP
       marginRight: 16,
     },
     welcomeText: {
-      fontSize: 12,
-      color: '#64748B',
+      fontSize: 13,
+      color: 'rgba(255, 255, 255, 0.8)',
       marginBottom: 2,
       fontWeight: '500',
       letterSpacing: 0.2,
     },
     shopName: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '700',
-      color: '#1E40AF',
+      color: '#FFFFFF',
       letterSpacing: 0.3,
-      lineHeight: 20,
+      lineHeight: 22,
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     headerRight: {
       flexDirection: 'row',
@@ -55,14 +59,20 @@ export default function PharmacyHeader({ profile, isOnline, setIsOnline, onOpenP
     statusContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F8FAFC',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       paddingHorizontal: 12,
       paddingVertical: 6,
-      borderRadius: 16,
+      borderRadius: 20,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
-      minWidth: 90,
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+      minWidth: 95,
       justifyContent: 'space-between',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      backdropFilter: 'blur(20px)',
     },
     statusText: {
       fontSize: 11,
@@ -71,29 +81,32 @@ export default function PharmacyHeader({ profile, isOnline, setIsOnline, onOpenP
       textTransform: 'uppercase',
     },
     onlineStatusText: {
-      color: '#1E40AF',
+      color: '#4ECDC4',
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     offlineStatusText: {
-      color: '#64748B',
+      color: 'rgba(255, 255, 255, 0.7)',
     },
     profileBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: '#1E40AF',
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#1E40AF',
-      shadowOffset: { width: 0, height: 2 },
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.15,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowRadius: 8,
+      elevation: 4,
       borderWidth: 2,
-      borderColor: 'white',
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     profileInitials: {
-      color: 'white',
-      fontSize: 12,
+      color: '#2E4EC6',
+      fontSize: 14,
       fontWeight: '700',
       letterSpacing: 0.5,
     },
@@ -107,9 +120,9 @@ export default function PharmacyHeader({ profile, isOnline, setIsOnline, onOpenP
     <>
       {/* Status Bar Configuration for Dynamic Island */}
       <StatusBar 
-        barStyle="dark-content"
-        backgroundColor="white"
-        translucent={false}
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={true}
       />
       
       <View style={styles.header}>
@@ -133,14 +146,14 @@ export default function PharmacyHeader({ profile, isOnline, setIsOnline, onOpenP
             </Text>
             <Switch 
               value={isOnline} 
-              onValueChange={setIsOnline} 
+              onValueChange={toggleSwitch} 
               trackColor={{ 
-                false: "#E2E8F0", 
-                true: "#1E40AF" 
+                false: "rgba(255, 255, 255, 0.2)", 
+                true: "#4ECDC4" 
               }} 
               thumbColor="white"
               style={styles.switchStyle}
-              ios_backgroundColor="#E2E8F0"
+              ios_backgroundColor="rgba(255, 255, 255, 0.2)"
             />
           </View>
           <TouchableOpacity 

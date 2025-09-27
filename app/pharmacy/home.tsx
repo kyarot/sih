@@ -1,9 +1,10 @@
 // app/pharmacy/home.tsx
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter,useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Alert, Dimensions, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { fetchConfirmedOrders, fetchPendingOrders, updateOrderStatus } from "./apihelper";
 import DashboardSection from "./DashboardSection";
 import InventorySection from "./InventorySection";
@@ -12,22 +13,26 @@ import OrdersSection from "./OrdersSection";
 import PharmacyHeader from "./PharmacyHeader";
 import ProfileModal from "./ProfileModal";
 import SidebarNav from "./SidebarNav";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import FloatingNavbar from "./components/FloatingNavbar"; // Import the new component
 
 import { ActiveSection, Item, Notification, Order, Profile } from "./types";
 import React from "react";
-
+const API_BASE = "https://7300c4c894de.ngrok-free.app/api";
 const { width } = Dimensions.get('window');
 const isMobile = width < 768;
 
 export default function PharmacyHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
+const params = useLocalSearchParams<{ pharmacyId?: string }>();
+  const [pharmacyIdState, setPharmacyIdState] = useState<string | null>(null);
   // ===== Navigation State =====
   const [activeSection, setActiveSection] = useState<ActiveSection>("dashboard");
 
   // ===== Status & Profile State =====
   const [isOnline, setIsOnline] = useState(true);
+   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profile, setProfile] = useState<Profile>({
@@ -99,16 +104,79 @@ export default function PharmacyHome() {
   }, [items]);
 
   // ===== Orders & Notifications State (fetched from backend) =====
-  const PHARMACY_ID = "68c7e45c7e560baf62e8d973";
+  //const PHARMACY_ID = "68c7e45c7e560baf62e8d973";
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [todayRevenue, setTodayRevenue] = useState(15420);
 
+   useEffect(() => {
+  const init = async () => {
+    try {
+      let id: string | null = params.pharmacyId ?? null;
+
+if (!id) {
+  id = await AsyncStorage.getItem("pharmacyId");
+}
+
+if (!id) {
+  Alert.alert("Missing pharmacy", "No pharmacy selected. Please login again.");
+  router.replace("/");
+  return;
+}
+      setPharmacyIdState(id);
+    } catch (err) {
+      console.error("init pharmacyId error:", err);
+    }
+  };
+  init();
+}, [params.pharmacyId]);
+
+   useEffect(() => {
+  if (!pharmacyIdState) return;
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/pharmacies/${pharmacyIdState}`);
+      const data = await res.json();
+      setIsOnline(Boolean(data.pharmacy?.isOnline));
+    } catch (err) {
+      console.error("Fetch status error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchStatus();
+}, [pharmacyIdState]);
+
+const toggleSwitch = async () => {
+  if (!pharmacyIdState) {
+    Alert.alert("Error", "No pharmacy selected.");
+    return;
+  }
+
+  const newStatus = !isOnline;
+  setIsOnline(newStatus); // optimistic UI
+  try {
+    const res = await fetch(`${API_BASE}/pharmacies/${pharmacyIdState}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isOnline: newStatus }),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to update status");
+    }
+  } catch (err) {
+    console.error("Update status error:", err);
+    setIsOnline(!newStatus); // revert UI if failed
+    Alert.alert("Error", "Could not update status. Try again.");
+  }
+};
+
   // ===== Data loading =====
   const reloadData = async (): Promise<void> => {
     try {
-      const pending: any = await fetchPendingOrders(PHARMACY_ID);
+      const pending: any = await fetchPendingOrders(pharmacyIdState || "");
       setNotifications(
         Array.isArray(pending['orders'])
           ? pending['orders'].map((p: any) => ({
@@ -123,7 +191,7 @@ export default function PharmacyHome() {
           : []
       );
 
-      const confirmed: any = await fetchConfirmedOrders(PHARMACY_ID);
+      const confirmed: any = await fetchConfirmedOrders(pharmacyIdState || "");
       setOrders(
         Array.isArray(confirmed['orders'])
           ? confirmed['orders'].map((o: any) => ({
@@ -261,23 +329,6 @@ export default function PharmacyHome() {
     router.push("/pharmacy/inventory");
   };
 
-  // ===== Enhanced Floating Navigation Items =====
-  const floatingNavItems: { 
-    id: string; 
-    icon: keyof typeof MaterialIcons.glyphMap; 
-    count: number | null;
-    isCenter?: boolean;
-  }[] = [
-    { id: "notifications", icon: "notifications-active", count: notifications.length },
-    { id: "dashboard", icon: "home", count: null, isCenter: true },
-    { id: "inventory", icon: "local-pharmacy", count: null },
-    {
-      id: "orders",
-      icon: "shopping-cart",
-      count: orders.filter((o: Order) => o.status === "pending" || o.status === "ready").length,
-    },
-  ];
-
   // ===== Filtered Items for Search =====
   const filteredItems = useMemo<Item[]>(() => {
     return items.filter((item: Item) =>
@@ -349,253 +400,143 @@ export default function PharmacyHome() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <Stack.Screen options={{ headerShown: false }} />
+    <LinearGradient
+      colors={['#2E4EC6', '#60A5FA', '#87CEEB']}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Compact Header */}
-      <View style={styles.headerContainer}>
-        <PharmacyHeader 
-          profile={profile} 
-          isOnline={isOnline} 
-          setIsOnline={setIsOnline} 
-          onOpenProfile={() => setShowProfile(true)} 
-        />
-      </View>
+        {/* Enhanced Header with Glassmorphism */}
+        <View style={styles.headerContainer}>
+          <PharmacyHeader 
+            profile={profile} 
+            isOnline={isOnline} 
+            setIsOnline={setIsOnline} 
+             toggleSwitch={toggleSwitch} 
+            onOpenProfile={() => setShowProfile(true)} 
+          />
+        </View>
 
-      {/* Main Content - Full Screen Layout */}
-      <View style={styles.mainContent}>
-        {/* Desktop Sidebar - Keep for desktop */}
-        {!isMobile && (
-          <View style={styles.sidebarContainer}>
-            <SidebarNav 
-              activeSection={activeSection} 
-              setActiveSection={setActiveSection} 
-              navItems={[
-                { id: "dashboard", label: "Dashboard", icon: "dashboard", count: null },
-                { id: "notifications", label: "Notifications", icon: "notifications", count: notifications.length },
-                { id: "inventory", label: "Inventory", icon: "inventory", count: dashboardMetrics.totalInventory },
-                {
-                  id: "orders",
-                  label: "Orders",
-                  icon: "receipt-long",
-                  count: orders.filter((o: Order) => o.status === "pending" || o.status === "ready").length,
-                },
-              ]} 
-            />
+        {/* Main Content - Full Screen Layout */}
+        <View style={styles.mainContent}>
+          {/* Desktop Sidebar - Enhanced */}
+          {!isMobile && (
+            <View style={styles.sidebarContainer}>
+              <SidebarNav 
+                activeSection={activeSection} 
+                setActiveSection={setActiveSection} 
+                navItems={[
+                  { id: "dashboard", label: "Dashboard", icon: "dashboard", count: null },
+                  { id: "notifications", label: "Notifications", icon: "notifications", count: notifications.length },
+                  { id: "inventory", label: "Inventory", icon: "inventory", count: dashboardMetrics.totalInventory },
+                  {
+                    id: "orders",
+                    label: "Orders",
+                    icon: "receipt-long",
+                    count: orders.filter((o: Order) => o.status === "pending" || o.status === "ready").length,
+                  },
+                ]} 
+              />
+            </View>
+          )}
+
+          {/* Content Area */}
+          <View style={[styles.contentContainer, isMobile && styles.mobileContentContainer]}>
+            <View style={[styles.contentWrapper, isMobile && styles.mobileContentWrapper]}>
+              {renderContent()}
+            </View>
           </View>
+        </View>
+
+        {/* Professional Floating Navigation Bar - Mobile Only */}
+        {isMobile && (
+          <FloatingNavbar
+            activeSection={activeSection}
+            setActiveSection={(section: string) => setActiveSection(section as ActiveSection)}
+            notificationCount={notifications.length}
+            orderCount={orders.filter((o: Order) => o.status === "pending" || o.status === "ready").length}
+          />
         )}
 
-        {/* Content Area */}
-        <View style={[styles.contentContainer, isMobile && styles.mobileContentContainer]}>
-          <View style={[styles.contentWrapper, isMobile && styles.mobileContentWrapper]}>
-            {renderContent()}
-          </View>
-        </View>
-      </View>
-
-      {/* Floating Navigation Bar - Mobile Only */}
-      {isMobile && (
-        <View style={[styles.floatingNavContainer, { bottom: Math.max(25, 25 + insets.bottom) }]}>
-          <View style={styles.floatingNavBar}>
-            {floatingNavItems.map((item, index) => (
-              <View 
-                key={item.id} 
-                style={[
-                  styles.floatingNavButton,
-                  item.isCenter && styles.centerNavButton,
-                  activeSection === item.id && !item.isCenter && styles.activeNavButton
-                ]}
-                onTouchEnd={() => setActiveSection(item.id as ActiveSection)}
-              >
-                <MaterialIcons
-                  name={item.icon}
-                  size={item.isCenter ? 28 : 24}
-                  color={
-                    item.isCenter ? '#FFFFFF' :
-                    activeSection === item.id ? '#1E40AF' : '#64748B'
-                  }
-                />
-                {item.count !== null && item.count > 0 && (
-                  <View style={styles.floatingBadge}>
-                    <Text style={styles.floatingBadgeText}>
-                      {item.count > 99 ? '99+' : item.count}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <ProfileModal
-        visible={showProfile}
-        onClose={() => setShowProfile(false)}
-        editingProfile={editingProfile}
-        setEditingProfile={setEditingProfile}
-        profile={profile}
-        tempProfile={tempProfile}
-        setTempProfile={setTempProfile}
-        saveProfile={saveProfile}
-        cancelEdit={cancelEdit}
-        logout={logout}
-      />
-    </SafeAreaView>
+        <ProfileModal
+          visible={showProfile}
+          onClose={() => setShowProfile(false)}
+          editingProfile={editingProfile}
+          setEditingProfile={setEditingProfile}
+          profile={profile}
+          tempProfile={tempProfile}
+          setTempProfile={setTempProfile}
+          saveProfile={saveProfile}
+          cancelEdit={cancelEdit}
+          logout={logout}
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
   },
   
-  // Compact Header Styles
+  // Enhanced Header with Glassmorphism
   headerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    borderBottomColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
     zIndex: 10,
+    backdropFilter: 'blur(20px)',
   },
   
   // Main Content Layout
   mainContent: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
   },
   
-  // Desktop Sidebar
+  // Enhanced Desktop Sidebar
   sidebarContainer: {
-    width: 240,
-    backgroundColor: '#FFFFFF',
+    width: 260,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-    shadowColor: '#000000',
-    shadowOffset: { width: 1, height: 0 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
     zIndex: 50,
+    backdropFilter: 'blur(20px)',
   },
   
-  // Content Container
+  // Enhanced Content Container
   contentContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
     padding: 0,
   },
   mobileContentContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
     paddingBottom: 100, // Space for floating nav
   },
   
   contentWrapper: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 0,
-    shadowColor: 'transparent',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
     overflow: 'hidden',
   },
   mobileContentWrapper: {
-    borderRadius: 0,
-    shadowRadius: 0,
-    elevation: 0,
-  },
-  
-  // Floating Navigation Styles
-  floatingNavContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 1000,
-    paddingHorizontal: 20,
-  },
-  
-  floatingNavBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(25px)',
-    borderRadius: 30,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    width: 320,
-    height: 72,
-  },
-  
-  floatingNavButton: {
-    position: 'relative',
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 28,
     backgroundColor: 'transparent',
-  },
-  
-  centerNavButton: {
-    backgroundColor: '#3B82F6',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    transform: [{ scale: 1.05 }],
-  },
-  
-  activeNavButton: {
-    backgroundColor: 'rgba(30, 64, 175, 0.1)',
-    borderWidth: 2,
-    borderColor: '#1E40AF',
-    transform: [{ scale: 1.0 }],
-  },
-  
-  floatingBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  
-  floatingBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 12,
+    borderRadius: 0,
   },
 });

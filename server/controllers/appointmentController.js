@@ -1,7 +1,7 @@
 import Appointment from "../models/Appointment.js";
 import Notification from "../models/Notification.js";
 import Patient from "../models/Patient.js";
-
+import Prescription from "../models/Prescription.js";
 /** Create appointment */
 export const createAppointment = async (req, res) => {
   try {
@@ -117,5 +117,69 @@ export const updateAppointmentDecision = async (req, res) => {
   } catch (err) {
     console.error("Error updating appointment decision:", err);
     res.status(500).json({ message: "Error updating decision" });
+  }
+};
+/** Get completed appointments for patient history */
+export const getCompletedAppointmentsByPatient = async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const patient = await Patient.findOne({ uid });
+
+    if (!patient) return res.status(404).json({ message: "Patient not found" });
+
+    // Find only completed appointments, sorted by completion date (most recent first)
+    const completedAppts = await Appointment.find({ 
+      patientId: patient._id,
+      status: "completed" 
+    })
+      .populate("doctorId", "name specialization experience")
+      .sort({ updatedAt: -1 }); // Sort by when they were last updated (completed)
+
+    // Transform the data to include helpful fields for the frontend
+    const transformedAppts = completedAppts.map(appt => ({
+      _id: appt._id,
+      doctorId: appt.doctorId,
+      patientName: appt.patientName,
+      patientAge: appt.patientAge,
+      patientGender: appt.patientGender,
+      symptomsDescription: appt.symptomsDescription,
+      symptomDuration: appt.symptomDuration,
+      symptomSeverity: appt.symptomSeverity,
+      scheduledDateTime: appt.scheduledDateTime,
+      completedAt: appt.updatedAt, // When it was marked as completed
+      createdAt: appt.createdAt,
+      notes: appt.notes,
+      // Check if prescription exists for this appointment
+      hasPrescription: true // You might want to do an actual lookup here
+    }));
+
+    res.json(transformedAppts);
+  } catch (err) {
+    console.error("Error fetching completed appointments:", err);
+    res.status(500).json({ message: "Error fetching completed appointments" });
+  }
+};
+
+/** Get prescription by appointment ID */
+export const getPrescriptionByAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    // console.log(appointmentId)
+    
+    // You'll need to import your Prescription model
+    // import Prescription from "../models/Prescription.js";
+    
+    const prescription = await Prescription.findOne({ appointmentId })
+      .populate("doctorId", "name specialization")
+      .populate("patientId", "name age gender");
+    // console.log(prescription)
+    if (!prescription) {
+      return res.status(404).json({ message: "Prescription not found" });
+    }
+
+    res.json(prescription);
+  } catch (err) {
+    console.error("Error fetching prescription:", err);
+    res.status(500).json({ message: "Error fetching prescription" });
   }
 };

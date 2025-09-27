@@ -40,43 +40,43 @@ export default function DashboardSection({
       icon: "notifications-outline",
       value: notificationsCount,
       label: "New Requests",
-      color: "#1E40AF",
-      bgColor: "#EFF6FF",
+      color: "#FFFFFF",
+      bgColor: "rgba(255, 255, 255, 0.15)",
     },
     {
       icon: "list-outline",
       value: pendingOrdersCount,
       label: "Active Orders",
-      color: "#1E40AF",
-      bgColor: "#EFF6FF",
+      color: "#FFFFFF",
+      bgColor: "rgba(255, 255, 255, 0.15)",
     },
     {
       icon: "warning-outline",
       value: dashboardMetrics.lowStockItems,
       label: "Low Stock",
-      color: "#EF4444",
-      bgColor: "#FEF2F2",
+      color: "#FF6B6B",
+      bgColor: "rgba(255, 107, 107, 0.2)",
     },
     {
       icon: "medical-outline",
       value: dashboardMetrics.totalInventory,
       label: "Total Items",
-      color: "#10B981",
-      bgColor: "#F0FDF4",
+      color: "#4ECDC4",
+      bgColor: "rgba(78, 205, 196, 0.2)",
     },
     {
       icon: "cash-outline",
       value: `₹${formatNumber(todayRevenue)}`,
       label: "Today's Revenue",
-      color: "#8B5CF6",
-      bgColor: "#FAF5FF",
+      color: "#FFE66D",
+      bgColor: "rgba(255, 230, 109, 0.2)",
     },
     {
       icon: "cube-outline",
       value: `₹${formatNumber(dashboardMetrics.inventoryValue)}`,
       label: "Inventory Value",
-      color: "#F59E0B",
-      bgColor: "#FFFBEB",
+      color: "#A8E6CF",
+      bgColor: "rgba(168, 230, 207, 0.2)",
     },
   ];
 
@@ -111,7 +111,7 @@ export default function DashboardSection({
           <Text style={styles.subtitle}>Monitor your pharmacy performance</Text>
         </View>
         <View style={styles.headerIcon}>
-          <Ionicons name="grid-outline" size={24} color="#1E40AF" />
+          <Ionicons name="grid-outline" size={24} color="#FFFFFF" />
         </View>
       </View>
 
@@ -177,7 +177,7 @@ export default function DashboardSection({
                   </View>
                   <Text style={styles.mobileQuickActionLabel}>{action.label}</Text>
                   <View style={styles.mobileQuickActionArrow}>
-                    <Ionicons name="chevron-forward" size={16} color="#64748B" />
+                    <Ionicons name="chevron-forward" size={16} color="rgba(255, 255, 255, 0.7)" />
                   </View>
                 </>
               )}
@@ -192,7 +192,7 @@ export default function DashboardSection({
           <View style={styles.alertCard}>
             <View style={styles.alertHeader}>
               <View style={styles.alertIconContainer}>
-                <Ionicons name="warning" size={18} color="#EF4444" />
+                <Ionicons name="warning" size={18} color="#FF6B6B" />
               </View>
               <View style={styles.alertContent}>
                 <Text style={styles.alertTitle}>Stock Alert</Text>
@@ -218,7 +218,7 @@ export default function DashboardSection({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'linear-gradient(135deg, #2E4EC6 0%, #87CEEB 100%)',
   },
   
   contentContainer: {
@@ -234,28 +234,39 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#1E40AF',
-    marginBottom: 2,
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   subtitle: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
   },
   
   headerIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   
   // Metrics Grid
@@ -273,41 +284,68 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: 280,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
     flexDirection: 'row',
     alignItems: 'center',
+    backdropFilter: 'blur(20px)',
   },
   
   mobileMetricCard: {
     minWidth: '47%',
-    padding: 14,
+    padding: 16,
+    borderRadius: 14,
   },
   
   locationCard: {
-   
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
+    backdropFilter: 'blur(20px)',
   },
   
   mobileLocationCard: {
     minWidth: '100%',
-    padding: 0,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
+    backdropFilter: 'blur(20px)',
   },
   
   metricIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   
   metricContent: {
@@ -315,16 +353,19 @@ const styles = StyleSheet.create({
   },
   
   metricValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#FFFFFF',
     marginBottom: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   metricLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#64748B',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   
   // Quick Actions
@@ -333,10 +374,13 @@ const styles = StyleSheet.create({
   },
   
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
+    color: '#FFFFFF',
+    marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   quickActionsGrid: {
@@ -346,76 +390,101 @@ const styles = StyleSheet.create({
   
   mobileQuickActionsGrid: {
     flexDirection: 'column',
-    gap: 8,
+    gap: 10,
   },
   
   quickActionCard: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 16,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 14,
+    padding: 18,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    minHeight: 80,
+    minHeight: 90,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    backdropFilter: 'blur(20px)',
   },
   
   mobileQuickActionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
-    minHeight: 56,
+    padding: 14,
+    minHeight: 60,
+    borderRadius: 12,
   },
   
   quickActionIcon: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#1E40AF',
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   
   quickActionLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   quickActionArrow: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 20,
-    height: 20,
-    backgroundColor: '#1E40AF',
-    borderRadius: 4,
+    top: 10,
+    right: 10,
+    width: 22,
+    height: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   
   // Mobile Quick Action Styles
   mobileQuickActionIcon: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#1E40AF',
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   
   mobileQuickActionLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#FFFFFF',
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   mobileQuickActionArrow: {
@@ -431,27 +500,35 @@ const styles = StyleSheet.create({
   },
   
   alertCard: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
     borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 10,
-    padding: 16,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+    borderRadius: 14,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    backdropFilter: 'blur(20px)',
   },
   
   alertHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   
   alertIconContainer: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   
   alertContent: {
@@ -459,37 +536,47 @@ const styles = StyleSheet.create({
   },
   
   alertTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 2,
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   alertText: {
-    fontSize: 12,
-    color: '#991B1B',
-    lineHeight: 16,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 18,
+    fontWeight: '500',
   },
   
   alertButton: {
-    backgroundColor: '#DC2626',
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   
   alertButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    color: '#2E4EC6',
+    fontSize: 13,
     fontWeight: '600',
-    marginRight: 4,
+    marginRight: 6,
   },
   
   alertButtonArrow: {
     marginLeft: 2,
+    color: '#2E4EC6',
   },
 });

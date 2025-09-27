@@ -16,7 +16,7 @@ const doctorSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
   patients: { type: Number, default: 0 },
   uniqueKey: { type: String, required: true, unique: true }, // login credential
-  onlineStatus: { type: Boolean, default: false } // online/offline toggle
+  is_online: { type: Boolean, default: false }, // availability
 }, { timestamps: true });
 
 const Doctor = mongoose.model("Doctor", doctorSchema);

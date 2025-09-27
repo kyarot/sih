@@ -25,25 +25,25 @@ export default function DoctorLayout() {
           bottom: 25,
           left: 20,
           right: 20,
-          backgroundColor: 'rgba(30, 64, 175, 0.85)',
+          backgroundColor: 'rgba(30, 64, 175, 0.15)',
           borderRadius: 25,
           height: Platform.OS === "ios" ? 70 : 65,
           paddingTop: 8,
           paddingBottom: Platform.OS === "ios" ? 12 : 8,
           paddingHorizontal: 10,
           borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderColor: 'rgba(255, 255, 255, 0.3)',
           elevation: 20,
           shadowColor: "#1E40AF",
           shadowOffset: { 
             width: 0, 
             height: 10 
           },
-          shadowOpacity: 0.3,
+          shadowOpacity: 0.2,
           shadowRadius: 20,
         },
-        tabBarActiveTintColor: "#ffffff",
-        tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)",
+        tabBarActiveTintColor: "#1E40AF",
+        tabBarInactiveTintColor: "rgba(107, 114, 128, 0.7)",
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700",
@@ -132,7 +132,7 @@ export default function DoctorLayout() {
           headerTitleStyle: {
             fontSize: 24,
             fontWeight: "700",
-            color: "#1E40AF",
+            color: "#b9c3e3ff",
             marginLeft: 16,
           },
           tabBarIcon: ({ color, size, focused }) => (
@@ -164,8 +164,8 @@ export default function DoctorLayout() {
             marginLeft: 16,
           },
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name="timeline" 
+            <Ionicons 
+              name={focused ? "pulse" : "pulse-outline"} 
               size={focused ? size + 3 : size} 
               color={color}
             />
@@ -174,31 +174,33 @@ export default function DoctorLayout() {
         }}
       />
       
+      {/* Hide unwanted tabs */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null, // This completely hides the tab
+        }}
+      />
+      
+     
       <Tabs.Screen
         name="video-call"
         options={{
-          title: "Video Call",
-          headerLeft: () => null,
-          headerStyle: {
-            backgroundColor: "white",
-            borderBottomWidth: 0,
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          headerTitleStyle: {
-            fontSize: 24,
-            fontWeight: "700",
-            color: "#1E40AF",
-            marginLeft: 16,
-          },
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons 
-              name={focused ? "videocam" : "videocam-outline"} 
-              size={focused ? size + 3 : size} 
-              color={color}
-            />
-          ),
-          tabBarLabel: "Video Call",
+          href: null, // This completely hides the tab
+        }}
+      />
+      <Tabs.Screen
+  name="prescriptions"
+  options={{
+    href: null, // completely hides it from the tab bar
+  }}
+/>
+
+      
+      <Tabs.Screen
+        name="patient-details"
+        options={{
+          
         }}
       />
     </Tabs>

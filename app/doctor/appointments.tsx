@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { Linking } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 
 import React, { useEffect, useState } from "react";
 import {
@@ -14,10 +15,11 @@ import {
   Text,
   TouchableOpacity,
   View,
+  
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import PrescriptionForm from "./PrescriptionForm";
+import PrescriptionForm from "./components/PrescriptionForm";
 
 type Appointment = {
   _id?: string;
@@ -138,13 +140,13 @@ const ActivityScreen: React.FC = () => {
   const getStatusColor = (decision: string) => {
     switch (decision) {
       case "pending":
-        return "#1E40AF";
+        return "#FFB800";
       case "accepted":
-        return "#10b981";
+        return "#00D4AA";
       case "declined":
-        return "#ef4444";
+        return "#FF6B6B";
       default:
-        return "#64748b";
+        return "#8DA4CC";
     }
   };
 
@@ -162,230 +164,287 @@ const ActivityScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Appointments</Text>
-          <Text style={styles.headerSubtitle}>Manage your patient consultations</Text>
-        </View>
-
-        <View style={styles.section}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#1E40AF" />
-              <Text style={styles.loadingText}>Loading appointments...</Text>
-            </View>
-          ) : appointments.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={64} color="#cbd5e1" />
-              <Text style={styles.emptyTitle}>No Appointments</Text>
-              <Text style={styles.emptyText}>You don't have any appointments scheduled yet.</Text>
-            </View>
-          ) : (
-            appointments.map((appt: Appointment) => {
-              const isOpen = expanded === appt._id;
-              return (
-                <View key={appt._id} style={styles.appointmentCard}>
-                  {/* Card Header */}
-                  <TouchableOpacity
-                    style={styles.cardHeader}
-                    onPress={() => setExpanded(isOpen ? null : appt._id!)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.patientInfo}>
-                      <View style={styles.avatarContainer}>
-                        <Ionicons name="person" size={20} color="#1E40AF" />
-                      </View>
-                      <View style={styles.patientDetails}>
-                        <Text style={styles.patientName}>
-                          {appt.patientName ?? appt.patientId?.name ?? "Unknown Patient"}
-                        </Text>
-                        <Text style={styles.patientMeta}>
-                          Age: {appt.patientAge ?? "-"} • {appt.patientGender ?? "N/A"}
-                        </Text>
-                        <Text style={styles.symptomPreview}>
-                          {appt.symptomsDescription ?? "No symptoms described"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.headerRight}>
-                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(appt.decision || "pending") + "15" }]}>
-                        <Ionicons
-                          name={getStatusIcon(appt.decision || "pending")}
-                          size={12}
-                          color={getStatusColor(appt.decision || "pending")}
-                        />
-                        <Text style={[styles.statusText, { color: getStatusColor(appt.decision || "pending") }]}>
-                          {appt.decision || "pending"}
-                        </Text>
-                      </View>
-                      <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={20} color="#1E40AF" style={styles.chevron} />
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Expanded Details */}
-                  {isOpen && (
-                    <View style={styles.expandedContent}>
-                      <View style={styles.divider} />
-
-                      {/* Actions */}
-                      <View style={styles.actionsContainer}>
-                        {appt.decision === "pending" ? (
-                          <View style={styles.pendingActions}>
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.acceptButton]}
-                              onPress={() => handleDecision(appt._id!, "accepted")}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="checkmark" size={18} color="white" />
-                              <Text style={styles.actionButtonText}>Accept</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.rejectButton]}
-                              onPress={() => handleDecision(appt._id!, "declined")}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="close" size={18} color="white" />
-                              <Text style={styles.actionButtonText}>Reject</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ) : appt.decision === "accepted" ? (
-                         <View style={styles.meetingActions}>
-  {!isPrescriptionEnabled(appt) && (
-<TouchableOpacity
-  style={[
-    styles.meetingButton,
-    isJoinEnabled(appt) ? styles.joinMeetingButton : styles.disabledMeetingButton,
-  ]}
-  disabled={!isJoinEnabled(appt)}
-  onPress={() => {
-    if (appt.videoLink) {
-      Linking.openURL(appt.videoLink).catch(() =>
-        Alert.alert("Error", "Unable to open meeting link.")
-      );
-    } else {
-      Alert.alert("No Link", "Meeting link not available.");
-    }
-  }}
->
-  <Ionicons name="videocam" size={20} color="white" />
-  <Text style={styles.meetingButtonText}>Join MEET</Text>
-</TouchableOpacity>
-
-  )}
-  {isPrescriptionEnabled(appt) && (
-    <TouchableOpacity
-      style={[styles.meetingButton, styles.joinMeetingButton]}
-      onPress={() => setShowPrescriptionFor(appt._id!)}
-      activeOpacity={0.8}
+    <LinearGradient
+      colors={['#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD']}
+      style={styles.container}
     >
-      <Ionicons name="document-text" size={20} color="white" />
-      <Text style={styles.meetingButtonText}>Write Prescription</Text>
-    </TouchableOpacity>
-  )}
-</View>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Appointments</Text>
+            <Text style={styles.headerSubtitle}>Manage your patient consultations</Text>
+          </View>
 
-                        ) : null}
-
-                        {showPrescriptionFor === appt._id && doctorId && appt.patientId && (
-                          <PrescriptionForm
-                            onClose={() => setShowPrescriptionFor(null)}
-                            doctorId={doctorId}
-                            patientId={typeof appt.patientId === "object" ? appt.patientId._id : appt.patientId}
-                          />
-                        )}
-                      </View>
-                    </View>
-                  )}
+          <View style={styles.section}>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+                <Text style={styles.loadingText}>Loading appointments...</Text>
+              </View>
+            ) : appointments.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="calendar-outline" size={64} color="#FFFFFF" />
                 </View>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
+                <Text style={styles.emptyTitle}>No Appointments</Text>
+                <Text style={styles.emptyText}>You don't have any appointments scheduled yet.</Text>
+              </View>
+            ) : (
+              appointments.map((appt: Appointment) => {
+                const isOpen = expanded === appt._id;
+                return (
+                  <View key={appt._id} style={styles.appointmentCard}>
+                    {/* Card Header */}
+                    <TouchableOpacity
+                      style={styles.cardHeader}
+                      onPress={() => setExpanded(isOpen ? null : appt._id!)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.patientInfo}>
+                        <View style={styles.avatarContainer}>
+                          <LinearGradient
+                            colors={['#FFFFFF', '#F0F9FF']}
+                            style={styles.avatarGradient}
+                          >
+                            <Ionicons name="person" size={24} color="#1E40AF" />
+                          </LinearGradient>
+                        </View>
+                        <View style={styles.patientDetails}>
+                          <Text style={styles.patientName}>
+                            {appt.patientName ?? appt.patientId?.name ?? "Unknown Patient"}
+                          </Text>
+                          <Text style={styles.patientMeta}>
+                            Age: {appt.patientAge ?? "-"} • {appt.patientGender ?? "N/A"}
+                          </Text>
+                          <Text style={styles.symptomPreview}>
+                            {appt.symptomsDescription ?? "No symptoms described"}
+                          </Text>
+                        </View>
+                      </View>
 
-      {/* Pickers */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={scheduleDate}
-          mode="date"
-          display="default"
-          onChange={(_, date) => {
-            setShowDatePicker(false);
-            if (date) {
-              setScheduleDate(date);
-              setShowTimePicker(true);
-            } else {
-              setPendingDecisionId(null);
-            }
-          }}
-        />
-      )}
-      {showTimePicker && (
-        <DateTimePicker
-          value={scheduleDate}
-          mode="time"
-          display="default"
-          onChange={async (_, date) => {
-            setShowTimePicker(false);
-            if (date && pendingDecisionId) {
-              const finalDate = new Date(
-                scheduleDate.getFullYear(),
-                scheduleDate.getMonth(),
-                scheduleDate.getDate(),
-                date.getHours(),
-                date.getMinutes()
-              );
-              try {
-                await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/${pendingDecisionId}/decision`, {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ decision: "accepted", scheduledDateTime: finalDate }),
-                });
-                await refresh();
-                Alert.alert("Scheduled", `Meeting set for ${finalDate.toLocaleString()}`);
-              } catch (err) {
-                console.error(err);
-                Alert.alert("Error", "Failed to schedule appointment.");
-              } finally {
+                      <View style={styles.headerRight}>
+                        <View style={[
+                          styles.statusBadge, 
+                          { 
+                            backgroundColor: getStatusColor(appt.decision || "pending") + "20",
+                            borderColor: getStatusColor(appt.decision || "pending") + "40",
+                          }
+                        ]}>
+                          <Ionicons
+                            name={getStatusIcon(appt.decision || "pending")}
+                            size={14}
+                            color={getStatusColor(appt.decision || "pending")}
+                          />
+                          <Text style={[styles.statusText, { color: getStatusColor(appt.decision || "pending") }]}>
+                            {appt.decision || "pending"}
+                          </Text>
+                        </View>
+                        <Ionicons 
+                          name={isOpen ? "chevron-up" : "chevron-down"} 
+                          size={24} 
+                          color="#FFFFFF" 
+                          style={styles.chevron} 
+                        />
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Expanded Details */}
+                    {isOpen && (
+                      <View style={styles.expandedContent}>
+                        <View style={styles.divider} />
+
+                        {/* Actions */}
+                        <View style={styles.actionsContainer}>
+                          {appt.decision === "pending" ? (
+                            <View style={styles.pendingActions}>
+                              <TouchableOpacity
+                                style={[styles.actionButton, styles.acceptButton]}
+                                onPress={() => handleDecision(appt._id!, "accepted")}
+                                activeOpacity={0.8}
+                              >
+                                <LinearGradient
+                                  colors={['#00D4AA', '#00B894']}
+                                  style={styles.actionGradient}
+                                >
+                                  <Ionicons name="checkmark" size={20} color="white" />
+                                  <Text style={styles.actionButtonText}>Accept</Text>
+                                </LinearGradient>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                style={[styles.actionButton, styles.rejectButton]}
+                                onPress={() => handleDecision(appt._id!, "declined")}
+                                activeOpacity={0.8}
+                              >
+                                <LinearGradient
+                                  colors={['#FF6B6B', '#E55353']}
+                                  style={styles.actionGradient}
+                                >
+                                  <Ionicons name="close" size={20} color="white" />
+                                  <Text style={styles.actionButtonText}>Reject</Text>
+                                </LinearGradient>
+                              </TouchableOpacity>
+                            </View>
+                          ) : appt.decision === "accepted" ? (
+                           <View style={styles.meetingActions}>
+                              {!isPrescriptionEnabled(appt) && (
+                                <TouchableOpacity
+                                  style={[
+                                    styles.meetingButton,
+                                    isJoinEnabled(appt) ? styles.joinMeetingButton : styles.disabledMeetingButton,
+                                  ]}
+                                  disabled={!isJoinEnabled(appt)}
+                                  onPress={() => {
+                                    if (appt.videoLink) {
+                                      Linking.openURL(appt.videoLink).catch(() =>
+                                        Alert.alert("Error", "Unable to open meeting link.")
+                                      );
+                                    } else {
+                                      Alert.alert("No Link", "Meeting link not available.");
+                                    }
+                                  }}
+                                  activeOpacity={0.8}
+                                >
+                                  <LinearGradient
+                                    colors={isJoinEnabled(appt) ? ['#FFFFFF', '#F8FAFF'] : ['#8DA4CC', '#7A92B8']}
+                                    style={styles.meetingGradient}
+                                  >
+                                    <Ionicons 
+                                      name="videocam" 
+                                      size={22} 
+                                      color={isJoinEnabled(appt) ? "#1E40AF" : "#FFFFFF"} 
+                                    />
+                                    <Text style={[
+                                      styles.meetingButtonText, 
+                                      { color: isJoinEnabled(appt) ? "#1E40AF" : "#FFFFFF" }
+                                    ]}>
+                                      Join MEET
+                                    </Text>
+                                  </LinearGradient>
+                                </TouchableOpacity>
+                              )}
+                              
+                              {isPrescriptionEnabled(appt) && (
+                                <TouchableOpacity
+                                  style={styles.meetingButton}
+                                  onPress={() => setShowPrescriptionFor(appt._id!)}
+                                  activeOpacity={0.8}
+                                >
+                                  <LinearGradient
+                                    colors={['#FFFFFF', '#F8FAFF']}
+                                    style={styles.meetingGradient}
+                                  >
+                                    <Ionicons name="document-text" size={22} color="#1E40AF" />
+                                    <Text style={[styles.meetingButtonText, { color: "#1E40AF" }]}>
+                                      Write Prescription
+                                    </Text>
+                                  </LinearGradient>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          ) : null}
+
+                          {showPrescriptionFor === appt._id && doctorId && appt.patientId && (
+                            <PrescriptionForm
+                              onClose={() => setShowPrescriptionFor(null)}
+                              doctorId={doctorId}
+                              patientId={typeof appt.patientId === "object" ? appt.patientId._id : appt.patientId}
+                            />
+                          )}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Pickers */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={scheduleDate}
+            mode="date"
+            display="default"
+            onChange={(_, date) => {
+              setShowDatePicker(false);
+              if (date) {
+                setScheduleDate(date);
+                setShowTimePicker(true);
+              } else {
                 setPendingDecisionId(null);
               }
-            }
-          }}
-        />
-      )}
-    </SafeAreaView>
+            }}
+          />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={scheduleDate}
+            mode="time"
+            display="default"
+            onChange={async (_, date) => {
+              setShowTimePicker(false);
+              if (date && pendingDecisionId) {
+                const finalDate = new Date(
+                  scheduleDate.getFullYear(),
+                  scheduleDate.getMonth(),
+                  scheduleDate.getDate(),
+                  date.getHours(),
+                  date.getMinutes()
+                );
+                try {
+                  await fetch(`https://7300c4c894de.ngrok-free.app/api/appointments/${pendingDecisionId}/decision`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ decision: "accepted", scheduledDateTime: finalDate }),
+                  });
+                  await refresh();
+                  Alert.alert("Scheduled", `Meeting set for ${finalDate.toLocaleString()}`);
+                } catch (err) {
+                  console.error(err);
+                  Alert.alert("Error", "Failed to schedule appointment.");
+                } finally {
+                  setPendingDecisionId(null);
+                }
+              }
+            }}
+          />
+        )}
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
-
-
-
 
 export default ActivityScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+  },
+  safeArea: {
+    flex: 1,
   },
   
   header: {
     padding: 24,
-    paddingBottom: 16,
+    paddingBottom: 20,
+    paddingTop: 16,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1E40AF",
-    marginBottom: 4,
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: "#64748b",
-    fontWeight: "400",
+    fontSize: 17,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
   },
 
   section: {
@@ -396,47 +455,65 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
-    backgroundColor: "white",
-    borderRadius: 16,
+    paddingVertical: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: 'blur(10px)',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#64748b",
+    marginTop: 16,
+    fontSize: 17,
+    color: "#FFFFFF",
     fontWeight: "500",
   },
 
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
-    backgroundColor: "white",
-    borderRadius: 16,
+    paddingVertical: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: 'blur(10px)',
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1E40AF",
-    marginTop: 16,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: "#64748b",
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
-    maxWidth: 250,
+    maxWidth: 280,
+    lineHeight: 22,
   },
 
   appointmentCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 20,
     marginBottom: 16,
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: 'blur(10px)',
+    shadowColor: "rgba(0, 0, 0, 0.1)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
 
   cardHeader: {
@@ -452,13 +529,20 @@ const styles = StyleSheet.create({
   },
 
   avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#eff6ff",
+    marginRight: 16,
+  },
+
+  avatarGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    shadowColor: "rgba(0, 0, 0, 0.15)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   patientDetails: {
@@ -466,21 +550,22 @@ const styles = StyleSheet.create({
   },
 
   patientName: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 2,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
 
   patientMeta: {
     fontSize: 14,
-    color: "#64748b",
-    marginBottom: 4,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 6,
+    fontWeight: "500",
   },
 
   symptomPreview: {
     fontSize: 14,
-    color: "#1E40AF",
+    color: "rgba(255, 255, 255, 0.9)",
     fontWeight: "500",
   },
 
@@ -491,21 +576,23 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    backdropFilter: 'blur(10px)',
   },
 
   statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: "700",
+    marginLeft: 6,
     textTransform: "capitalize",
   },
 
   chevron: {
-    opacity: 0.8,
+    opacity: 0.9,
   },
 
   expandedContent: {
@@ -514,43 +601,9 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     marginHorizontal: 20,
     marginBottom: 20,
-  },
-
-  detailsGrid: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    flex: 0.5,
-    minWidth: "48%",
-  },
-
-  fullWidth: {
-    flex: 1,
-    minWidth: "100%",
-  },
-
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#64748b",
-    marginLeft: 8,
-    marginRight: 8,
-    minWidth: 60,
-  },
-
-  detailValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1e293b",
-    flex: 1,
   },
 
   actionsContainer: {
@@ -564,27 +617,39 @@ const styles = StyleSheet.create({
 
   actionButton: {
     flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+
+  actionGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 10,
   },
 
   acceptButton: {
-    backgroundColor: "#10b981",
+    shadowColor: "#00D4AA",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 
   rejectButton: {
-    backgroundColor: "#ef4444",
+    shadowColor: "#FF6B6B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 
   actionButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 15,
-    marginLeft: 6,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 16,
+    marginLeft: 8,
   },
 
   meetingActions: {
@@ -592,42 +657,31 @@ const styles = StyleSheet.create({
   },
 
   meetingButton: {
+    borderRadius: 14,
+    minWidth: 200,
+    overflow: 'hidden',
+    shadowColor: "rgba(0, 0, 0, 0.1)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  meetingGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 10,
-    minWidth: 180,
   },
 
-  startMeetingButton: {
-    backgroundColor: "#10b981",
-  },
+  joinMeetingButton: {},
 
-  joinMeetingButton: {
-    backgroundColor: "#1E40AF",
-  },
-
-  disabledMeetingButton: {
-    backgroundColor: "#94a3b8",
-  },
+  disabledMeetingButton: {},
 
   meetingButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 15,
-    marginLeft: 8,
-  },
-
-  statusContainer: {
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-
-  statusMessage: {
-    fontSize: 15,
-    fontWeight: "600",
-    textTransform: "capitalize",
+    fontWeight: "700",
+    fontSize: 16,
+    marginLeft: 10,
   },
 });

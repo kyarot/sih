@@ -2,6 +2,7 @@ import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "
 import { Ionicons } from '@expo/vector-icons';
 import { Item, Notification } from "./types";
 import React from "react";
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface Props {
   notifications: Notification[];
@@ -15,290 +16,354 @@ export default function NotificationsSection({ notifications, items, getTimeAgo,
   const styles = StyleSheet.create({
     contentArea: {
       flex: 1,
-      backgroundColor: '#F8FAFC',
       paddingHorizontal: 20,
       paddingTop: 24,
     },
+    gradientBackground: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
     sectionHeader: {
-      fontSize: 28,
+      fontSize: 32,
       fontWeight: '700',
-      color: '#1E40AF',
+      color: 'white',
       marginBottom: 32,
       textAlign: 'center',
-      letterSpacing: 0.5,
+      letterSpacing: 0.8,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 4,
     },
     emptyState: {
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: 80,
       paddingHorizontal: 40,
-      backgroundColor: 'white',
-      borderRadius: 16,
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      borderRadius: 24,
       marginHorizontal: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+      backdropFilter: 'blur(20px)',
+      shadowColor: 'rgba(0, 0, 0, 0.4)',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 20,
+      elevation: 8,
     },
     emptyStateIcon: {
       marginBottom: 24,
-      opacity: 0.6,
+      opacity: 0.8,
     },
     emptyStateTitle: {
-      fontSize: 22,
-      fontWeight: '600',
-      color: '#1E40AF',
+      fontSize: 24,
+      fontWeight: '700',
+      color: 'white',
       marginBottom: 12,
       textAlign: 'center',
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     emptyStateText: {
       fontSize: 16,
-      color: '#64748B',
+      color: 'rgba(255, 255, 255, 0.9)',
       textAlign: 'center',
       lineHeight: 24,
       maxWidth: 280,
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     notificationCard: {
-      backgroundColor: 'white',
-      borderRadius: 16,
-      marginBottom: 16,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: 24,
+      marginBottom: 20,
       marginHorizontal: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: 'rgba(255, 255, 255, 0.25)',
+      backdropFilter: 'blur(20px)',
+      shadowColor: 'rgba(0, 0, 0, 0.4)',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.3,
+      shadowRadius: 24,
+      elevation: 12,
       overflow: 'hidden',
     },
     notificationHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      padding: 20,
-      paddingBottom: 16,
+      padding: 24,
+      paddingBottom: 20,
       borderBottomWidth: 1,
-      borderBottomColor: '#F1F5F9',
+      borderBottomColor: 'rgba(255, 255, 255, 0.15)',
     },
     patientInfo: {
       flex: 1,
     },
     notificationPatientName: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: '#1E40AF',
-      marginBottom: 4,
+      fontSize: 22,
+      fontWeight: '800',
+      color: 'white',
+      marginBottom: 6,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     notificationPhone: {
       fontSize: 16,
-      color: '#64748B',
+      color: 'rgba(255, 255, 255, 0.85)',
       marginBottom: 8,
-      fontWeight: '500',
+      fontWeight: '600',
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 1,
     },
     notificationTime: {
       fontSize: 14,
-      color: '#94A3B8',
+      color: 'rgba(255, 255, 255, 0.7)',
       fontWeight: '500',
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 1,
     },
     urgentBadge: {
-      backgroundColor: '#1E40AF',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      backgroundColor: 'white',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
       borderRadius: 20,
-      shadowColor: '#1E40AF',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowColor: 'rgba(0, 0, 0, 0.3)',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     urgentText: {
-      color: 'white',
+      color: '#1E40AF',
       fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 1,
+      fontWeight: '800',
+      letterSpacing: 1.2,
     },
     notificationDetails: {
-      padding: 20,
-      paddingTop: 16,
+      padding: 24,
+      paddingTop: 20,
     },
     notificationDelivery: {
       fontSize: 16,
-      color: '#1E40AF',
-      marginBottom: 12,
-      fontWeight: '600',
-      backgroundColor: '#F0F4FF',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
+      color: 'white',
+      marginBottom: 16,
+      fontWeight: '700',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 16,
       alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     addressContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 20,
     },
     addressIcon: {
-      marginRight: 8,
+      marginRight: 12,
     },
     notificationAddress: {
       fontSize: 15,
-      color: '#64748B',
+      color: 'rgba(255, 255, 255, 0.95)',
       flex: 1,
       lineHeight: 22,
-      backgroundColor: '#F8FAFC',
-      padding: 12,
-      borderRadius: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      padding: 16,
+      borderRadius: 16,
       borderLeftWidth: 4,
-      borderLeftColor: '#1E40AF',
+      borderLeftColor: 'white',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+      fontWeight: '500',
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 1,
     },
     notificationItemsTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#1E40AF',
-      marginBottom: 12,
-      marginTop: 4,
+      fontSize: 18,
+      fontWeight: '700',
+      color: 'white',
+      marginBottom: 16,
+      marginTop: 8,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     notificationItem: {
-      fontSize: 15,
-      color: '#374151',
-      marginBottom: 8,
-      paddingLeft: 8,
-      lineHeight: 20,
-      fontWeight: '500',
+      fontSize: 16,
+      color: 'rgba(255, 255, 255, 0.9)',
+      marginBottom: 10,
+      paddingLeft: 12,
+      lineHeight: 22,
+      fontWeight: '600',
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 1,
     },
     notificationItemOutOfStock: {
-      color: '#DC2626',
-      fontWeight: '600',
-      backgroundColor: '#FEF2F2',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6,
-      marginLeft: 8,
+      color: '#FF6B6B',
+      fontWeight: '700',
+      backgroundColor: 'rgba(255, 107, 107, 0.2)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      marginLeft: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 107, 107, 0.4)',
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
     },
     notificationActions: {
       flexDirection: 'row',
-      padding: 20,
-      paddingTop: 16,
-      // gap not supported broadly; use margin on first button
+      padding: 24,
+      paddingTop: 20,
       borderTopWidth: 1,
-      borderTopColor: '#F1F5F9',
-      backgroundColor: '#FAFBFC',
+      borderTopColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      gap: 16,
     },
     notificationBtn: {
       flex: 1,
-      paddingVertical: 14,
-      borderRadius: 12,
+      paddingVertical: 16,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 48,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      minHeight: 52,
+      shadowColor: 'rgba(0, 0, 0, 0.4)',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
     },
     rejectBtn: {
-      backgroundColor: 'white',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
       borderWidth: 2,
-      borderColor: '#E5E7EB',
-      marginRight: 12,
+      borderColor: 'rgba(255, 255, 255, 0.4)',
     },
     acceptBtn: {
-      backgroundColor: '#1E40AF',
+      backgroundColor: 'white',
       borderWidth: 2,
-      borderColor: '#1E40AF',
+      borderColor: 'rgba(255, 255, 255, 0.8)',
     },
     rejectBtnText: {
-      color: '#64748B',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    acceptBtnText: {
       color: 'white',
       fontSize: 16,
       fontWeight: '700',
-      letterSpacing: 0.3,
+      letterSpacing: 0.5,
+      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+    acceptBtnText: {
+      color: '#1E40AF',
+      fontSize: 16,
+      fontWeight: '800',
+      letterSpacing: 0.5,
     },
   });
 
   return (
-    <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
-      <Text style={styles.sectionHeader}>Order Notifications</Text>
+    <View style={styles.contentArea}>
+      <LinearGradient
+        colors={['#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD']}
+        style={styles.gradientBackground}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionHeader}>Order Notifications</Text>
 
-      {notifications.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="notifications-outline" size={48} color="#9CA3AF" style={styles.emptyStateIcon} />
-          <Text style={styles.emptyStateTitle}>No New Requests</Text>
-          <Text style={styles.emptyStateText}>New order requests from patients will appear here</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={(n) => n.id}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.notificationCard}>
-              <View style={styles.notificationHeader}>
-                <View style={styles.patientInfo}>
-                  <Text style={styles.notificationPatientName}>{item.patientName}</Text>
-                  <Text style={styles.notificationPhone}>{item.patientPhone}</Text>
-                  <Text style={styles.notificationTime}>{getTimeAgo(item.timestamp)}</Text>
-                </View>
-                <View style={styles.urgentBadge}>
-                  <Text style={styles.urgentText}>NEW</Text>
-                </View>
-              </View>
-
-              <View style={styles.notificationDetails}>
-                <Text style={styles.notificationDelivery}>
-                  {item.pickup === "delivery" ? "🚚 Home Delivery" : "🏪 Self Pickup"}
-                </Text>
-
-                {item.address && (
-                  <View style={styles.addressContainer}>
-                    <Ionicons name="location-outline" size={16} color="#6B7280" style={styles.addressIcon} />
-                    <Text style={styles.notificationAddress}>{item.address}</Text>
+        {notifications.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="notifications-outline" size={56} color="rgba(255, 255, 255, 0.8)" style={styles.emptyStateIcon} />
+            <Text style={styles.emptyStateTitle}>No New Requests</Text>
+            <Text style={styles.emptyStateText}>New order requests from patients will appear here</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={notifications}
+            keyExtractor={(n) => n.id}
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <View style={styles.notificationCard}>
+                <View style={styles.notificationHeader}>
+                  <View style={styles.patientInfo}>
+                    <Text style={styles.notificationPatientName}>{item.patientName}</Text>
+                    <Text style={styles.notificationPhone}>{item.patientPhone}</Text>
+                    <Text style={styles.notificationTime}>{getTimeAgo(item.timestamp)}</Text>
                   </View>
-                )}
+                  <View style={styles.urgentBadge}>
+                    <Text style={styles.urgentText}>NEW</Text>
+                  </View>
+                </View>
 
-                <Text style={styles.notificationItemsTitle}>Requested Items:</Text>
-                {item.items.map((orderItem, index) => {
-                  const inventoryItem = items.find((invItem) =>
-                    invItem.name.toLowerCase().includes(orderItem.name.toLowerCase())
-                  );
-                  const required = (orderItem as any).quantity ?? orderItem.qty;
-                  const hasStock = inventoryItem && inventoryItem.qty >= (required ?? 0);
+                <View style={styles.notificationDetails}>
+                  <Text style={styles.notificationDelivery}>
+                    {item.pickup === "delivery" ? "🚚 Home Delivery" : "🏪 Self Pickup"}
+                  </Text>
 
-                  return (
-                    <Text key={index} style={[styles.notificationItem, !hasStock && styles.notificationItemOutOfStock]}>
-                      • {orderItem.name} × {required}
-                    </Text>
-                  );
-                })}
+                  {item.address && (
+                    <View style={styles.addressContainer}>
+                      <Ionicons name="location-outline" size={20} color="rgba(255, 255, 255, 0.8)" style={styles.addressIcon} />
+                      <Text style={styles.notificationAddress}>{item.address}</Text>
+                    </View>
+                  )}
+
+                  <Text style={styles.notificationItemsTitle}>Requested Items:</Text>
+                  {item.items.map((orderItem, index) => {
+                    const inventoryItem = items.find((invItem) =>
+                      invItem.name.toLowerCase().includes(orderItem.name.toLowerCase())
+                    );
+                    const required = (orderItem as any).quantity ?? orderItem.qty;
+                    const hasStock = inventoryItem && inventoryItem.qty >= (required ?? 0);
+
+                    return (
+                      <Text key={index} style={[styles.notificationItem, !hasStock && styles.notificationItemOutOfStock]}>
+                        • {orderItem.name} × {required}
+                      </Text>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.notificationActions}>
+                  <TouchableOpacity 
+                    style={[styles.notificationBtn, styles.rejectBtn]} 
+                    onPress={() => rejectOrder(item.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.rejectBtnText}>Reject</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.notificationBtn, styles.acceptBtn]} 
+                    onPress={() => acceptOrder(item.id)}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.acceptBtnText}>Accept Order</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-
-              <View style={styles.notificationActions}>
-                <TouchableOpacity 
-                  style={[styles.notificationBtn, styles.rejectBtn]} 
-                  onPress={() => rejectOrder(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.rejectBtnText}>Reject</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.notificationBtn, styles.acceptBtn]} 
-                  onPress={() => acceptOrder(item.id)}
-                  activeOpacity={0.9}
-                >
-                  <Text style={styles.acceptBtnText}>Accept Order</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
-      )}
-    </ScrollView>
+            )}
+          />
+        )}
+      </ScrollView>
+    </View>
   );
 }

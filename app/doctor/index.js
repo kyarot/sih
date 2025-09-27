@@ -19,6 +19,7 @@ import axios from "axios";
 const { width } = Dimensions.get("window");
 
 export default function DoctorLanding() {
+  const [doctorId,setdoctorId]=useState("");
   const router = useRouter();
   const [isAvailable, setIsAvailable] = useState(true);
   const [doctorName, setDoctorName] = useState("");
@@ -31,8 +32,10 @@ export default function DoctorLanding() {
     const loadDoctor = async () => {
       const name = await AsyncStorage.getItem("doctorName");
       const spec = await AsyncStorage.getItem("specialization");
+      const id=await AsyncStorage.getItem("doctorId");
       setDoctorName(name || "Doctor");
       setSpecialization(spec || "");
+      setdoctorId(id||"");
     };
     loadDoctor();
   }, []);
@@ -71,7 +74,28 @@ export default function DoctorLanding() {
     const interval = setInterval(fetchAppointments, 30000); // refresh every 30s
     return () => clearInterval(interval);
   }, []);
+const updateStatus = async (value) => {
+  try {
+    console.log("inside handle")
+    setIsAvailable(value); // update UI immediately
+    // const doctorId = await AsyncStorage.getItem("doctorId");
+    // if (!doctorId) return;
 
+    const res = await fetch(`https://7300c4c894de.ngrok-free.app/api/doctors/${doctorId}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_online: value }),
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error("Failed to update status");
+    }
+  } catch (err) {
+    console.error("Error updating status:", err);
+    setIsAvailable(!value); // rollback if API fails
+  }
+};
   const handleLogout = async () => {
     await AsyncStorage.clear();
     Alert.alert("Logged Out", "You have been logged out successfully");
@@ -116,12 +140,12 @@ export default function DoctorLanding() {
                 {isAvailable ? 'Available' : 'Unavailable'}
               </Text>
             </View>
-            <Switch
-              value={isAvailable}
-              onValueChange={setIsAvailable}
-              trackColor={{ false: '#E5E7EB', true: '#BFDBFE' }}
-              thumbColor={isAvailable ? '#1E40AF' : '#F3F4F6'}
-            />
+           <Switch
+  value={isAvailable}
+  onValueChange={updateStatus}
+  trackColor={{ false: '#E5E7EB', true: '#BFDBFE' }}
+  thumbColor={isAvailable ? '#1E40AF' : '#F3F4F6'}
+/>
           </View>
         </View>
 

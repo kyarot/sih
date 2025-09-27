@@ -95,13 +95,12 @@ export default function PharmacyLocation() {
   const handleSaveLocation = (e: any) => { e.stopPropagation(); getAndSaveLocation(); };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      <View style={styles.contentContainer}>
-        <TouchableOpacity
-          style={[styles.card, isExpanded && styles.cardExpanded]}
-          onPress={toggleExpanded}
-          activeOpacity={0.8}
-        >
+    <SafeAreaView style={styles.screen}>
+      <TouchableOpacity
+        style={[styles.card, isExpanded && styles.cardExpanded]}
+        onPress={toggleExpanded}
+        activeOpacity={0.8}
+      >
           {/* Compact View */}
           <View style={styles.compactView}>
             <View style={[styles.iconContainer, locationSaved && styles.iconContainerSaved]}>
@@ -114,7 +113,7 @@ export default function PharmacyLocation() {
               </Text>
             </View>
             <View style={styles.expandIcon}>
-              <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
+              <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color="rgba(255, 255, 255, 0.7)" />
             </View>
           </View>
 
@@ -130,8 +129,8 @@ export default function PharmacyLocation() {
               {/* Benefits Section */}
               <View style={styles.benefitsSection}>
                 <View style={styles.benefitItem}>
-                  <View style={styles.benefitIcon}>
-                    <Ionicons name="people-outline" size={18} color="#1E40AF" />
+                  <View style={[styles.benefitIcon, {backgroundColor: 'rgba(78, 205, 196, 0.2)'}]}>
+                    <Ionicons name="people-outline" size={18} color="#4ECDC4" />
                   </View>
                   <View style={styles.benefitText}>
                     <Text style={styles.benefitTitle}>{t("patientDiscovery")}</Text>
@@ -140,8 +139,8 @@ export default function PharmacyLocation() {
                 </View>
 
                 <View style={styles.benefitItem}>
-                  <View style={styles.benefitIcon}>
-                    <Ionicons name="car-outline" size={18} color="#10B981" />
+                  <View style={[styles.benefitIcon, {backgroundColor: 'rgba(168, 230, 207, 0.2)'}]}>
+                    <Ionicons name="car-outline" size={18} color="#A8E6CF" />
                   </View>
                   <View style={styles.benefitText}>
                     <Text style={styles.benefitTitle}>{t("deliveryServices")}</Text>
@@ -150,8 +149,8 @@ export default function PharmacyLocation() {
                 </View>
 
                 <View style={styles.benefitItem}>
-                  <View style={styles.benefitIcon}>
-                    <Ionicons name="shield-checkmark-outline" size={18} color="#7C3AED" />
+                  <View style={[styles.benefitIcon, {backgroundColor: 'rgba(255, 230, 109, 0.2)'}]}>
+                    <Ionicons name="shield-checkmark-outline" size={18} color="#FFE66D" />
                   </View>
                   <View style={styles.benefitText}>
                     <Text style={styles.benefitTitle}>{t("securePrivate")}</Text>
@@ -164,7 +163,7 @@ export default function PharmacyLocation() {
               {location.latitude !== null && location.longitude !== null && (
                 <View style={styles.locationInfo}>
                   <View style={styles.locationHeader}>
-                    <Ionicons name="pin" size={16} color="#1E40AF" />
+                    <Ionicons name="pin" size={16} color="#FFFFFF" />
                     <Text style={styles.locationTitle}>{t("currentPharmacyLocation")}</Text>
                   </View>
                   <Text style={styles.coordinates}>
@@ -187,9 +186,9 @@ export default function PharmacyLocation() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator size="small" color="white" />
+                  <ActivityIndicator size="small" color="#2E4EC6" />
                 ) : (
-                  <Ionicons name={locationSaved ? "refresh" : "location"} size={18} color="white" />
+                  <Ionicons name={locationSaved ? "refresh" : "location"} size={18} color="#2E4EC6" />
                 )}
                 <Text style={styles.actionButtonText}>
                   {isLoading 
@@ -204,7 +203,7 @@ export default function PharmacyLocation() {
               {locationSaved && !isLoading && (
                 <View style={styles.successContainer}>
                   <View style={styles.successIcon}>
-                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                    <Ionicons name="checkmark-circle" size={18} color="#4ECDC4" />
                   </View>
                   <Text style={styles.successText}>
                     {t("pharmacyLocationSaved")}
@@ -214,7 +213,7 @@ export default function PharmacyLocation() {
 
               {/* Status Info */}
               <View style={styles.statusInfo}>
-                <Ionicons name="information-circle-outline" size={14} color="#64748B" />
+                <Ionicons name="information-circle-outline" size={14} color="rgba(255, 255, 255, 0.6)" />
                 <Text style={styles.statusText}>
                   {t("locationServicesHelp")}
                 </Text>
@@ -222,57 +221,58 @@ export default function PharmacyLocation() {
             </View>
           )}
         </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
 
-
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'transparent',
   },
   contentContainer: {
-    flex: 1,
-    padding: 12,
+    padding: 0,
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    shadowColor: '#1E40AF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
     overflow: 'hidden',
-    width: '100%',
+    alignSelf: 'stretch',
   },
   cardExpanded: {
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
 
   // Compact View
   compactView: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 0,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1E40AF',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 43, 125, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   iconContainerSaved: {
-    backgroundColor: '#10B981',
+    backgroundColor: 'rgba(78, 205, 196, 0.9)',
   },
   compactText: {
     flex: 1,
@@ -280,106 +280,121 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#FFFFFF',
     marginBottom: 2,
     letterSpacing: 0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   subtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
   },
   expandIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
 
   // Expanded Content
   expandedContent: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+    paddingTop: 16,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 12,
-    marginHorizontal: -14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 16,
+    marginHorizontal: 0,
   },
   description: {
-    fontSize: 13,
-    color: '#475569',
-    lineHeight: 18,
-    marginBottom: 16,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+    marginBottom: 18,
     fontWeight: '400',
   },
 
   // Benefits Section
   benefitsSection: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   benefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   benefitIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   benefitText: {
     flex: 1,
   },
   benefitTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 1,
+    color: '#FFFFFF',
+    marginBottom: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   benefitDesc: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
   },
 
   // Location Info
   locationInfo: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(20px)',
   },
   locationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   locationTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
-    marginLeft: 6,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   coordinates: {
-    fontSize: 12,
-    color: '#374151',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginBottom: 3,
+    marginBottom: 4,
     fontWeight: '500',
   },
   timestamp: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
   },
 
@@ -388,68 +403,72 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E40AF',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    shadowColor: '#1E40AF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 4,
   },
   actionButtonLoading: {
     opacity: 0.8,
   },
   actionButtonSaved: {
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#4ECDC4',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'white',
-    marginLeft: 6,
+    color: '#2E4EC6',
+    marginLeft: 8,
   },
 
   // Success Message
   successContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F0FDF4',
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: 'rgba(78, 205, 196, 0.2)',
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
-    marginBottom: 10,
+    borderColor: 'rgba(78, 205, 196, 0.3)',
+    marginBottom: 12,
+    backdropFilter: 'blur(20px)',
   },
   successIcon: {
-    marginRight: 6,
+    marginRight: 8,
     marginTop: 1,
   },
   successText: {
-    fontSize: 12,
-    color: '#166534',
+    fontSize: 13,
+    color: '#FFFFFF',
     fontWeight: '500',
     flex: 1,
-    lineHeight: 16,
+    lineHeight: 18,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 
   // Status Info
   statusInfo: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   statusText: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '500',
     flex: 1,
-    marginLeft: 5,
-    lineHeight: 14,
+    marginLeft: 6,
+    lineHeight: 16,
   },
 });

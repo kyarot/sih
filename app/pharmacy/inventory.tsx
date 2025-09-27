@@ -4,6 +4,7 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from "react";
 
 type Item = { 
@@ -250,53 +251,34 @@ export default function InventoryPage() {
 
   const renderSortButtons = () => (
     <View style={styles.sortContainer}>
-      <Text style={styles.sortLabel}>Sort by</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScrollView}>
-        <TouchableOpacity 
-          style={[styles.sortBtn, sortOption === "name-asc" && styles.activeSortBtn]}
-          onPress={() => setSortOption("name-asc")}
-        >
-          <Text style={[styles.sortBtnText, sortOption === "name-asc" && styles.activeSortText]}>A-Z</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.sortBtn, sortOption === "name-desc" && styles.activeSortBtn]}
-          onPress={() => setSortOption("name-desc")}
-        >
-          <Text style={[styles.sortBtnText, sortOption === "name-desc" && styles.activeSortText]}>Z-A</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.sortBtn, sortOption === "stock-high" && styles.activeSortBtn]}
-          onPress={() => setSortOption("stock-high")}
-        >
-          <Text style={[styles.sortBtnText, sortOption === "stock-high" && styles.activeSortText]}>High Stock</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.sortBtn, sortOption === "stock-low" && styles.activeSortBtn]}
-          onPress={() => setSortOption("stock-low")}
-        >
-          <Text style={[styles.sortBtnText, sortOption === "stock-low" && styles.activeSortText]}>Low Stock</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.sortBtn, sortOption === "price-asc" && styles.activeSortBtn]}
-          onPress={() => setSortOption("price-asc")}
-        >
-          <Text style={[styles.sortBtnText, sortOption === "price-asc" && styles.activeSortText]}>Price ↑</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.sortBtn, sortOption === "price-desc" && styles.activeSortBtn]}
-          onPress={() => setSortOption("price-desc")}
-        >
-          <Text style={[styles.sortBtnText, sortOption === "price-desc" && styles.activeSortText]}>Price ↓</Text>
-        </TouchableOpacity>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortScrollView}>
+        {[
+          { key: "name-asc", label: "A-Z" },
+          { key: "name-desc", label: "Z-A" },
+          { key: "stock-high", label: "High Stock" },
+          { key: "stock-low", label: "Low Stock" },
+          { key: "price-asc", label: "Price ↑" },
+          { key: "price-desc", label: "Price ↓" }
+        ].map((sort) => (
+          <TouchableOpacity 
+            key={sort.key}
+            style={[styles.sortBtn, sortOption === sort.key && styles.activeSortBtn]}
+            onPress={() => setSortOption(sort.key as SortOption)}
+          >
+            <Text style={[styles.sortBtnText, sortOption === sort.key && styles.activeSortText]}>
+              {sort.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </View>
   );
 
   const getStockStatus = (qty: number) => {
-    if (qty <= 10) return { color: "#DC2626", status: "Critical", opacity: 1 };
-    if (qty <= 20) return { color: "#EA580C", status: "Low", opacity: 1 };
-    if (qty <= 50) return { color: "#1E40AF", status: "Medium", opacity: 1 };
-    return { color: "#059669", status: "Good", opacity: 1 };
+    if (qty <= 10) return { color: "#DC2626", status: "Critical" };
+    if (qty <= 20) return { color: "#EA580C", status: "Low" };
+    if (qty <= 50) return { color: "#1E3A8A", status: "Medium" };
+    return { color: "#059669", status: "Good" };
   };
 
   const renderInventoryCard = ({ item }: { item: Item }) => {
@@ -306,168 +288,126 @@ export default function InventoryPage() {
 
     return (
       <View style={styles.inventoryCard}>
-        <TouchableOpacity 
-          style={styles.cardHeader}
-          onPress={() => setExpandedItem(isExpanded ? null : item.id)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.cardContent}>
-            <View style={styles.medicineInfo}>
-              <Text style={styles.medicineName} numberOfLines={2}>{item.name}</Text>
-              {item.brand && (
-                <Text style={styles.medicineBrand} numberOfLines={1}>{item.brand}</Text>
-              )}
-              {item.category && (
-                <Text style={styles.medicineCategory} numberOfLines={1}>{item.category}</Text>
-              )}
-              
-              <View style={styles.infoRow}>
-                <View style={[styles.stockBadge, { backgroundColor: stockStatus.color }]}>
-                  <Text style={styles.stockBadgeText}>{stockStatus.status}</Text>
+        <View style={styles.cardContent}>
+          <TouchableOpacity onPress={() => setExpandedItem(isExpanded ? null : item.id)} activeOpacity={0.7}>
+            <View style={styles.cardHeader}>
+              <View style={styles.medicineInfo}>
+                <Text style={styles.medicineName} numberOfLines={2}>{item.name}</Text>
+                {item.brand && <Text style={styles.medicineBrand}>{item.brand}</Text>}
+                {item.category && <Text style={styles.medicineCategory}>{item.category}</Text>}
+                
+                <View style={styles.infoRow}>
+                  <View style={[styles.stockBadge, { backgroundColor: stockStatus.color }]}>
+                    <Text style={styles.stockBadgeText}>{stockStatus.status}</Text>
+                  </View>
+                  <Text style={styles.stockText}>Stock: {item.qty}</Text>
                 </View>
-                <Text style={styles.stockText}>Stock: {item.qty}</Text>
+                
+                {item.price && <Text style={styles.priceText}>₹{item.price.toFixed(2)}</Text>}
               </View>
               
-              {item.price && (
-                <Text style={styles.priceText}>₹{item.price.toFixed(2)}</Text>
-              )}
-            </View>
-            
-            <View style={styles.quickActions}>
-              <TouchableOpacity 
-                style={styles.quickBtn}
-                onPress={() => quickAdjustStock(item.id, -1)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickBtnText}>−</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.quickBtn}
-                onPress={() => quickAdjustStock(item.id, 1)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickBtnText}>+</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.expandBtn}
-                onPress={() => setExpandedItem(isExpanded ? null : item.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.expandBtnText}>{isExpanded ? "▲" : "▼"}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {isExpanded && (
-          <View style={styles.expandedContent}>
-            <View style={styles.divider} />
-            
-            <Text style={styles.expandedTitle}>Update Stock</Text>
-            <View style={styles.stockUpdateRow}>
-              <TextInput
-              style={[styles.stockInput, styles.mr8]}
-                value={currentEditValue}
-                onChangeText={(text) => setEditingStock(prev => ({ ...prev, [item.id]: text }))}
-                keyboardType="numeric"
-                placeholder="Enter quantity"
-                placeholderTextColor="#9CA3AF"
-              />
-              <TouchableOpacity 
-                style={styles.updateBtn}
-                onPress={() => updateStock(item.id, currentEditValue)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.updateBtnText}>Update</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.presetActions}>
-              <Text style={styles.presetLabel}>Quick Adjust</Text>
-              <View style={styles.presetBtns}>
-                <TouchableOpacity 
-                style={[styles.presetBtn, styles.mr8]}
-                  onPress={() => quickAdjustStock(item.id, -10)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetBtnText}>-10</Text>
+              <View style={styles.quickActions}>
+                <TouchableOpacity style={styles.quickBtn} onPress={() => quickAdjustStock(item.id, -1)}>
+                  <Ionicons name="remove" size={16} color="#1E3A8A" />
                 </TouchableOpacity>
-                <TouchableOpacity 
-                style={[styles.presetBtn, styles.mr8]}
-                  onPress={() => quickAdjustStock(item.id, -5)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetBtnText}>-5</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                style={[styles.presetBtn, styles.mr8]}
-                  onPress={() => quickAdjustStock(item.id, 5)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetBtnText}>+5</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.presetBtn}
-                  onPress={() => quickAdjustStock(item.id, 10)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.presetBtnText}>+10</Text>
+                <TouchableOpacity style={styles.quickBtn} onPress={() => quickAdjustStock(item.id, 1)}>
+                  <Ionicons name="add" size={16} color="#1E3A8A" />
                 </TouchableOpacity>
               </View>
             </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={() => confirmDelete(item.id)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.deleteBtnText}>Delete Item</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          {isExpanded && (
+            <View style={styles.expandedContent}>
+              <View style={styles.divider} />
+              
+              <Text style={styles.expandedTitle}>Update Stock</Text>
+              <View style={styles.stockUpdateRow}>
+                <TextInput
+                  style={styles.stockInput}
+                  value={currentEditValue}
+                  onChangeText={(text) => setEditingStock(prev => ({ ...prev, [item.id]: text }))}
+                  keyboardType="numeric"
+                  placeholder="Enter quantity"
+                  placeholderTextColor="rgba(30, 58, 138, 0.4)"
+                />
+                <TouchableOpacity style={styles.updateBtn} onPress={() => updateStock(item.id, currentEditValue)}>
+                  <Text style={styles.updateBtnText}>Update</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.presetActions}>
+                <Text style={styles.presetLabel}>Quick Adjust</Text>
+                <View style={styles.presetBtns}>
+                  {[-10, -5, 5, 10].map((delta) => (
+                    <TouchableOpacity 
+                      key={delta}
+                      style={styles.presetBtn}
+                      onPress={() => quickAdjustStock(item.id, delta)}
+                    >
+                      <Text style={styles.presetBtnText}>{delta > 0 ? `+${delta}` : delta}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.deleteBtn} onPress={() => confirmDelete(item.id)}>
+                <Ionicons name="trash-outline" size={16} color="white" />
+                <Text style={styles.deleteBtnText}>Delete Item</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={['#1E3A8A', '#3B82F6', '#60A5FA']} style={styles.container}>
       <Stack.Screen 
         options={{ 
           title: "Inventory Management",
           headerShown: true,
-          headerStyle: { backgroundColor: "#1E40AF" },
+          headerStyle: { backgroundColor: "transparent" },
           headerTitleStyle: { fontSize: 18, fontWeight: "600", color: "#FFFFFF" },
           headerTintColor: "#FFFFFF",
+          headerTransparent: true,
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()}>
-              <Text style={styles.backBtn}>← Back</Text>
+              <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
           )
         }} 
       />
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search-outline" size={20} color="#6B7280" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search medicines, brands, categories..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#9CA3AF"
-          />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.headerIconContainer}>
+            <Ionicons name="medical-outline" size={28} color="white" />
+          </View>
+          <Text style={styles.headerTitle}>Inventory Management</Text>
+          <Text style={styles.headerSubtitle}>Manage your pharmacy stock efficiently</Text>
         </View>
-      </View>
 
-      {renderSortButtons()}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search-outline" size={20} color="rgba(30, 58, 138, 0.6)" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search medicines, brands, categories..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="rgba(30, 58, 138, 0.4)"
+            />
+          </View>
+        </View>
 
-      <View style={styles.resultsHeader}>
+        {renderSortButtons()}
+
         <Text style={styles.resultsText}>
           {filteredAndSortedItems.length} medicine{filteredAndSortedItems.length !== 1 ? 's' : ''} found
         </Text>
-      </View>
 
-      <View style={styles.medicineListContainer}>
         <FlatList
           data={filteredAndSortedItems}
           keyExtractor={item => item.id}
@@ -478,7 +418,9 @@ export default function InventoryPage() {
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Ionicons name="cube-outline" size={48} color="#9CA3AF" style={styles.emptyIcon} />
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="cube-outline" size={48} color="rgba(255,255,255,0.6)" />
+              </View>
               <Text style={styles.emptyTitle}>No medicines found</Text>
               <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
             </View>
@@ -488,528 +430,241 @@ export default function InventoryPage() {
         />
       </View>
 
-      <View style={styles.addMedicineContainer}>
-        <TouchableOpacity 
-          style={styles.addMedicineBtn}
-          onPress={() => setShowAddForm(!showAddForm)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.addMedicineBtnText}>
-            {showAddForm ? "Cancel" : "Add New Medicine"}
-          </Text>
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.floatingBtn} onPress={() => setShowAddForm(true)} activeOpacity={0.8}>
+        <Ionicons name="add" size={28} color="#1E3A8A" />
+      </TouchableOpacity>
 
-        {showAddForm && (
-          <View style={styles.addMedicineForm}>
-            <Text style={styles.formTitle}>Add New Medicine</Text>
+      <Modal visible={showAddForm} transparent animationType="slide" onRequestClose={() => setShowAddForm(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.addFormModal}>
+            <View style={styles.addFormHeader}>
+              <Text style={styles.addFormTitle}>Add New Medicine</Text>
+              <TouchableOpacity onPress={() => setShowAddForm(false)}>
+                <Ionicons name="close" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
             
-            <TextInput
-              style={styles.formInput}
-              placeholder="Medicine Name *"
-              value={newMedicine.name}
-              onChangeText={(text) => setNewMedicine(prev => ({ ...prev, name: text }))}
-              placeholderTextColor="#9CA3AF"
-            />
-            
-            <TextInput
-              style={styles.formInput}
-              placeholder="Brand"
-              value={newMedicine.brand}
-              onChangeText={(text) => setNewMedicine(prev => ({ ...prev, brand: text }))}
-              placeholderTextColor="#9CA3AF"
-            />
-            
-            <TextInput
-              style={styles.formInput}
-              placeholder="Category"
-              value={newMedicine.category}
-              onChangeText={(text) => setNewMedicine(prev => ({ ...prev, category: text }))}
-              placeholderTextColor="#9CA3AF"
-            />
-            
-            <View style={styles.formRow}>
+            <ScrollView style={styles.addFormContent}>
               <TextInput
-                style={[styles.formInput, styles.formInputHalf]}
-                placeholder="Price *"
-                value={newMedicine.price}
-                onChangeText={(text) => setNewMedicine(prev => ({ ...prev, price: text }))}
-                keyboardType="numeric"
-                placeholderTextColor="#9CA3AF"
+                style={styles.formInput}
+                placeholder="Medicine Name *"
+                value={newMedicine.name}
+                onChangeText={(text) => setNewMedicine(prev => ({ ...prev, name: text }))}
+                placeholderTextColor="rgba(30, 58, 138, 0.4)"
               />
               
               <TextInput
-                style={[styles.formInput, styles.formInputHalf]}
-                placeholder="Quantity *"
-                value={newMedicine.quantity}
-                onChangeText={(text) => setNewMedicine(prev => ({ ...prev, quantity: text }))}
-                keyboardType="numeric"
-                placeholderTextColor="#9CA3AF"
+                style={styles.formInput}
+                placeholder="Brand"
+                value={newMedicine.brand}
+                onChangeText={(text) => setNewMedicine(prev => ({ ...prev, brand: text }))}
+                placeholderTextColor="rgba(30, 58, 138, 0.4)"
               />
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.submitBtn}
-              onPress={addMedicine}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.submitBtnText}>Add Medicine</Text>
-            </TouchableOpacity>
+              
+              <TextInput
+                style={styles.formInput}
+                placeholder="Category"
+                value={newMedicine.category}
+                onChangeText={(text) => setNewMedicine(prev => ({ ...prev, category: text }))}
+                placeholderTextColor="rgba(30, 58, 138, 0.4)"
+              />
+              
+              <View style={styles.formRow}>
+                <TextInput
+                  style={[styles.formInput, styles.formInputHalf]}
+                  placeholder="Price *"
+                  value={newMedicine.price}
+                  onChangeText={(text) => setNewMedicine(prev => ({ ...prev, price: text }))}
+                  keyboardType="numeric"
+                  placeholderTextColor="rgba(30, 58, 138, 0.4)"
+                />
+                
+                <TextInput
+                  style={[styles.formInput, styles.formInputHalf]}
+                  placeholder="Quantity *"
+                  value={newMedicine.quantity}
+                  onChangeText={(text) => setNewMedicine(prev => ({ ...prev, quantity: text }))}
+                  keyboardType="numeric"
+                  placeholderTextColor="rgba(30, 58, 138, 0.4)"
+                />
+              </View>
+              
+              <TouchableOpacity style={styles.submitBtn} onPress={addMedicine}>
+                <Ionicons name="checkmark" size={20} color="white" />
+                <Text style={styles.submitBtnText}>Add Medicine</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
-        )}
-      </View>
+        </View>
+      </Modal>
 
-      <Modal
-        visible={showDeleteModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleDeleteCancel}
-      >
+      <Modal visible={showDeleteModal} transparent animationType="fade" onRequestClose={handleDeleteCancel}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Medicine</Text>
-            <Text style={styles.modalMessage}>
+          <View style={styles.deleteModalContent}>
+            <Ionicons name="warning-outline" size={48} color="#DC2626" />
+            <Text style={styles.deleteModalTitle}>Delete Medicine</Text>
+            <Text style={styles.deleteModalMessage}>
               Are you sure you want to delete this medicine? This action cannot be undone.
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={handleDeleteCancel}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={styles.cancelButton} onPress={handleDeleteCancel}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={handleDeleteConfirm}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.deleteButtonText}>Delete</Text>
+              <TouchableOpacity style={styles.confirmDeleteButton} onPress={handleDeleteConfirm}>
+                <Text style={styles.confirmDeleteButtonText}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
+  container: { flex: 1 },
+  content: { flex: 1, paddingTop: 100 },
+  header: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20 },
+  headerIconContainer: {
+    width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: 'rgba(0, 0, 0, 0.3)', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 6
   },
-  backBtn: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "500",
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 6, textAlign: 'center' },
+  headerSubtitle: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'center' },
+  searchContainer: { paddingHorizontal: 20, marginBottom: 16 },
   searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16, paddingHorizontal: 16, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: 'rgba(0, 0, 0, 0.1)', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 2
   },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: "#374151",
-  },
-  sortContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  sortLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6B7280",
-    marginBottom: 12,
-  },
-  sortScrollView: {
-    flexGrow: 0,
-  },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: '#1E3A8A', marginLeft: 10 },
+  sortContainer: { paddingHorizontal: 20, marginBottom: 16 },
+  sortScrollView: { paddingRight: 20 },
   sortBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    paddingHorizontal: 16, paddingVertical: 8, marginRight: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)'
   },
-  activeSortBtn: {
-    backgroundColor: "#1E40AF",
-    borderColor: "#1E40AF",
-  },
-  sortBtnText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#6B7280",
-  },
-  activeSortText: {
-    color: "#FFFFFF",
-  },
-  resultsHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  resultsText: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  listContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-  },
-  row: {
-    justifyContent: "space-between",
-    marginHorizontal: 8,
-  },
+  activeSortBtn: { backgroundColor: 'rgba(255, 255, 255, 0.9)' },
+  sortBtnText: { fontSize: 14, fontWeight: '500', color: 'rgba(255, 255, 255, 0.9)' },
+  activeSortText: { color: '#1E3A8A' },
+  resultsText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', fontWeight: '500', paddingHorizontal: 20, marginBottom: 12 },
+  listContainer: { paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 80 },
+  row: { justifyContent: 'space-between', marginHorizontal: 8 },
   inventoryCard: {
-    flex: 0.48,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    flex: 0.48, marginBottom: 16, borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: 'rgba(0, 0, 0, 0.3)', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 6
   },
-  cardHeader: {
-    padding: 16,
-  },
-  cardContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  medicineInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  medicineName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
-    lineHeight: 22,
-  },
-  medicineBrand: {
-    fontSize: 12,
-    color: "#1E40AF",
-    marginBottom: 4,
-    fontWeight: "500",
-  },
-  medicineCategory: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 8,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-    flexWrap: "wrap",
-  },
-  stockBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  stockBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  stockText: {
-    fontSize: 12,
-    color: "#374151",
-    fontWeight: "500",
-  },
-  priceText: {
-    fontSize: 14,
-    color: "#059669",
-    fontWeight: "600",
-    marginTop: 4,
-  },
-  quickActions: {
-    alignItems: "center",
-    // gap not fully supported; space with margin
-  },
+  cardContent: { backgroundColor: 'rgba(255, 255, 255, 0.95)', margin: 1, borderRadius: 17 },
+  cardHeader: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  medicineInfo: { flex: 1, marginRight: 12 },
+  medicineName: { fontSize: 16, fontWeight: '600', color: '#1E3A8A', marginBottom: 4, lineHeight: 22 },
+  medicineBrand: { fontSize: 12, color: 'rgba(30, 58, 138, 0.7)', marginBottom: 4, fontWeight: '500' },
+  medicineCategory: { fontSize: 12, color: 'rgba(30, 58, 138, 0.5)', marginBottom: 8 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' },
+  stockBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginRight: 8 },
+  stockBadgeText: { fontSize: 10, fontWeight: '600', color: '#FFFFFF' },
+  stockText: { fontSize: 12, color: '#374151', fontWeight: '500' },
+  priceText: { fontSize: 14, color: '#059669', fontWeight: '600', marginTop: 4 },
+  quickActions: { alignItems: 'center', gap: 6 },
   quickBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(30, 58, 138, 0.1)',
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(30, 58, 138, 0.2)'
   },
-  quickBtnText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1E40AF",
-  },
-  expandBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#1E40AF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  expandBtnText: {
-    fontSize: 12,
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  expandedContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginBottom: 16,
-  },
-  expandedTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  stockUpdateRow: {
-    flexDirection: "row",
-    // use margin on input and button instead of gap
-    marginBottom: 16,
-  },
+  expandedContent: { paddingHorizontal: 16, paddingBottom: 16 },
+  divider: { height: 1, backgroundColor: 'rgba(30, 58, 138, 0.1)', marginBottom: 16 },
+  expandedTitle: { fontSize: 14, fontWeight: '600', color: '#1E3A8A', marginBottom: 12 },
+  stockUpdateRow: { flexDirection: 'row', marginBottom: 16, gap: 8 },
   stockInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    backgroundColor: "#FFFFFF",
-    color: "#374151",
+    flex: 1, borderWidth: 1, borderColor: 'rgba(30, 58, 138, 0.2)', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, backgroundColor: 'white', color: '#1E3A8A'
   },
   updateBtn: {
-    backgroundColor: "#1E40AF",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    justifyContent: "center",
+    backgroundColor: '#1E3A8A', paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 8, justifyContent: 'center'
   },
-  updateBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  presetActions: {
-    marginBottom: 16,
-  },
-  presetLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 8,
-    fontWeight: "500",
-  },
-  presetBtns: {
-    flexDirection: "row",
-    // space preset buttons with marginRight
-  },
+  updateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  presetActions: { marginBottom: 16 },
+  presetLabel: { fontSize: 12, color: 'rgba(30, 58, 138, 0.6)', marginBottom: 8, fontWeight: '500' },
+  presetBtns: { flexDirection: 'row', gap: 8 },
   presetBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(30, 58, 138, 0.05)',
+    borderRadius: 8, borderWidth: 1, borderColor: 'rgba(30, 58, 138, 0.2)'
   },
-  presetBtnText: {
-    fontSize: 12,
-    color: "#374151",
-    fontWeight: "500",
-  },
-  mr8: {
-    marginRight: 8,
-  },
+  presetBtnText: { fontSize: 12, color: '#1E3A8A', fontWeight: '500' },
   deleteBtn: {
-    backgroundColor: "#DC2626",
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
+    backgroundColor: '#DC2626', paddingVertical: 10, borderRadius: 8, alignItems: 'center',
+    flexDirection: 'row', justifyContent: 'center', gap: 6
   },
-  deleteBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
+  deleteBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 20 },
+  emptyIconContainer: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)'
   },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  medicineListContainer: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
-  addMedicineContainer: {
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-  },
-  addMedicineBtn: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: "#1E40AF",
-    alignItems: "center",
-  },
-  addMedicineBtnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  addMedicineForm: {
-    padding: 20,
-    backgroundColor: "#F9FAFB",
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  formInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: "#FFFFFF",
-    marginBottom: 12,
-    color: "#374151",
-  },
-  formRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  formInputHalf: {
-    flex: 1,
-  },
-  submitBtn: {
-    backgroundColor: "#059669",
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  submitBtnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+  emptyTitle: { fontSize: 20, fontWeight: '600', color: 'white', marginBottom: 8, textAlign: 'center' },
+  emptyText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', textAlign: 'center' },
+  floatingBtn: {
+    position: 'absolute', bottom: 30, right: 30, width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'white', justifyContent: 'center', alignItems: 'center',
+    shadowColor: 'rgba(0, 0, 0, 0.3)', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+    borderWidth: 2, borderColor: 'rgba(30, 58, 138, 0.1)'
   },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center', alignItems: 'center'
   },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    margin: 20,
-    minWidth: 280,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+  addFormModal: {
+    backgroundColor: 'white', borderRadius: 20, margin: 20, overflow: 'hidden',
+    shadowColor: 'rgba(0, 0, 0, 0.3)', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 10, maxHeight: '80%'
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 12,
-    textAlign: "center",
+  addFormHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 20, backgroundColor: '#1E3A8A'
   },
-  modalMessage: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 24,
-    textAlign: "center",
-    lineHeight: 20,
+  addFormTitle: { fontSize: 18, fontWeight: '600', color: 'white' },
+  addFormContent: { padding: 20, maxHeight: 400 },
+  formInput: {
+    borderWidth: 1, borderColor: 'rgba(30, 58, 138, 0.2)', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, backgroundColor: 'white',
+    marginBottom: 16, color: '#1E3A8A'
   },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 12,
+  formRow: { flexDirection: 'row', gap: 12 },
+  formInputHalf: { flex: 1 },
+  submitBtn: {
+    backgroundColor: '#059669', paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+    marginTop: 8, flexDirection: 'row', justifyContent: 'center', gap: 8,
+    shadowColor: 'rgba(5, 150, 105, 0.3)', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
   },
+  submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  deleteModalContent: {
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, margin: 20,
+    alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, shadowRadius: 16, elevation: 10
+  },
+  deleteModalTitle: { fontSize: 18, fontWeight: '600', color: '#111827', marginVertical: 16, textAlign: 'center' },
+  deleteModalMessage: {
+    fontSize: 14, color: '#6B7280', marginBottom: 24, textAlign: 'center', lineHeight: 20
+  },
+  modalButtons: { flexDirection: 'row', gap: 12 },
   cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+    backgroundColor: 'rgba(30, 58, 138, 0.1)', borderWidth: 1, borderColor: 'rgba(30, 58, 138, 0.2)'
   },
-  deleteButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    backgroundColor: "#DC2626",
+  confirmDeleteButton: {
+    flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: '#DC2626'
   },
-  cancelButtonText: {
-    color: "#6B7280",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  deleteButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  cancelButtonText: { color: '#1E3A8A', fontSize: 16, fontWeight: '600' },
+  confirmDeleteButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' }
 });
